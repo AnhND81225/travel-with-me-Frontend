@@ -1,0 +1,71 @@
+@import "tailwindcss";
+@import "./styles/storefront.css";
+@import "./styles/customer-pages.css";
+@import "./styles/stitch-reference.css";
+
+@layer base {
+  :root {
+    --color-primary: #152A20;
+    --color-secondary: #D97845;
+    --color-tertiary: #1F3D2B;
+    --color-neutral-canvas: #F3EFE6;
+    --color-neutral-surface: #F8F6F1;
+    --color-neutral-alt: #EBE6DC;
+    --color-neutral-border: #D8D2C5;
+    --color-text-primary: #111D16;
+    --color-text-secondary: #5C665F;
+  }
+
+  body {
+    background-color: #F3EFE6;
+    color: #111D16;
+    font-family: 'Work Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+.font-headline {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-body {
+  font-family: 'Work Sans', sans-serif;
+}
+
+.font-label {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono-spec {
+  font-family: 'Space Grotesk', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle dot canvas background */
+.bg-topo-pattern {
+  background-image: radial-gradient(rgba(21, 42, 32, 0.06) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+/* Scrollbars customized to match thin aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #EBE6DC;
+}
+::-webkit-scrollbar-thumb {
+  background: #C4BCAC;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #152A20;
+}

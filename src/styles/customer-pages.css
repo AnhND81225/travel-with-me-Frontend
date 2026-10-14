@@ -1,0 +1,1243 @@
+.customer-tours,
+.customer-orders {
+  background: #fdf9f0;
+  color: #152a20;
+}
+.customer-tour-intro {
+  padding: 48px 0 32px;
+  background: #f1ede5;
+  border-bottom: 1px solid #e6e2d9;
+}
+.customer-intro-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 48px;
+}
+.customer-intro-row h1 {
+  font: 700 48px/1.08 "Space Grotesk";
+  letter-spacing: -1.5px;
+  max-width: 650px;
+  margin: 12px 0 18px;
+}
+.customer-intro-row h1 span {
+  color: #994717;
+}
+.customer-intro-row p {
+  max-width: 690px;
+  font-size: 15px;
+  line-height: 24px;
+  color: #424844;
+}
+.customer-tour-conditions {
+  display: flex;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.customer-tour-conditions > span {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 600 9px/14px "Space Grotesk";
+  letter-spacing: 0.6px;
+}
+.customer-tour-conditions svg {
+  width: 20px;
+  color: #994717;
+}
+.customer-tour-conditions b {
+  font-size: 17px;
+  line-height: 22px;
+  letter-spacing: 0;
+}
+.customer-tour-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  background: #fff;
+  padding: 24px;
+  border: 1px solid #e6e2d9;
+  border-radius: 6px;
+  margin-top: 32px;
+}
+.customer-tour-filters > label,
+.customer-tour-filters legend {
+  font: 600 10px/15px "Space Grotesk";
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.customer-tour-filters select,
+.customer-label select {
+  width: 100%;
+  background: #f7f3ea;
+  border: 1px solid #e6e2d9;
+  border-radius: 3px;
+  min-height: 40px;
+  padding: 9px;
+  font: 500 12px/18px "Space Grotesk";
+  letter-spacing: 0;
+  text-transform: none;
+  margin-top: 6px;
+}
+.customer-tour-filters fieldset {
+  min-width: 0;
+}
+.customer-tour-filters legend {
+  margin-bottom: 6px;
+}
+.customer-segment {
+  display: flex;
+  gap: 3px;
+  background: #f1ede5;
+  border-radius: 3px;
+  padding: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.customer-segment button {
+  font: 600 10px/14px "Space Grotesk";
+  text-transform: uppercase;
+  padding: 9px 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.customer-segment button[aria-pressed="true"] {
+  background: #152a20;
+  color: white;
+}
+.customer-filter-bottom {
+  grid-column: 1/-1;
+  border-top: 1px solid #e6e2d9;
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.customer-filter-bottom > span {
+  font-size: 12px;
+  color: #424844;
+}
+.customer-filter-bottom .store-button {
+  margin-left: auto;
+}
+.customer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid #d8d2c5;
+  border-radius: 3px;
+  background: white;
+  font: 600 10px/14px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.customer-chip.active {
+  background: #152a20;
+  color: white;
+}
+.customer-text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 11px/16px "Space Grotesk";
+  text-transform: uppercase;
+  color: #994717;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
+.customer-text-button:hover {
+  text-decoration: underline;
+}
+.customer-tour-content {
+  padding-top: 36px;
+  padding-bottom: 48px;
+  scroll-margin-top: 100px;
+}
+.customer-section-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 12px;
+  font: 600 10px/16px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #737874;
+}
+.customer-section-label > span:first-child {
+  color: #994717;
+}
+.customer-feature-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.customer-feature-heading h2 {
+  font: 700 32px/40px "Space Grotesk";
+  text-transform: uppercase;
+  max-width: 850px;
+}
+.customer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #994717;
+}
+.customer-tour-feature {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  border: 1px solid #e6e2d9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+.customer-feature-photo {
+  position: relative;
+  min-height: 480px;
+  background: #152a20;
+  overflow: hidden;
+}
+.customer-feature-photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+}
+.customer-feature-photo > div {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #152a20eb;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  color: #c2c8c2;
+}
+.customer-feature-photo span {
+  font: 500 10px/15px "Space Grotesk";
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.customer-feature-photo b {
+  font-size: 18px;
+  color: white;
+}
+.customer-feature-photo svg {
+  color: #fe9660;
+}
+.customer-feature-booking {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.customer-feature-booking h3 {
+  font: 600 24px/32px "Space Grotesk";
+}
+.customer-feature-facts {
+  display: grid;
+  gap: 20px;
+}
+.customer-feature-facts p {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #424844;
+}
+.customer-feature-facts svg {
+  width: 20px;
+  flex-shrink: 0;
+  color: #994717;
+  margin-top: 3px;
+}
+.customer-feature-facts span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.customer-feature-facts small {
+  font: 600 10px/14px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.customer-feature-facts b {
+  font: 600 14px/20px "Space Grotesk";
+  color: #152a20;
+}
+.customer-feature-price {
+  margin-top: auto;
+  border-top: 1px solid #e6e2d9;
+  padding-top: 16px;
+}
+.customer-feature-price small {
+  display: block;
+  font: 500 10px/16px "Space Grotesk";
+  text-transform: uppercase;
+  color: #424844;
+}
+.customer-feature-price strong {
+  font: 700 32px/40px "Space Grotesk";
+}
+.customer-itinerary,
+.customer-tour-gear,
+.customer-more-tours {
+  margin-top: 48px;
+}
+.customer-itinerary h3 {
+  font: 700 16px/24px "Space Grotesk";
+  color: #152a20;
+}
+.customer-itinerary article {
+  position: relative;
+  padding: 20px;
+  border: 1px solid #e6e2d9;
+  border-radius: 4px;
+  background: #fff;
+}
+.customer-day {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  font: 700 30px "Space Grotesk";
+  color: #e6e2d9;
+}
+.customer-itinerary h4 {
+  font: 700 19px/26px "Space Grotesk";
+  margin: 12px 0;
+  max-width: 90%;
+}
+.customer-itinerary article p {
+  font-size: 13px;
+  line-height: 21px;
+  color: #424844;
+}
+.customer-itinerary article small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  font: 500 10px/15px "Space Grotesk";
+  color: #994717;
+}
+.customer-inclusions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 20px;
+  gap: 24px;
+}
+.customer-inclusions > div {
+  padding: 24px;
+  background: #f1ede5;
+  border-radius: 4px;
+}
+.customer-inclusions h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font: 600 13px/20px "Space Grotesk";
+  text-transform: uppercase;
+}
+.customer-inclusions p {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 21px;
+  color: #424844;
+  margin: 8px 0;
+}
+.customer-inclusions svg {
+  flex-shrink: 0;
+  color: #994717;
+}
+.customer-readiness {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+.customer-readiness span {
+  font: 500 9px/14px "Space Grotesk";
+  text-transform: uppercase;
+  color: #424844;
+}
+.customer-readiness b {
+  display: block;
+  font-size: 14px;
+  color: #152a20;
+  margin-top: 6px;
+}
+.customer-tour-gear > h2,
+.customer-more-tours > h2 {
+  font: 700 28px/36px "Space Grotesk";
+}
+.customer-tour-gear > p,
+.customer-more-tours > p {
+  font-size: 14px;
+  line-height: 22px;
+  color: #424844;
+  margin: 8px 0 24px;
+}
+.customer-compact-gear {
+  background: white;
+  border: 1px solid #e6e2d9;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.customer-compact-gear img {
+  width: 100%;
+  aspect-ratio: 16/10;
+  object-fit: cover;
+}
+.customer-compact-gear h3 {
+  padding: 16px 16px 0;
+  font: 700 18px/24px "Space Grotesk";
+  min-height: 64px;
+}
+.customer-compact-gear > p {
+  padding: 0 16px;
+  font-size: 12px;
+  line-height: 19px;
+  color: #424844;
+  margin-top: 8px;
+  flex: 1;
+}
+.customer-compact-gear > b {
+  padding: 12px 16px;
+  font: 600 11px/16px "Space Grotesk";
+}
+.customer-compact-gear > div {
+  padding: 0 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.customer-compact-gear .store-button {
+  font-size: 10px;
+  padding: 8px 12px;
+  min-height: 34px;
+}
+.customer-more-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.customer-more-grid .store-tour-card {
+  border: 1px solid #e6e2d9;
+}
+.customer-more-grid .store-card-body > small {
+  font-size: 11px;
+  color: #424844;
+  margin-top: 12px;
+}
+.customer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 48px 24px;
+  background: #f7f3ea;
+  border: 1px dashed #c2c8c2;
+  border-radius: 6px;
+}
+.customer-empty h2,
+.customer-empty h3 {
+  font: 600 22px/30px "Space Grotesk";
+}
+.customer-empty p {
+  font-size: 13px;
+  line-height: 20px;
+  color: #424844;
+  max-width: 500px;
+}
+.customer-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  background: #fdf9f0;
+  color: #152a20;
+  border: 1px solid #d8d2c5;
+  border-radius: 8px;
+  padding: 32px;
+  overflow: auto;
+  box-shadow: 0 24px 100px #0003;
+}
+.customer-dialog::backdrop {
+  background: #02150c99;
+  backdrop-filter: blur(3px);
+}
+.customer-dialog-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 6px;
+  cursor: pointer;
+  background: #f1ede5;
+  border-radius: 3px;
+}
+.customer-dialog h2 {
+  font: 700 26px/34px "Space Grotesk";
+  margin: 12px 0;
+}
+.customer-dialog p {
+  font-size: 13px;
+  line-height: 21px;
+  margin: 12px 0;
+  color: #424844;
+}
+.customer-dialog form > img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+.customer-muted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.customer-label {
+  display: block;
+  font: 600 11px/16px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.customer-booking-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e6e2d9;
+  font-size: 13px;
+}
+.customer-booking-summary strong {
+  font: 700 20px/24px "Space Grotesk";
+}
+.customer-notice {
+  padding: 12px;
+  background: #f1ede5;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #424844;
+}
+.customer-dialog form > .store-button {
+  width: 100%;
+  margin-top: 8px;
+}
+.customer-success {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+}
+.customer-success > svg {
+  color: #74947e;
+}
+.customer-success > b {
+  font-family: "Space Grotesk";
+  padding: 8px;
+  background: #f1ede5;
+}
+.customer-account-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #e6e2d9;
+}
+.customer-account-hero h1 {
+  font: 700 44px/52px "Space Grotesk";
+  letter-spacing: -1px;
+  margin: 12px 0;
+}
+.customer-account-hero h1 span {
+  color: #994717;
+}
+.customer-account-hero p {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 13px;
+  color: #424844;
+}
+.customer-account-hero p svg {
+  color: #74947e;
+}
+.customer-demo-note {
+  font-size: 11px;
+  color: #737874;
+  margin: 14px 0 24px;
+}
+.customer-account-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.customer-account-stats article {
+  padding: 20px;
+  background: white;
+  border: 1px solid #e6e2d9;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.customer-account-stats small {
+  font: 600 10px/14px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.customer-account-stats strong {
+  font: 700 30px/36px "Space Grotesk";
+}
+.customer-account-stats em {
+  font: 500 14px "Space Grotesk";
+  font-style: normal;
+}
+.customer-account-stats article > span {
+  font-size: 11px;
+  color: #424844;
+}
+.customer-account-stats .customer-stat-dark {
+  background: #152a20;
+  color: #fdf9f0;
+}
+.customer-stat-dark > span {
+  color: #b4ccbd !important;
+}
+.customer-account-section {
+  margin: 40px 0;
+}
+.customer-account-section .customer-section-label > div > span {
+  color: #994717;
+}
+.customer-account-section h2 {
+  font: 700 28px/36px "Space Grotesk";
+  letter-spacing: -0.5px;
+  text-transform: none;
+  color: #152a20;
+  margin: 6px 0;
+}
+.customer-active-grid {
+  display: grid;
+  gap: 20px;
+}
+.customer-rental-card {
+  border: 1px solid #c2c8c2;
+  border-radius: 5px;
+  overflow: hidden;
+  background: white;
+}
+.customer-rental-top {
+  padding: 12px 20px;
+  background: #152a20;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font: 600 10px/16px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.customer-rental-top > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.customer-rental-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 28px;
+  padding: 24px;
+}
+.customer-rental-body > a > img {
+  width: 100%;
+  height: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+.customer-rental-body h3 {
+  font: 700 26px/34px "Space Grotesk";
+  margin: 8px 0;
+}
+.customer-status {
+  display: inline-block;
+  font: 600 9px/14px "Space Grotesk";
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #2f4d3a;
+  background: #e4eee4;
+  border: 1px solid #c8ddca;
+  padding: 4px 7px;
+  border-radius: 3px;
+}
+.customer-rental-body p {
+  font-size: 13px;
+  line-height: 21px;
+  color: #424844;
+  margin: 12px 0;
+  max-width: 690px;
+}
+.customer-rental-dates {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px;
+  background: #f7f3ea;
+  border: 1px solid #e6e2d9;
+  border-radius: 3px;
+}
+.customer-rental-dates small,
+.customer-rental-branch small {
+  display: block;
+  font: 600 9px/14px "Space Grotesk";
+  text-transform: uppercase;
+  color: #737874;
+  letter-spacing: 0.6px;
+}
+.customer-rental-dates b,
+.customer-rental-branch b {
+  font: 600 12px/18px "Space Grotesk";
+  display: block;
+  margin-top: 3px;
+}
+.customer-rental-branch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.customer-rental-branch > svg {
+  color: #994717;
+}
+.customer-rental-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 16px;
+}
+.customer-rental-actions .store-button {
+  font-size: 10px;
+  min-height: 36px;
+}
+.customer-upcoming-card {
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  background: white;
+  border: 1px solid #e6e2d9;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.customer-upcoming-card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.customer-upcoming-card > div {
+  padding: 24px;
+}
+.customer-upcoming-card .store-eyebrow {
+  margin-top: 20px;
+}
+.customer-upcoming-card h3 {
+  font: 700 26px/34px "Space Grotesk";
+  margin: 8px 0 20px;
+}
+.customer-upcoming-facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.customer-upcoming-facts > span {
+  font-size: 11px;
+  line-height: 18px;
+  color: #424844;
+}
+.customer-upcoming-facts svg {
+  color: #994717;
+  margin-bottom: 5px;
+}
+.customer-upcoming-facts b {
+  display: block;
+  color: #152a20;
+  font: 600 12px/18px "Space Grotesk";
+  margin-bottom: 3px;
+}
+.customer-empty-inline {
+  flex-direction: row;
+  text-align: left;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+}
+.customer-empty-inline > svg {
+  flex-shrink: 0;
+}
+.customer-empty-inline .store-button {
+  flex-shrink: 0;
+}
+.customer-order-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e6e2d9;
+  border-radius: 4px 4px 0 0;
+}
+.customer-order-search input {
+  background: none;
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+}
+.customer-order-search > span {
+  font: 500 10px "Space Grotesk";
+  color: #737874;
+}
+.customer-orders-table {
+  overflow-x: auto;
+  background: white;
+  border: 1px solid #e6e2d9;
+  border-top: 0;
+}
+.customer-orders-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+  text-align: left;
+}
+.customer-orders-table th {
+  padding: 14px;
+  font: 600 10px/16px "Space Grotesk";
+  color: #737874;
+  background: #f1ede5;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.customer-orders-table td {
+  padding: 18px 14px;
+  font-size: 12px;
+  line-height: 18px;
+  border-top: 1px solid #e6e2d9;
+  vertical-align: middle;
+}
+.customer-orders-table td:first-child {
+  white-space: nowrap;
+}
+.customer-orders-table td p {
+  font-size: 11px;
+  margin-top: 5px;
+  color: #424844;
+  max-width: 220px;
+}
+.customer-order-type {
+  display: inline-block;
+  background: #f1ede5;
+  padding: 3px 6px;
+  border-radius: 2px;
+  font: 600 9px/12px "Space Grotesk";
+}
+.customer-ledger-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #737874;
+  margin-top: 12px;
+}
+.customer-order-dl {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 12px;
+  font-size: 13px;
+  margin: 24px 0;
+}
+.customer-order-dl dt {
+  color: #737874;
+}
+.customer-order-dl dd {
+  font-weight: 600;
+}
+.customer-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+}
+.customer-tour-detail {
+  padding-block: 32px 48px;
+}
+.customer-tour-detail > header {
+  margin: 24px 0;
+}
+.customer-tour-detail h1 {
+  font: 700 40px/48px "Space Grotesk";
+  margin: 12px 0;
+}
+.customer-tour-detail > header p {
+  font-size: 15px;
+  line-height: 24px;
+  max-width: 850px;
+  color: #424844;
+}
+.customer-tour-detail .customer-feature-photo {
+  min-height: 420px;
+}
+.customer-tour-detail .customer-feature-photo > div {
+  position: static;
+}
+.customer-tour-detail .customer-feature-photo > img {
+  position: static;
+  height: 420px;
+}
+.customer-detail-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+}
+.customer-detail-meta span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.customer-dialog :is(button, a, select):focus-visible,
+.customer-tours :is(button, a, select):focus-visible,
+.customer-orders :is(button, a, input):focus-visible {
+  outline: 2px solid #994717;
+  outline-offset: 3px;
+}
+@media (max-width: 1100px) {
+  .customer-tour-conditions {
+    display: none;
+  }
+  .customer-feature-heading h2 {
+    font-size: 28px;
+    line-height: 36px;
+  }
+  .customer-tour-filters {
+    gap: 12px;
+    padding: 16px;
+  }
+  .customer-tour-filters .customer-segment button {
+    padding: 10px 8px;
+  }
+  .customer-feature-booking {
+    padding: 20px;
+  }
+  .customer-account-stats strong {
+    font-size: 24px;
+  }
+  .customer-rental-body {
+    grid-template-columns: 230px 1fr;
+  }
+  .customer-upcoming-card {
+    grid-template-columns: 260px 1fr;
+  }
+  .customer-account-section .customer-section-label {
+    flex-wrap: wrap;
+  }
+  .customer-tour-feature {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+@media (max-width: 767px) {
+  .customer-tour-intro {
+    padding-top: 32px;
+  }
+  .customer-intro-row h1 {
+    font-size: 38px;
+    line-height: 42px;
+  }
+  .customer-tour-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .customer-filter-bottom {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .customer-filter-bottom .store-button {
+    margin-left: 0;
+  }
+  .customer-tour-feature {
+    grid-template-columns: 1fr;
+  }
+  .customer-feature-photo {
+    min-height: 320px;
+  }
+  .customer-feature-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .customer-feature-heading h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+  .customer-itinerary .store-grid-three {
+    grid-template-columns: 1fr;
+  }
+  .customer-inclusions {
+    grid-template-columns: 1fr;
+  }
+  .customer-tour-gear .store-grid-four {
+    grid-template-columns: 1fr 1fr;
+  }
+  .customer-account-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .customer-account-hero h1 {
+    font-size: 34px;
+    line-height: 42px;
+  }
+  .customer-account-hero {
+    align-items: start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .customer-rental-body {
+    grid-template-columns: 180px 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+  .customer-upcoming-card {
+    grid-template-columns: 1fr;
+  }
+  .customer-upcoming-card > img {
+    height: 220px;
+  }
+  .customer-empty-inline {
+    align-items: start;
+    flex-wrap: wrap;
+  }
+  .customer-account-section h2 {
+    font-size: 25px;
+    line-height: 32px;
+  }
+  .customer-account-section .customer-text-button {
+    font-size: 10px;
+  }
+  .customer-account-section .customer-segment {
+    width: 100%;
+  }
+}
+@media (max-width: 479px) {
+  .customer-tour-filters {
+    grid-template-columns: 1fr;
+  }
+  .customer-tour-filters > label {
+    gap: 8px;
+  }
+  .customer-filter-bottom > span {
+    width: 100%;
+  }
+  .customer-filter-bottom .store-button {
+    width: 100%;
+  }
+  .customer-tour-content {
+    padding-top: 28px;
+  }
+  .customer-feature-photo {
+    min-height: 260px;
+  }
+  .customer-feature-photo > div {
+    padding: 14px;
+    gap: 10px;
+  }
+  .customer-feature-photo b {
+    font-size: 14px;
+  }
+  .customer-feature-photo span {
+    font-size: 8px;
+  }
+  .customer-more-grid {
+    grid-template-columns: 1fr;
+  }
+  .customer-itinerary,
+  .customer-tour-gear,
+  .customer-more-tours {
+    margin-top: 32px;
+  }
+  .customer-itinerary .customer-section-label {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .customer-compact-gear h3 {
+    font-size: 15px;
+    line-height: 21px;
+    padding: 12px 12px 0;
+    min-height: 75px;
+  }
+  .customer-compact-gear > p {
+    padding-inline: 12px;
+    font-size: 11px;
+  }
+  .customer-compact-gear > b {
+    padding: 12px;
+    font-size: 10px;
+  }
+  .customer-compact-gear > div {
+    padding: 0 12px 12px;
+  }
+  .customer-compact-gear .store-button {
+    padding: 8px;
+    font-size: 9px;
+  }
+  .customer-tour-gear > h2,
+  .customer-more-tours > h2 {
+    font-size: 25px;
+    line-height: 32px;
+  }
+  .customer-account-stats {
+    gap: 10px;
+  }
+  .customer-account-stats article {
+    padding: 14px;
+    gap: 10px;
+  }
+  .customer-account-stats strong {
+    font-size: 22px;
+    line-height: 30px;
+  }
+  .customer-account-stats small {
+    font-size: 8px;
+  }
+  .customer-account-stats article > span {
+    font-size: 10px;
+  }
+  .customer-account-stats em {
+    font-size: 11px;
+  }
+  .customer-stat-dark strong {
+    font-size: 18px;
+  }
+  .customer-rental-body {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .customer-rental-body > a > img {
+    height: 190px;
+  }
+  .customer-rental-body h3 {
+    font-size: 22px;
+    line-height: 29px;
+  }
+  .customer-rental-top {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 9px;
+  }
+  .customer-rental-dates {
+    gap: 10px;
+  }
+  .customer-rental-dates b {
+    font-size: 10px;
+  }
+  .customer-rental-dates > span {
+    min-width: 0;
+  }
+  .customer-rental-actions {
+    gap: 12px;
+  }
+  .customer-upcoming-card > div {
+    padding: 16px;
+  }
+  .customer-upcoming-card h3 {
+    font-size: 23px;
+    line-height: 30px;
+  }
+  .customer-upcoming-facts {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .customer-dialog {
+    padding: 24px 20px;
+    max-height: calc(100dvh - 24px);
+  }
+  .customer-dialog h2 {
+    font-size: 23px;
+    line-height: 30px;
+  }
+  .customer-dialog-actions {
+    align-items: start;
+    flex-direction: column;
+  }
+  .customer-tour-detail h1 {
+    font-size: 30px;
+    line-height: 38px;
+  }
+  .customer-tour-detail .customer-feature-photo > img {
+    height: 260px;
+  }
+  .customer-detail-meta {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+.customer-additional-rentals {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f1ede5;
+  border: 1px solid #e6e2d9;
+  padding: 18px 22px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #424844;
+}
+.customer-additional-rentals > span {
+  flex: 1;
+}
+.customer-additional-rentals b {
+  display: block;
+  font: 600 11px/18px "Space Grotesk";
+  text-transform: uppercase;
+  color: #152a20;
+  margin-bottom: 4px;
+}
+.customer-additional-rentals > svg {
+  flex-shrink: 0;
+  color: #994717;
+}
+@media (max-width: 479px) {
+  .customer-additional-rentals {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+  .customer-additional-rentals > .customer-text-button {
+    margin-left: 34px;
+  }
+}
