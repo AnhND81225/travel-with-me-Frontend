@@ -1,4 +1,5 @@
 import React from 'react';
+import { EquipmentEditor, EquipmentLogin } from '../features/equipment/EquipmentPages';
 import { MyOrdersPage } from '../pages/user/MyOrdersPage';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { UserLayout, AdminLayout, StaffLayout } from '../components/layouts';
@@ -53,6 +54,7 @@ import {
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
+      <Route path="/login" element={<EquipmentLogin />} />
       {/* Customer Storefront Routes */}
       <Route path="/" element={<UserLayout />}>
         <Route index element={<HomePage />} />
@@ -104,6 +106,8 @@ export const AppRoutes: React.FC = () => {
         <Route index element={<AdminDashboardPage />} />
         <Route path="inventory" element={<AdminInventoryPage />} />
         <Route path="catalog" element={<AdminCatalogPage />} />
+        <Route path="catalog/new" element={<EquipmentEditor />} />
+        <Route path="catalog/:id/edit" element={<EquipmentEditor />} />
         <Route path="branches" element={<AdminBranchesPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
