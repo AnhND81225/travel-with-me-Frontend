@@ -93,11 +93,10 @@ export function Header() {
         </form>
         <button
           className="store-cart"
-          onClick={() => setCartOpen(true)}
-          aria-label={`Open cart, ${cartItems.length} items`}
+            onClick={() => navigate("/cart")}
+            aria-label="Mở giỏ thiết bị"
         >
           <ShoppingBag size={22} />
-          {cartItems.length > 0 && <span>{cartItems.length}</span>}
         </button>
         <Link to="/passport" className="store-account">
           <img src={storefrontAssets.avatar} alt="Customer profile" />

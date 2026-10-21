@@ -1,4 +1,5 @@
 import React from 'react';
+import { OrderCart } from '../features/orders/OrderCart';
 import { EquipmentEditor, EquipmentLogin } from '../features/equipment/EquipmentPages';
 import { MyOrdersPage } from '../pages/user/MyOrdersPage';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -82,8 +83,8 @@ export const AppRoutes: React.FC = () => {
         {/* User Account, Cart & Policies */}
         <Route path="passport" element={<ClimberPassportPage />} />
         <Route path="orders" element={<MyOrdersPage />} />
-        <Route path="cart" element={<CartManifestPage />} />
-        <Route path="manifest" element={<CartManifestPage />} />
+        <Route path="cart" element={<OrderCart />} />
+        <Route path="manifest" element={<OrderCart />} />
         <Route path="confirmation" element={<BookingConfirmationPage />} />
         <Route path="waiver" element={<WaiverAgreementPage />} />
         <Route path="safety" element={<SafetyProtocolsPage />} />
@@ -103,6 +104,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Admin Executive HQ Console Routes */}
       <Route path="/admin" element={<AdminLayout />}>
+        <Route path="orders" element={<MyOrdersPage operations />} />
         <Route index element={<AdminDashboardPage />} />
         <Route path="inventory" element={<AdminInventoryPage />} />
         <Route path="catalog" element={<AdminCatalogPage />} />

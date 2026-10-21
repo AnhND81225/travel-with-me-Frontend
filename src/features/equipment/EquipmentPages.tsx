@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { OrderCheckout } from "../orders/OrderCheckout";
 import {
   Link,
   Navigate,
@@ -63,6 +64,9 @@ function SessionLinks({ account }: { account: Account | null }) {
     <nav className="eq-nav" aria-label="Thiết bị và tồn kho">
       <Link to="/shop">Mua thiết bị</Link>
       <Link to="/rent">Thuê thiết bị</Link>
+      <Link to="/cart">Giỏ hàng</Link>
+      <Link to="/orders">Đơn của tôi</Link>
+      {account?.role === "ADMIN" && <Link to="/admin/orders">Vận hành đơn hàng</Link>}
       {account?.role === "ADMIN" && (
         <Link to="/admin/catalog">Quản lý thiết bị</Link>
       )}
@@ -379,6 +383,7 @@ export function EquipmentDetail() {
               Thuê / ngày: <strong>{vnd(product.rentalPricePerDay)}</strong>
             </p>
           </article>
+          <OrderCheckout productId={product.id} sale={product.salePrice} rental={product.rentalPricePerDay} />
           <form
             className="eq-panel eq-form"
             onChange={() => setAnswer("")}
