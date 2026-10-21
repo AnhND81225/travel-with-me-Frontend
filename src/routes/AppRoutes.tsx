@@ -1,7 +1,7 @@
 import React from 'react';
 import { AuthPage } from '../pages/auth/AuthPage';
 import { OrderCart } from '../features/orders/OrderCart';
-import { EquipmentEditor, EquipmentLogin } from '../features/equipment/EquipmentPages';
+import { EquipmentEditor } from '../features/equipment/EquipmentPages';
 import { MyOrdersPage } from '../pages/user/MyOrdersPage';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -20,7 +20,6 @@ import {
   OutpostsPage,
   OutpostDetailPage,
   ClimberPassportPage,
-  CartManifestPage,
   BookingConfirmationPage,
   RentalExtensionPage,
   WaiverAgreementPage,
@@ -129,24 +128,23 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="orders" element={<MyOrdersPage operations />} />
-          <Route index element={<AdminDashboardPage />} />
-          <Route path="inventory" element={<AdminInventoryPage />} />
-          <Route path="catalog" element={<AdminCatalogPage />} />
-          <Route path="catalog/new" element={<EquipmentEditor />} />
-          <Route path="catalog/:id/edit" element={<EquipmentEditor />} />
-          <Route path="branches" element={<AdminBranchesPage />} />
-          <Route path="reports" element={<AdminReportsPage />} />
-          <Route path="staff" element={<AdminStaffPage />} />
-          <Route path="fleet" element={<FleetLedgerPage />} />
-          <Route path="sanitize" element={<SanitizationLogPage />} />
-          <Route path="transfers" element={<InterBranchTransferPage />} />
-          <Route path="custody-inspect" element={<CustodyInspectionPage />} />
-        </Route>
+        <Route path="orders" element={<MyOrdersPage operations />} />
+        <Route index element={<AdminDashboardPage />} />
+        <Route path="inventory" element={<AdminInventoryPage />} />
+        <Route path="catalog" element={<AdminCatalogPage />} />
+        <Route path="catalog/new" element={<EquipmentEditor />} />
+        <Route path="catalog/:id/edit" element={<EquipmentEditor />} />
+        <Route path="branches" element={<AdminBranchesPage />} />
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="staff" element={<AdminStaffPage />} />
+        <Route path="fleet" element={<FleetLedgerPage />} />
+        <Route path="sanitize" element={<SanitizationLogPage />} />
+        <Route path="transfers" element={<InterBranchTransferPage />} />
+        <Route path="custody-inspect" element={<CustodyInspectionPage />} />
+      </Route>
 
-        {/* Catch-all fallback redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Catch-all fallback redirect */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
