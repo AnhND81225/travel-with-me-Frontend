@@ -46,7 +46,10 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50 backdrop-blur-xs font-label">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto bg-black/50 backdrop-blur-xs font-label"
+      onClick={onClose}
+    >
       <div 
         className={`relative w-full ${maxWidthClass} bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs shadow-xl overflow-hidden my-auto max-h-[92vh] flex flex-col`}
         onClick={(e) => e.stopPropagation()}
