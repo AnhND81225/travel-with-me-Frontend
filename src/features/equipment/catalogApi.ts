@@ -12,7 +12,13 @@ export type Page<T> = {
   totalPages: number;
   totalElements: number;
 };
-export type Branch = { id: number; name: string; status: string };
+export type Branch = {
+  id: number;
+  name: string;
+  status: string;
+  phone?: string | null;
+  address?: string | null;
+};
 export type Stock = {
   id: number;
   productId: number;
@@ -25,6 +31,8 @@ export type Stock = {
 export type Account = {
   id: number;
   fullName: string;
+  email?: string;
+  phone?: string;
   role: string;
   status: string;
 };

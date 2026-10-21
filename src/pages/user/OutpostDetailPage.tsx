@@ -1,14 +1,13 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { OUTPOSTS, GEAR_ITEMS } from '../../data/mockData';
 import { Card, Button, Badge } from '../../components/ui';
 import { ArrowLeft, MapPin, Radio, Thermometer, Wind, PhoneCall, ShieldCheck } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 export const OutpostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { setSelectedStation } = useAppStore();
-  const station = OUTPOSTS.find((o) => o.id === id) || OUTPOSTS[0];
+  const { outposts, selectedStation, setSelectedStation } = useAppStore();
+  const station = outposts.find((o) => o.id === id) || selectedStation;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label">

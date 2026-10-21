@@ -9,11 +9,13 @@ import {
   X,
 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
+import { useAuth } from "../../hooks/useAuth";
 import { storefrontAssets, storefrontBranches } from "../../data/storefront";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const { account, isAuthenticated, logout } = useAuth();
   const {
     cartItems,
     setCartOpen,
@@ -98,13 +100,81 @@ export function Header() {
         >
           <ShoppingBag size={22} />
         </button>
-        <Link to="/passport" className="store-account">
-          <img src={storefrontAssets.avatar} alt="Customer profile" />
-          <span>
-            <b>{isReferencePage ? "Linh Nguyen" : "My account"}</b>
-            <small>TRAIL SCOUT</small>
-          </span>
-        </Link>
+        <div className="relative group">
+          <Link
+            to={isAuthenticated ? "/passport" : "/login"}
+            className="store-account flex items-center gap-2"
+          >
+            <img src={storefrontAssets.avatar} alt="Customer profile" />
+            <span>
+              <b>{isAuthenticated ? (account?.fullName || "Tài khoản") : "Đăng nhập"}</b>
+              <small>{isAuthenticated ? (account?.role || "EXPLORER") : "LOGIN / REGISTER"}</small>
+            </span>
+          </Link>
+          <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-50 min-w-48">
+            <div className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs shadow-lg py-1.5 text-xs font-label">
+              {!isAuthenticated ? (
+                <>
+                  <Link
+                    to="/login"
+                    className="block px-3.5 py-1.5 text-[#111D16] hover:bg-[#EBE6DC] font-bold"
+                  >
+                    Đăng nhập (Sign In)
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="block px-3.5 py-1.5 text-[#D97845] hover:bg-[#EBE6DC] font-bold"
+                  >
+                    Đăng ký mới (Register)
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="px-3.5 py-1.5 border-b border-[#D8D2C5] mb-1 bg-[#EBE6DC]">
+                    <div className="font-bold text-[#111D16] truncate">{account?.fullName}</div>
+                    <div className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">{account?.role}</div>
+                  </div>
+                  <Link
+                    to="/passport"
+                    className="block px-3.5 py-1.5 text-[#5C665F] hover:bg-[#EBE6DC]"
+                  >
+                    Hồ sơ Passport
+                  </Link>
+                  <Link
+                    to="/orders"
+                    className="block px-3.5 py-1.5 text-[#5C665F] hover:bg-[#EBE6DC]"
+                  >
+                    Đơn thuê của tôi
+                  </Link>
+                  {account?.role === "ADMIN" && (
+                    <Link
+                      to="/admin"
+                      className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold"
+                    >
+                      Quản trị Admin HQ
+                    </Link>
+                  )}
+                  {account && ["ADMIN", "STAFF"].includes(account.role) && (
+                    <Link
+                      to="/staff"
+                      className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold"
+                    >
+                      Bàn làm việc Staff
+                    </Link>
+                  )}
+                  <div className="my-1 border-t border-[#D8D2C5]"></div>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="w-full text-left px-3.5 py-1.5 text-red-600 hover:bg-[#EBE6DC] font-bold cursor-pointer"
+                  >
+                    Đăng xuất (Sign Out)
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
         <button
           className="store-menu-toggle"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -127,6 +197,22 @@ export function Header() {
                 {label}
               </NavLink>
             ))}
+            <div className="pt-2 border-t border-[#D8D2C5] my-1 flex flex-col gap-1">
+              <NavLink
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="font-bold text-[#152A20]"
+              >
+                Đăng nhập (Sign In)
+              </NavLink>
+              <NavLink
+                to="/register"
+                onClick={() => setMenuOpen(false)}
+                className="font-bold text-[#D97845]"
+              >
+                Đăng ký tài khoản (Register)
+              </NavLink>
+            </div>
           </nav>
           <form onSubmit={search}>
             <input
