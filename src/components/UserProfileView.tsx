@@ -1,190 +1,331 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
-  UserCheck, 
+  User, 
+  Mail, 
+  Phone, 
   ShieldCheck, 
   Award, 
-  MapPin, 
-  FileText, 
-  Download, 
   CheckCircle2, 
-  Radio, 
-  AlertCircle 
+  AlertCircle,
+  ShoppingBag,
+  Package,
+  MapPin,
+  LogOut,
+  Save,
+  Loader2
 } from 'lucide-react';
-import { ActiveCustodyItem } from '../types';
+import { useAuth } from '../hooks/useAuth';
+import { catalogApi, Account } from '../features/equipment/catalogApi';
+import { Button } from './ui';
 
-interface UserProfileViewProps {
-  custodyItems: ActiveCustodyItem[];
+export interface UserProfileViewProps {
+  custodyItems?: unknown[];
 }
 
-export const UserProfileView: React.FC<UserProfileViewProps> = ({
-  custodyItems
-}) => {
-  const climberProfile = {
-    callSign: 'EXP-VN-0824',
-    name: 'Alexandre Mercer',
-    email: 'ducanh.nguyenkl@gmail.com',
-    tier: 'Tier 3 Silver Alpine Custodian',
-    integrityScore: '99.4%',
-    inspectionsPassed: 18,
-    activeBondHeld: 600,
-    emergencyBeacon: 'Garmin Iridium ID: #8819-01 (ACTIVE SYNC)',
-    bloodType: 'O+ Positive (High-Altitude Tolerance Checked)',
-    completedExpeditions: [
-      { name: 'Fansipan West Ridge Technical Ascent', year: 'Nov 2025', guide: 'Vang A Sinh', badge: 'Summit Cleared' },
-      { name: 'Dong Van Karst Plateau Traverse', year: 'Apr 2025', guide: 'Nguyen Tuan Kiet', badge: 'Karst Nav Cleared' },
-      { name: 'Bidoup Primeval Moss Cloud Trail', year: 'Jan 2025', guide: 'Ka Lien', badge: 'Ridge Master' }
-    ]
+export const UserProfileView: React.FC<UserProfileViewProps> = () => {
+  const { account, loading, checkAuth, logout } = useAuth();
+
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState('');
+  const [updateError, setUpdateError] = useState('');
+
+  useEffect(() => {
+    if (account) {
+      setFullName(account.fullName || '');
+      setPhone(account.phone || '');
+    }
+  }, [account]);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) {
+      setUpdateError('Họ và tên không được để trống.');
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateSuccess('');
+    setUpdateError('');
+
+    try {
+      await catalogApi<Account>('/users/me', {
+        method: 'PUT',
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          phone: phone.trim() || undefined,
+        }),
+      });
+
+      await checkAuth();
+      setUpdateSuccess('Cập nhật thông tin tài khoản thành công!');
+      setTimeout(() => setUpdateSuccess(''), 4000);
+    } catch (err: unknown) {
+      setUpdateError(err instanceof Error ? err.message : 'Không thể cập nhật hồ sơ.');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const downloadAgreement = () => {
-    alert('TerraPeak Outpost Digital Custody Agreement #TK-84920 downloaded as signed PDF.');
-  };
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-16 text-center font-label">
+        <Loader2 className="w-8 h-8 animate-spin text-[#152A20] mx-auto mb-3" />
+        <p className="text-sm text-[#5C665F]">Đang tải thông tin tài khoản...</p>
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16 text-center font-label">
+        <AlertCircle className="w-10 h-10 text-red-600 mx-auto mb-3" />
+        <h3 className="text-lg font-bold text-[#152A20]">Chưa đăng nhập</h3>
+        <p className="text-xs text-[#5C665F] mt-1 mb-4">
+          Vui lòng đăng nhập để xem thông tin tài khoản của bạn.
+        </p>
+        <Link to="/login">
+          <Button variant="primary">Đăng Nhập Ngay</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const roleLabel =
+    account.role === 'ADMIN'
+      ? 'Quản trị viên (Admin)'
+      : account.role === 'STAFF'
+      ? 'Cán bộ trạm (Staff)'
+      : 'Thành viên thám hiểm (Customer)';
+
+  const initials = account.fullName
+    ? account.fullName
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w[0])
+        .slice(-2)
+        .join('')
+        .toUpperCase()
+    : 'TP';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-label">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-label">
       {/* Header */}
-      <div className="border-b border-[#D8D2C5] pb-5">
-        <div className="flex items-center gap-2 text-xs font-label text-[#152A20] font-bold mb-1">
-          <UserCheck className="w-4 h-4 text-[#152A20]" />
-          <span>OUTPOST EXPEDITION PASSPORT • CLIMBER DOSSIER</span>
+      <div className="border-b border-[#D8D2C5] pb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] text-[10px] tracking-wider text-[#152A20] font-bold uppercase mb-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#D97845]" />
+            <span>HỒ SƠ TÀI KHOẢN • PASSPORT</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#152A20] tracking-tight font-headline">
+            Thông Tin Cá Nhân
+          </h2>
+          <p className="text-xs sm:text-sm text-[#5C665F] mt-1 font-body">
+            Xem và cập nhật thông tin thành viên kết nối trực tiếp với hệ thống TerraPeak.
+          </p>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-[#152A20] tracking-tight font-headline">
-          ALPINE CUSTODIAN CREDENTIALS
-        </h2>
-        <p className="text-xs sm:text-sm text-[#4A524C] mt-1 max-w-3xl font-body">
-          Verified gear custody history, equipment deposit escrow status, and certified expedition credentials valid across all 5 national stations.
-        </p>
+
+        <button
+          onClick={logout}
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xs transition cursor-pointer self-start sm:self-auto"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Đăng Xuất</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Digital Tactical Passport Card */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* Passport Card styled with Deep Forest Pine #152A20 */}
+        {/* Left Column: Member ID Card */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Card Thẻ thành viên phong cách sang trọng */}
           <div className="rounded-xs bg-[#152A20] text-white p-6 shadow-xl relative overflow-hidden font-label space-y-5">
-            {/* Top Security Line */}
+            {/* Top Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-[#2C4938]">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#D7ECE1] animate-pulse"></span>
-                <span className="text-xs font-bold tracking-wider">TERRAPEAK CLIMBER PASSPORT</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-xs font-bold tracking-wider text-[#D7ECE1]">
+                  TERRAPEAK CLIMBER PASSPORT
+                </span>
               </div>
-              <span className="text-[10px] text-[#D7ECE1] px-2 py-0.5 rounded-md bg-[#254231] font-bold">
-                {climberProfile.callSign}
+              <span className="text-[10px] text-[#ADCBBB] px-2 py-0.5 rounded-xs bg-[#1F3D2B] border border-[#2B4E3C] font-mono font-bold">
+                ID #{account.id.toString().padStart(6, '0')}
               </span>
             </div>
 
-            {/* User identification */}
+            {/* Profile Avatar & Info */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xs bg-[#254231] border-2 border-[#ADCBBB] overflow-hidden shrink-0 shadow-sm">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
-                  alt="Climber photo"
-                  className="w-full h-full object-cover"
-                />
+              <div className="w-16 h-16 rounded-xs bg-[#1F3D2B] border-2 border-[#D97845] flex items-center justify-center text-xl font-bold text-[#D7ECE1] font-headline shrink-0 shadow-sm">
+                {initials}
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white font-headline">{climberProfile.name}</h3>
-                <div className="text-xs text-[#ADCBBB] font-body">{climberProfile.email}</div>
-                <div className="text-xs text-[#D97845] font-bold mt-1 flex items-center gap-1">
-                  <Award className="w-3.5 h-3.5 text-[#D97845]" />
-                  {climberProfile.tier}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-white font-headline truncate">
+                  {account.fullName}
+                </h3>
+                <div className="text-xs text-[#ADCBBB] font-body truncate">
+                  {account.email || 'Chưa có email'}
+                </div>
+                <div className="text-xs text-[#D97845] font-bold mt-1 flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-[#D97845] shrink-0" />
+                  <span className="truncate">{roleLabel}</span>
                 </div>
               </div>
             </div>
 
-            {/* Custody Metrics Grid */}
+            {/* Key Information Badges */}
             <div className="grid grid-cols-2 gap-3 text-xs bg-[#1C362A] p-3.5 rounded-xs border border-[#2B4E3C]">
               <div>
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">INTEGRITY INDEX</span>
-                <span className="text-white font-bold text-sm font-headline">{climberProfile.integrityScore}</span>
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">TRẠNG THÁI</span>
+                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-xs mt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {account.status === 'ACTIVE' ? 'Đang hoạt động' : account.status}
+                </span>
               </div>
               <div>
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">PASSED AUDITS</span>
-                <span className="text-white font-bold text-sm font-headline">{climberProfile.inspectionsPassed} DEPLOYMENTS</span>
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">VAI TRÒ</span>
+                <span className="text-white font-bold text-xs mt-0.5 block font-headline">
+                  {account.role}
+                </span>
               </div>
-              <div className="col-span-2 pt-1 border-t border-[#2B4E3C]">
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">SATELLITE SOS TRANSPONDER</span>
-                <span className="text-[#D7ECE1] text-[11px] font-medium">{climberProfile.emergencyBeacon}</span>
+              <div className="col-span-2 pt-2 border-t border-[#2B4E3C]">
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">SỐ ĐIỆN THOẠI</span>
+                <span className="text-white text-xs font-medium">
+                  {account.phone || 'Chưa cập nhật số điện thoại'}
+                </span>
               </div>
-            </div>
-
-            {/* Bond Escrow Banner */}
-            <div className="p-3.5 rounded-xs bg-[#1C362A] border border-[#2B4E3C] text-xs flex items-center justify-between">
-              <div>
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">CURRENT ESCROW BOND:</span>
-                <span className="text-base font-bold text-white font-headline">${climberProfile.activeBondHeld}.00 USD</span>
-              </div>
-              <span className="text-[10px] px-2.5 py-1 rounded-md bg-[#D97845] text-white font-bold">
-                100% REFUNDABLE
-              </span>
             </div>
           </div>
 
-          {/* Quick Document Downloads */}
-          <div className="bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs p-4 space-y-2 font-label text-xs">
-            <div className="text-[#5C665F] text-[10px] font-bold uppercase tracking-wider mb-2">
-              EXPEDITION AGREEMENTS & WAIVERS:
-            </div>
-            <button
-              onClick={downloadAgreement}
-              className="w-full p-3 rounded-xs bg-[#EBE6DC] hover:bg-[#E2DDD1] border border-[#D8D2C5] text-[#152A20] font-bold flex items-center justify-between transition cursor-pointer"
+          {/* Quick Navigation Shortcuts */}
+          <div className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs p-5 space-y-3 font-label">
+            <h4 className="text-xs font-bold text-[#152A20] uppercase tracking-wider mb-2">
+              Lối Tắt Truy Cập Nhanh
+            </h4>
+            <Link
+              to="/orders"
+              className="flex items-center justify-between p-3 rounded-xs bg-[#EBE6DC] hover:bg-[#E2DDD1] border border-[#D8D2C5] text-xs font-bold text-[#152A20] transition group"
             >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#152A20]" />
-                <span>Signed Master Custody Waiver (PDF)</span>
+              <div className="flex items-center gap-2.5">
+                <Package className="w-4 h-4 text-[#D97845]" />
+                <span>Xem Đơn Hàng & Đơn Thuê Của Bạn</span>
               </div>
-              <Download className="w-3.5 h-3.5" />
-            </button>
+              <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
+            </Link>
+
+            <Link
+              to="/shop"
+              className="flex items-center justify-between p-3 rounded-xs bg-[#EBE6DC] hover:bg-[#E2DDD1] border border-[#D8D2C5] text-xs font-bold text-[#152A20] transition group"
+            >
+              <div className="flex items-center gap-2.5">
+                <ShoppingBag className="w-4 h-4 text-[#152A20]" />
+                <span>Khám Phá Cửa Hàng Trang Bị</span>
+              </div>
+              <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
+            </Link>
+
+            <Link
+              to="/outposts"
+              className="flex items-center justify-between p-3 rounded-xs bg-[#EBE6DC] hover:bg-[#E2DDD1] border border-[#D8D2C5] text-xs font-bold text-[#152A20] transition group"
+            >
+              <div className="flex items-center gap-2.5">
+                <MapPin className="w-4 h-4 text-emerald-700" />
+                <span>Mạng Lưới Trạm Outpost Toàn Quốc</span>
+              </div>
+              <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
+            </Link>
           </div>
         </div>
 
-        {/* Right Column: Historical Expeditions */}
-        <div className="lg:col-span-7 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-[#D8D2C5] font-label">
-            <h3 className="text-base font-bold text-[#152A20] uppercase tracking-wider flex items-center gap-2 font-headline">
-              <Award className="w-4 h-4 text-[#D97845]" />
-              VERIFIED EXPEDITION BADGES & FIELD HISTORY
+        {/* Right Column: Update Profile Form */}
+        <div className="lg:col-span-7 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs p-6 sm:p-8 space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-[#152A20] font-headline">
+              Cập Nhật Thông Tin Tài Khoản
             </h3>
-            <span className="text-xs text-[#5C665F] font-semibold">3 VERIFIED LOGS</span>
+            <p className="text-xs text-[#5C665F] font-body mt-1">
+              Thông tin này được đồng bộ và lưu trữ trực tiếp trên cơ sở dữ liệu hệ thống.
+            </p>
           </div>
 
-          <div className="space-y-4">
-            {climberProfile.completedExpeditions.map((exp, idx) => (
-              <div key={idx} className="p-4 rounded-xs bg-[#EBE6DC] border border-[#DDD7CB] space-y-2 font-label">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-[#152A20] font-headline">{exp.name}</h4>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-[#152A20] text-white font-bold">
-                    {exp.badge}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-[#5C665F] pt-1 border-t border-[#D8D2C5]">
-                  <span>Departure: {exp.year}</span>
-                  <span>Lead Guide: {exp.guide}</span>
-                  <span className="text-[#152A20] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-[#152A20]" />
-                    Zero Gear Damage
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Active Custody Mini Summary */}
-          <div className="pt-4 border-t border-[#D8D2C5] space-y-3 font-label">
-            <div className="text-xs text-[#5C665F] font-bold uppercase tracking-wider">
-              CURRENT GEAR UNDER YOUR CUSTODY:
+          {updateSuccess && (
+            <div className="p-3.5 rounded-xs bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="font-medium">{updateSuccess}</span>
             </div>
-            {custodyItems.map((item) => (
-              <div key={item.id} className="p-3.5 rounded-xs bg-[#EBE6DC] border border-[#DDD7CB] flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-[#152A20] font-headline">{item.gearItem.name}</div>
-                  <div className="text-[11px] text-[#737C75]">Due: {item.dueDate}</div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-md bg-[#FDF2EC] text-[#D97845] font-bold border border-[#F1BA9B] text-[10px]">
-                  {item.hoursRemaining}H LEFT
-                </span>
+          )}
+
+          {updateError && (
+            <div className="p-3.5 rounded-xs bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <span className="font-medium">{updateError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div>
+              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                Họ và tên
+              </label>
+              <div className="relative flex items-center">
+                <User className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Nhập họ và tên đầy đủ"
+                  className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                />
               </div>
-            ))}
-          </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                Địa chỉ Email (Định danh)
+              </label>
+              <div className="relative flex items-center">
+                <Mail className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                <input
+                  type="email"
+                  disabled
+                  value={account.email || ''}
+                  className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#5C665F] cursor-not-allowed font-body"
+                />
+              </div>
+              <span className="text-[10px] text-[#7A857E] mt-1 block">
+                * Email dùng để xác thực phiên và không thể thay đổi trực tiếp.
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                Số điện thoại liên lạc
+              </label>
+              <div className="relative flex items-center">
+                <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0912 345 678"
+                  className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={isUpdating}
+                icon={isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              >
+                {isUpdating ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

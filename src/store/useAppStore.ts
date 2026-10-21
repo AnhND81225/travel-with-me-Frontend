@@ -9,7 +9,6 @@ import {
   FleetCustodyState,
 } from "../interfaces";
 import {
-  OUTPOSTS,
   GEAR_ITEMS,
   MOCK_ACTIVE_CUSTODY,
   MOCK_FLEET_UNITS,
@@ -30,6 +29,7 @@ interface AppState {
   selectedStation: OutpostStation;
   setSelectedStation: (station: OutpostStation) => void;
   outposts: OutpostStation[];
+  setOutposts: (outposts: OutpostStation[]) => void;
 
   // Global Search
   searchQuery: string;
@@ -96,9 +96,34 @@ export const useAppStore = create<AppState>((set, get) => ({
   userRole: "climber",
   setUserRole: (role) => set({ userRole: role }),
 
-  selectedStation: OUTPOSTS.find((station) => station.id === "hcmc-flagship")!,
+  selectedStation: {
+    id: "default-station",
+    name: "Trạm Trung Tâm TerraPeak",
+    code: "HQ-01",
+    elevation: "1,600M",
+    coordinates: "22.3364° N, 103.8438° E",
+    region: "Toàn quốc",
+    address: "Hệ thống trạm Outpost",
+    phone: "1900-TERRAPEAK",
+    operatingHours: "07:00 - 21:00",
+    staffCount: 0,
+    depotManager: "Admin",
+    imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80",
+    associatedTours: [],
+    status: "OPTIMAL",
+    weather: { temp: "22°C", condition: "Clear", wind: "10 km/h", visibility: "10km" },
+    inventorySummary: { tentsAvailable: 0, packsAvailable: 0, hardwareAvailable: 0, totalUnits: 0 },
+  },
   setSelectedStation: (station) => set({ selectedStation: station }),
-  outposts: OUTPOSTS,
+  outposts: [],
+  setOutposts: (outposts) =>
+    set((state) => ({
+      outposts,
+      selectedStation:
+        outposts.find((o) => o.id === state.selectedStation.id) ||
+        outposts[0] ||
+        state.selectedStation,
+    })),
 
   searchQuery: "",
   setSearchQuery: (query) => set({ searchQuery: query }),
