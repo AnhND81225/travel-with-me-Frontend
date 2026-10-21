@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { GEAR_ITEMS, OUTPOSTS } from '../../data/mockData';
+import { GEAR_ITEMS } from '../../data/mockData';
 import { Card, Button, Badge, Input } from '../../components/ui';
 import { 
   Search, 
