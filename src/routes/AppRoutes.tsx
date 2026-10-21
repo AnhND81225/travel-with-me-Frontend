@@ -51,6 +51,7 @@ import {
   SanitizationLogPage,
   InterBranchTransferPage,
   CustodyInspectionPage,
+  AdminOrdersPage,
 } from '../pages/admin';
 
 export const AppRoutes: React.FC = () => {
@@ -128,7 +129,7 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="orders" element={<MyOrdersPage operations />} />
+        <Route path="orders" element={<AdminOrdersPage />} />
         <Route index element={<AdminDashboardPage />} />
         <Route path="inventory" element={<AdminInventoryPage />} />
         <Route path="catalog" element={<AdminCatalogPage />} />
