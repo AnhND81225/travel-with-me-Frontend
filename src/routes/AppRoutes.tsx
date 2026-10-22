@@ -1,4 +1,5 @@
 import React from 'react';
+import { PaymentResultPage } from '../features/payment/PaymentPages';
 import { AuthPage } from '../pages/auth/AuthPage';
 import { OrderCart } from '../features/orders/OrderCart';
 import { EquipmentEditor } from '../features/equipment/EquipmentPages';
@@ -94,6 +95,9 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route path="orders" element={<MyOrdersPage />} />
+        <Route path="payment/result" element={<PaymentResultPage />} />
+        <Route path="payment/success" element={<PaymentResultPage />} />
+        <Route path="payment/pending" element={<PaymentResultPage />} />
         <Route path="cart" element={<OrderCart />} />
         <Route path="manifest" element={<OrderCart />} />
         <Route path="confirmation" element={<BookingConfirmationPage />} />

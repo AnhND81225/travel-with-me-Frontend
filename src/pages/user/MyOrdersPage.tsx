@@ -313,7 +313,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     </span>
                   </div>
 
-                  <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {order.status === "PENDING" && order.paymentStatus !== "PAID" && (
+                      <Link to={`/payment/pending?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 bg-[#994717] text-white text-xs font-bold hover:bg-[#793816]">
+                        Thanh toán ZaloPay <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
                     {order.status === "PENDING" && (
                       <Button
                         variant="outlined"
