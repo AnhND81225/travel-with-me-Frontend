@@ -242,6 +242,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       ĐƠN HÀNG #{order.id}
                     </span>
                     {renderStatusBadge(order.status)}
+                    <Badge variant={order.paymentStatus === "PAID" ? "success" : "warning"}>
+                      {order.paymentStatus === "PAID" ? "Đã thanh toán" : order.paymentStatus === "PARTIALLY_PAID" ? "Thanh toán chưa đủ" : order.paymentStatus === "REFUNDED" ? "Đã hoàn tiền" : "Chưa thanh toán"}
+                    </Badge>
                     <span className="text-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#737C75]" />
                       {new Date(order.orderDate).toLocaleString("vi-VN")}
@@ -315,10 +318,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       <Button
                         variant="outlined"
                         size="sm"
-                        disabled={isBusy}
+                        disabled={isBusy || !order.canCancel}
                         onClick={() => void act(order.id, "cancel")}
                       >
-                        {isBusy ? "Đang hủy..." : "Hủy đơn hàng"}
+                        {isBusy ? "Đang hủy..." : order.canCancel ? "Hủy đơn hàng" : "Liên hệ hỗ trợ hủy / hoàn tiền"}
                       </Button>
                     )}
                   </div>
