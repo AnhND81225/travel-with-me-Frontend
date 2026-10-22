@@ -26,6 +26,11 @@ export type Order = {
   branchId: number;
   status: OrderStatus;
   totalAmount: number;
+  paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUNDED";
+  paidAmount: number;
+  remainingAmount: number;
+  canApprove: boolean;
+  canCancel: boolean;
   orderDate: string;
   items: OrderItem[];
 };

@@ -693,7 +693,8 @@ export const AdminOrdersPage: React.FC = () => {
                     <span className="text-lg sm:text-xl font-bold text-[#152A20] font-headline text-[#D97845]">
                       {vnd(order.totalAmount)}
                     </span>
-                    <span className="text-[10px] text-[#5C665F]">({order.items.length} hạng mục trang bị)</span>
+                      <span className="text-[10px] text-[#5C665F]">({order.items.length} hạng mục trang bị)</span>
+                      <span className="text-xs font-bold">{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Thanh toán chưa đủ' : order.paymentStatus === 'REFUNDED' ? 'Đã hoàn tiền' : 'Chưa thanh toán'} · Còn thiếu: {vnd(order.remainingAmount ?? order.totalAmount)}</span>
                   </div>
 
                   {/* Contextual Action Buttons */}
@@ -714,7 +715,7 @@ export const AdminOrdersPage: React.FC = () => {
                         <Button
                           variant="danger"
                           size="sm"
-                          disabled={isBusy}
+                            disabled={isBusy || !order.canCancel}
                           onClick={() => setOrderToCancel(order)}
                           icon={<X className="w-3.5 h-3.5" />}
                         >
@@ -723,7 +724,7 @@ export const AdminOrdersPage: React.FC = () => {
                         <Button
                           variant="primary"
                           size="sm"
-                          disabled={isBusy}
+                            disabled={isBusy || !order.canApprove}
                           onClick={() => void handleAction(order.id, 'confirm')}
                           icon={<Check className="w-3.5 h-3.5 text-emerald-400" />}
                         >
@@ -831,7 +832,8 @@ export const AdminOrdersPage: React.FC = () => {
                         {vnd(order.totalAmount)}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        {renderStatusBadge(order.status)}
+                          {renderStatusBadge(order.status)}
+                          <span className="block mt-1 text-xs">{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán đủ'}</span>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
@@ -848,7 +850,7 @@ export const AdminOrdersPage: React.FC = () => {
                             <Button
                               variant="primary"
                               size="sm"
-                              disabled={isBusy}
+                                disabled={isBusy || !order.canApprove}
                               onClick={() => void handleAction(order.id, 'confirm')}
                               title="Duyệt đơn"
                             >
@@ -1012,7 +1014,7 @@ export const AdminOrdersPage: React.FC = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    disabled={busyOrderId === selectedOrder.id}
+                    disabled={busyOrderId === selectedOrder.id || !selectedOrder.canApprove}
                     onClick={() => void handleAction(selectedOrder.id, 'confirm')}
                     icon={<Check className="w-3.5 h-3.5 text-emerald-400" />}
                   >
@@ -1092,7 +1094,7 @@ export const AdminOrdersPage: React.FC = () => {
                 variant="danger"
                 size="sm"
                 onClick={() => void handleAction(orderToCancel.id, 'cancel')}
-                disabled={busyOrderId === orderToCancel.id}
+                  disabled={busyOrderId === orderToCancel.id || !orderToCancel.canCancel}
               >
                 {busyOrderId === orderToCancel.id ? 'Đang hủy...' : 'Xác nhận hủy'}
               </Button>
