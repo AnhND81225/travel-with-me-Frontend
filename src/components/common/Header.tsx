@@ -50,7 +50,6 @@ export function Header() {
   }, []);
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isReferencePage = pathname === "/orders" || pathname === "/tours";
   const currentBranch = storefrontBranches.find(
     (b) => b.id === selectedStation.id,
   );
@@ -60,7 +59,6 @@ export function Header() {
     ["/rent", "Rent Gear"],
     ["/tours", "Tours & Events"],
     ["/orders", "My Orders"],
-    ...(isReferencePage ? [["/admin", "Admin Console"]] : []),
   ];
   function search(e: React.FormEvent) {
     e.preventDefault();
