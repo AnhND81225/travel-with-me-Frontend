@@ -33,28 +33,37 @@ export function PaymentResultPage() {
   const [checking, setChecking] = useState(false);
   const [paying, setPaying] = useState(false);
   const generation = useRef(0);
+  const checkInFlight = useRef<number | null>(null);
+  const paymentInFlight = useRef(false);
   // Redirect is a display hint only. It never marks a payment or order as successful.
   const gatewayCancelled = params.get('status') === '-49';
   const success = payment?.status === 'SUCCEEDED' || (!transactionId && order?.paymentStatus === 'PAID');
   const terminal = payment?.status === 'FAILED' || payment?.status === 'CANCELLED';
 
-  const check = useCallback(async () => {
+  const check = useCallback(async (background = false) => {
     const version = generation.current;
-    setChecking(true); setError(''); setAuthError(false);
+    if (checkInFlight.current === version || paymentInFlight.current) return;
+    checkInFlight.current = version;
+    if (!background) { setChecking(true); setError(''); setAuthError(false); }
     try {
       const result = storedOrderId
         ? await paymentApi<Payment | null>(`/payments/zalopay/orders/${storedOrderId}/payment`, {}, true)
         : transactionId ? await paymentApi<Payment>(`/payments/zalopay/query/${transactionId}`) : null;
       if (version !== generation.current) return;
-      setPayment(result);
+      setPayment(previous => JSON.stringify(previous) === JSON.stringify(result) ? previous : result);
       const resolvedOrderId = result?.orderId || storedOrderId;
       if (resolvedOrderId) {
         const data = await paymentApi<Order>(`/orders/${resolvedOrderId}`);
-        if (version === generation.current) setOrder(data);
+        if (version === generation.current) {
+          setOrder(previous => JSON.stringify(previous) === JSON.stringify(data) ? previous : data);
+        }
       }
     } catch (e) {
-      if (version === generation.current) { setError(e instanceof Error ? e.message : 'Chưa thể kiểm tra kết quả thanh toán.'); setAuthError(e instanceof ApiError && (e.status === 401 || e.status === 403)); }
-    } finally { if (version === generation.current) setChecking(false); }
+      if (!background && version === generation.current) { setError(e instanceof Error ? e.message : 'Chưa thể kiểm tra kết quả thanh toán.'); setAuthError(e instanceof ApiError && (e.status === 401 || e.status === 403)); }
+    } finally {
+      if (checkInFlight.current === version) checkInFlight.current = null;
+      if (!background && version === generation.current) setChecking(false);
+    }
   }, [transactionId, storedOrderId]);
 
   useEffect(() => {
@@ -68,8 +77,9 @@ export function PaymentResultPage() {
     if (payment?.status !== 'PENDING') return;
     let attempts = 0;
     const timer = window.setInterval(() => {
+      if (document.visibilityState === 'hidden' || checkInFlight.current !== null || paymentInFlight.current) return;
       if (++attempts >= 6) window.clearInterval(timer);
-      void check();
+      void check(true);
     }, 5000);
     return () => window.clearInterval(timer);
   }, [transactionId, payment?.status, check]);
@@ -86,7 +96,10 @@ export function PaymentResultPage() {
   }, [order]);
 
   async function pay() {
-    if (!order || order.status !== 'PENDING') return;
+    if (!order || order.status !== 'PENDING' || paymentInFlight.current) return;
+    paymentInFlight.current = true;
+    // Ignore an older background response arriving after the user starts paying.
+    generation.current++;
     setPaying(true); setError(''); setAuthError(false);
     try {
       const returnUrl = new URL('/payment/result', window.location.origin);
@@ -99,7 +112,7 @@ export function PaymentResultPage() {
       if (result.status === 'SUCCEEDED') {
         setPayment(result);
         const updated = await paymentApi<Order>(`/orders/${order.id}`);
-        setOrder(updated); setPaying(false);
+        setOrder(updated); setPaying(false); paymentInFlight.current = false;
         return;
       }
       const url = result.zalopay_response?.order_url;
@@ -109,12 +122,14 @@ export function PaymentResultPage() {
       window.location.assign(destination.toString());
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
+        paymentInFlight.current = false;
         await check();
       } else {
         setError(e instanceof Error ? e.message : 'Không thể tạo thanh toán.');
         setAuthError(e instanceof ApiError && (e.status === 401 || e.status === 403));
       }
       setPaying(false);
+      paymentInFlight.current = false;
     }
   }
 
@@ -129,7 +144,7 @@ export function PaymentResultPage() {
       <div className="pp-reference"><span>MÃ THAM CHIẾU</span><strong>{orderId ? `#ORDER-${orderId}` : (payment?.transaction_id || transactionId) ? `#TXN-${payment?.transaction_id || transactionId}` : 'Chưa chọn đơn'}</strong><small>{(payment?.transaction_id || transactionId) ? `Giao dịch #${payment?.transaction_id || transactionId}` : 'Theo dõi tại Đơn của tôi'}</small></div>
     </section>
     {error && <div className="pp-error" role="alert"><AlertTriangle size={18}/><span>{error}</span>{authError && <Link to={loginUrl}>Đăng nhập lại</Link>}<button onClick={() => void check()} disabled={checking}>Thử lại</button></div>}
-    {checking && <p className="pp-sync" role="status"><RefreshCw size={14} className="pp-spin"/>Đang xác minh kết quả thanh toán…</p>}
+    <div className="pp-sync-slot">{checking && <p className="pp-sync" role="status"><RefreshCw size={14} className="pp-spin"/>Đang xác minh kết quả thanh toán…</p>}</div>
     <div className="pp-grid">
       <div className="pp-main">
         {success ? <section className="pp-card"><div className="pp-card-title"><Compass size={20}/><h2>HÀNH TRÌNH CỦA BẠN ĐÃ SẴN SÀNG</h2></div><div className="pp-steps">{['Đã tạo đơn', 'Đã thanh toán', 'Chờ duyệt & chuẩn bị', 'Nhận trang bị'].map((s,i)=><div key={s} className={i<2?'pp-step done':'pp-step'}><span>{i<2?<Check size={17}/>:i+1}</span><p>{s}</p></div>)}</div><div className="pp-note"><ShieldCheck size={20}/><p>Thanh toán và duyệt đơn là hai bước riêng. Theo dõi trạng thái tại <Link to="/orders">Đơn của tôi</Link> trước khi đến nhận trang bị.</p></div></section>
