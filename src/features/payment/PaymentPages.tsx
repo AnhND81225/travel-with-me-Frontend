@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Clock3, Compass, CreditCard, FileText, LockKeyhole, MapPin, Package, RefreshCw, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock3, Compass, CreditCard, FileText, LockKeyhole, MapPin, Package, RefreshCw, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { ApiError, catalogApi, vnd, type Branch, type Product } from '../equipment/catalogApi';
 import type { Order, OrderItem } from '../orders/orderApi';
 import './payment-pages.css';
@@ -32,6 +32,8 @@ export function PaymentResultPage() {
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [notice, setNotice] = useState('');
   const generation = useRef(0);
   const checkInFlight = useRef<number | null>(null);
   const paymentInFlight = useRef(false);
@@ -100,7 +102,7 @@ export function PaymentResultPage() {
     paymentInFlight.current = true;
     // Ignore an older background response arriving after the user starts paying.
     generation.current++;
-    setPaying(true); setError(''); setAuthError(false);
+    setPaying(true); setError(''); setNotice(''); setAuthError(false);
     try {
       const returnUrl = new URL('/payment/result', window.location.origin);
       returnUrl.searchParams.set('orderId', String(order.id));
@@ -133,22 +135,42 @@ export function PaymentResultPage() {
     }
   }
 
-  const title = !payment && transactionId ? 'Đang xác minh kết quả thanh toán' : success ? 'Thanh toán thành công!' : gatewayCancelled ? 'Bạn đã hủy phiên thanh toán' : terminal ? 'Thanh toán chưa thành công' : transactionId ? 'Giao dịch thanh toán chưa hoàn tất' : order ? 'Hoàn tất thanh toán đơn hàng' : 'Kiểm tra thanh toán của bạn';
-  const description = success ? 'Khoản thanh toán đã được xác nhận. Đơn hàng được ghi nhận và chờ chi nhánh duyệt trước khi bàn giao trang bị.' : gatewayCancelled ? 'Bạn đã quay về từ cổng thanh toán. Hệ thống tiếp tục đối soát giao dịch; trạng thái của đơn được cập nhật theo kết quả từ ZaloPay.' : terminal ? 'Giao dịch đã thất bại hoặc kết thúc. Bạn có thể kiểm tra đơn và tạo lượt thanh toán mới nếu đơn còn chờ xử lý.' : 'Hoàn tất thanh toán qua ZaloPay để chuẩn bị hành trình. Nếu vừa quay về từ cổng thanh toán, hãy chờ kết quả xác nhận hoặc kiểm tra lại.';
+
+  async function cancelPayment() {
+    const id = payment?.transaction_id;
+    if (!id || payment.status !== 'PENDING' || paymentInFlight.current) return;
+    paymentInFlight.current = true;
+    generation.current++;
+    setCancelling(true); setChecking(false); setError(''); setNotice(''); setAuthError(false);
+    try {
+      const result = await paymentApi<Payment>(`/payments/zalopay/${id}/cancel`, { method: 'POST' });
+      setPayment(result);
+      setNotice(result.status === 'SUCCEEDED'
+        ? 'Giao dịch đã thanh toán thành công trước khi hủy.'
+        : result.status === 'CANCELLED'
+          ? 'Đã hủy thanh toán. Bạn vẫn có thể thanh toán lại cho đơn này.'
+          : 'Lượt thanh toán đã kết thúc. Đơn hàng vẫn được giữ nguyên.');
+      const targetOrderId = result.orderId || orderId;
+      if (targetOrderId) setOrder(await paymentApi<Order>(`/orders/${targetOrderId}`));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Chưa xác nhận được hủy thanh toán.');
+      setAuthError(e instanceof ApiError && (e.status === 401 || e.status === 403));
+    } finally {
+      setCancelling(false);
+      paymentInFlight.current = false;
+    }
+  }
+
 
   return <div className="payment-pages">
     <div className="pp-breadcrumb"><Link to="/">Trang chủ</Link><span>/</span><Link to="/orders">Đơn của tôi</Link><span>/</span><span>Kết quả thanh toán</span></div>
-    <section className={`pp-banner ${success ? 'pp-success' : ''}`} aria-live="polite">
-      <div className="pp-banner-icon">{success ? <CheckCircle2 size={32}/> : <AlertTriangle size={32}/>}</div>
-      <div className="pp-banner-copy"><div className="pp-tags"><span>{success ? 'GIAO DỊCH ĐÃ KHỚP' : 'EXPEDITION DISPATCH'}</span><span>ZALOPAY · {payment?.status || 'KIỂM TRA GIAO DỊCH'}</span></div><h1>{title}</h1><p>{description}</p></div>
-      <div className="pp-reference"><span>MÃ THAM CHIẾU</span><strong>{orderId ? `#ORDER-${orderId}` : (payment?.transaction_id || transactionId) ? `#TXN-${payment?.transaction_id || transactionId}` : 'Chưa chọn đơn'}</strong><small>{(payment?.transaction_id || transactionId) ? `Giao dịch #${payment?.transaction_id || transactionId}` : 'Theo dõi tại Đơn của tôi'}</small></div>
-    </section>
     {error && <div className="pp-error" role="alert"><AlertTriangle size={18}/><span>{error}</span>{authError && <Link to={loginUrl}>Đăng nhập lại</Link>}<button onClick={() => void check()} disabled={checking}>Thử lại</button></div>}
+    {notice && <p className="pp-note" role="status">{notice}</p>}
     <div className="pp-sync-slot">{checking && <p className="pp-sync" role="status"><RefreshCw size={14} className="pp-spin"/>Đang xác minh kết quả thanh toán…</p>}</div>
     <div className="pp-grid">
       <div className="pp-main">
         {success ? <section className="pp-card"><div className="pp-card-title"><Compass size={20}/><h2>HÀNH TRÌNH CỦA BẠN ĐÃ SẴN SÀNG</h2></div><div className="pp-steps">{['Đã tạo đơn', 'Đã thanh toán', 'Chờ duyệt & chuẩn bị', 'Nhận trang bị'].map((s,i)=><div key={s} className={i<2?'pp-step done':'pp-step'}><span>{i<2?<Check size={17}/>:i+1}</span><p>{s}</p></div>)}</div><div className="pp-note"><ShieldCheck size={20}/><p>Thanh toán và duyệt đơn là hai bước riêng. Theo dõi trạng thái tại <Link to="/orders">Đơn của tôi</Link> trước khi đến nhận trang bị.</p></div></section>
-        : <section className="pp-card"><div className="pp-card-title"><LockKeyhole size={20}/><h2>TIẾP TỤC CHUẨN BỊ HÀNH TRÌNH</h2></div><div className="pp-body"><h3>Một bước nữa để hoàn tất đơn hàng</h3><p>Kết quả giao dịch được xác minh trực tiếp với ZaloPay. Lỗi kết nối hoặc đóng trang thanh toán chưa có nghĩa là tiền đã được hoàn lại hay giao dịch đã kết thúc.</p><div className="pp-benefits"><div><ShieldCheck/><strong>Giá từ đơn hàng</strong><span>Số tiền do hệ thống tính và xác nhận.</span></div><div><RefreshCw/><strong>Đối soát tự động</strong><span>Kết quả sẽ cập nhật sau khi xác minh.</span></div><div><ShoppingBag/><strong>Giữ nguyên đơn</strong><span>Kiểm tra trạng thái trước khi đặt lại.</span></div></div><div className="pp-provider"><div className="pp-zalo">Z</div><div><strong>Thanh toán bằng ZaloPay</strong><p>Chuyển đến cổng thanh toán để chọn phương thức.</p></div><ShieldCheck size={23}/></div><div className="pp-actions"><button className="pp-button" disabled={!order || paying || checking || success || order.status !== 'PENDING' || order.paymentStatus === 'PAID'} onClick={() => void pay()}><CreditCard size={17}/>{paying?'Đang xử lý…':payment?.status === 'PENDING' || terminal || gatewayCancelled ? 'Thanh toán lại qua ZaloPay' : 'Thanh toán qua ZaloPay'}<ArrowRight size={17}/></button><button className="pp-button secondary" disabled={checking || (!transactionId && !orderId)} onClick={() => void check()}><RefreshCw size={16}/>Kiểm tra lại</button></div>{payment?.status === 'PENDING' && <p className="pp-caption">Bạn có thể thanh toán lại. Hệ thống sẽ xác minh và đóng lượt cũ với ZaloPay trước khi mở lượt mới, giữ nguyên đơn hàng.</p>}</div></section>}
+        : <section className="pp-card"><div className="pp-card-title"><LockKeyhole size={20}/><h2>TIẾP TỤC CHUẨN BỊ HÀNH TRÌNH</h2></div><div className="pp-body"><h3>Một bước nữa để hoàn tất đơn hàng</h3><p>Kết quả giao dịch được xác minh trực tiếp với ZaloPay. Lỗi kết nối hoặc đóng trang thanh toán chưa có nghĩa là tiền đã được hoàn lại hay giao dịch đã kết thúc.</p><div className="pp-benefits"><div><ShieldCheck/><strong>Giá từ đơn hàng</strong><span>Số tiền do hệ thống tính và xác nhận.</span></div><div><RefreshCw/><strong>Đối soát tự động</strong><span>Kết quả sẽ cập nhật sau khi xác minh.</span></div><div><ShoppingBag/><strong>Giữ nguyên đơn</strong><span>Kiểm tra trạng thái trước khi đặt lại.</span></div></div><div className="pp-provider"><div className="pp-zalo">Z</div><div><strong>Thanh toán bằng ZaloPay</strong><p>Chuyển đến cổng thanh toán để chọn phương thức.</p></div><ShieldCheck size={23}/></div><div className="pp-actions"><button className="pp-button" disabled={!order || paying || cancelling || checking || success || order.status !== 'PENDING' || order.paymentStatus === 'PAID'} onClick={() => void pay()}><CreditCard size={17}/>{paying?'Đang xử lý…':'Thanh toán'}<ArrowRight size={17}/></button><button className="pp-button secondary" disabled={checking || paying || cancelling || (!transactionId && !orderId)} onClick={() => void check()}><RefreshCw size={16}/>Kiểm tra lại</button>{payment?.status === 'PENDING' && <button className="pp-button secondary" disabled={checking || paying || cancelling} onClick={() => void cancelPayment()}>{cancelling ? 'Đang hủy…' : 'Hủy thanh toán'}</button>}</div>{payment?.status === 'PENDING' && <p className="pp-caption">Bạn có thể thanh toán lại. Hệ thống sẽ xác minh và đóng lượt cũ với ZaloPay trước khi mở lượt mới, giữ nguyên đơn hàng.</p>}</div></section>}
         <section className="pp-card"><div className="pp-card-title"><Package size={20}/><h2>TRANG BỊ CHO HÀNH TRÌNH</h2><span>{order ? `${order.items.length} HẠNG MỤC` : 'ĐƠN HÀNG'}</span></div>{order ? <div className="pp-items">{order.items.map(item=><div className="pp-item" key={item.id}><div className="pp-item-icon">{item.itemType==='RENTAL'?<Compass/>:<ShoppingBag/>}</div><div><span className="pp-label">{item.itemType==='RENTAL'?'TRANG BỊ THUÊ':'TRANG BỊ MUA'}</span><Link to={`/gear/${item.productId}`}><h3>{products[item.productId]?.name || `Sản phẩm #${item.productId}`}</h3></Link><p>Số lượng: {item.quantity} · Đơn giá: {vnd(item.unitPrice)}{item.itemType==='RENTAL'?' / ngày':''}</p>{item.rentalStartDate && item.rentalEndDate && <small>{date(item.rentalStartDate)} → {date(item.rentalEndDate)}</small>}</div><strong>{vnd(lineTotal(item))}</strong></div>)}</div>:<div className="pp-empty"><Package size={35}/><h3>{transactionId?'Chưa có thông tin chi tiết đơn':'Chưa chọn đơn hàng'}</h3><p>Mở đơn của bạn để xem trang bị và tiếp tục thanh toán.</p><Link className="pp-text-link" to="/orders">Xem đơn của tôi <ArrowRight size={15}/></Link></div>}</section>
         <div className="pp-assurances"><div><ShieldCheck/><strong>Thông tin được xác minh</strong><span>Kết quả từ cổng thanh toán</span></div><div><Package/><strong>Trang bị tại chi nhánh</strong><span>Nhận theo thông tin đơn hàng</span></div><div><Compass/><strong>Sẵn sàng khám phá</strong><span>Chuẩn bị kỹ trước hành trình</span></div></div>
       </div>
