@@ -29,7 +29,7 @@ export const UserLayout: React.FC = () => {
     <div className="min-h-screen bg-[#F3EFE6] text-[#111D16] flex flex-col selection:bg-[#152A20] selection:text-[#F3EFE6] font-body">
       <Header />
 
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="flex-1 animate-fade-in" key={pathname}>
         <Outlet />
       </main>
 

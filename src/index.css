@@ -69,3 +69,251 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #152A20;
 }
+
+/* ==========================================================================
+   TERRAPEAK ANIMATION SYSTEM & MICRO-INTERACTIONS
+   ========================================================================== */
+
+/* Keyframe Definitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.88;
+  }
+}
+
+@keyframes shimmerEffect {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Utility Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-badge-pop {
+  animation: badgePop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-float {
+  animation: gentleFloat 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulseSubtle 2.5s ease-in-out infinite;
+}
+
+/* Stagger animation utilities for card grids */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+
+/* Interactive Hover Lift on Cards */
+.store-card,
+.store-product-card,
+.store-tour-card,
+.store-service-card,
+.store-branch-card,
+.store-feature-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.store-card:hover,
+.store-product-card:hover,
+.store-tour-card:hover,
+.store-service-card:hover,
+.store-branch-card:hover,
+.store-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 32px -8px rgba(21, 42, 32, 0.12),
+              0 6px 14px -3px rgba(21, 42, 32, 0.06);
+  border-color: rgba(21, 42, 32, 0.25);
+}
+
+/* Image Subtle Zoom on Card Hover */
+.store-product-image img,
+.store-tour-image img,
+.store-hero-figure img,
+.store-card-img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+
+.store-product-card:hover .store-product-image img,
+.store-tour-card:hover .store-tour-image img {
+  transform: scale(1.06);
+}
+
+/* Smooth Interactive Button Spring */
+.store-button,
+button.store-button {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, box-shadow;
+}
+
+.store-button:hover,
+button.store-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(21, 42, 32, 0.25);
+}
+
+.store-button:active,
+button.store-button:active {
+  transform: translateY(0) scale(0.97) !important;
+}
+
+.store-button-orange:hover {
+  box-shadow: 0 8px 20px -4px rgba(153, 71, 23, 0.38) !important;
+}
+
+/* Desktop Navigation Link Smooth Hover */
+.store-desktop-nav a {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.store-desktop-nav a:hover {
+  transform: translateY(-1.5px);
+}
+
+.store-desktop-nav a:active {
+  transform: scale(0.97);
+}
+
+/* Cart Badge Bounce */
+.store-cart span {
+  animation: badgePop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both !important;
+}
+
+/* Hero section and dispatch widget micro-interactions */
+.store-hero-inner {
+  animation: fadeInUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.store-dispatch {
+  animation: fadeInUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.store-dispatch:hover {
+  box-shadow: 0 20px 40px -10px rgba(21, 42, 32, 0.18);
+}
+
+/* Store logo micro-hover */
+.store-logo {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.store-brand:hover .store-logo {
+  transform: rotate(-6deg) scale(1.08);
+}
+
+/* Interactive focus ring on inputs */
+input:focus, select:focus, textarea:focus {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 0 3px rgba(21, 42, 32, 0.08);
+}

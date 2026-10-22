@@ -334,7 +334,7 @@ export const AdminOrdersPage: React.FC = () => {
 
       {/* KPI & Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20]">
+        <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
           <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TỔNG ĐƠN HÀNG</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
           <span className="text-[10px] text-[#5C665F]">Giao dịch ghi nhận</span>
@@ -342,7 +342,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         <Card
           padding="sm"
-          className={`space-y-1 bg-[#FDF8F3] border-l-4 border-l-[#D97845] transition cursor-pointer hover:border-[#D97845] ${
+          className={`space-y-1 bg-[#FDF8F3] border-l-4 border-l-[#D97845] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'PENDING' ? 'ring-2 ring-[#D97845]' : ''
           }`}
           onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
@@ -359,7 +359,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         <Card
           padding="sm"
-          className={`space-y-1 bg-[#F0F7FF] border-l-4 border-l-[#2563EB] transition cursor-pointer hover:border-[#2563EB] ${
+          className={`space-y-1 bg-[#F0F7FF] border-l-4 border-l-[#2563EB] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'CONFIRMED' ? 'ring-2 ring-[#2563EB]' : ''
           }`}
           onClick={() => setStatusFilter(statusFilter === 'CONFIRMED' ? 'ALL' : 'CONFIRMED')}
@@ -371,7 +371,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         <Card
           padding="sm"
-          className={`space-y-1 bg-[#F0FDF4] border-l-4 border-l-[#10B981] transition cursor-pointer hover:border-[#10B981] ${
+          className={`space-y-1 bg-[#F0FDF4] border-l-4 border-l-[#10B981] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'IN_PROGRESS' ? 'ring-2 ring-[#10B981]' : ''
           }`}
           onClick={() => setStatusFilter(statusFilter === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
@@ -383,7 +383,7 @@ export const AdminOrdersPage: React.FC = () => {
 
         <Card
           padding="sm"
-          className={`space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#4B5563] transition cursor-pointer hover:border-[#4B5563] ${
+          className={`space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#4B5563] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'COMPLETED' ? 'ring-2 ring-[#4B5563]' : ''
           }`}
           onClick={() => setStatusFilter(statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
@@ -393,7 +393,7 @@ export const AdminOrdersPage: React.FC = () => {
           <span className="text-[10px] text-[#737C75]">Đã thu hồi & nghiệm thu</span>
         </Card>
 
-        <Card padding="sm" className="space-y-1 bg-[#152A20] text-white border-l-4 border-l-[#D97845]">
+        <Card padding="sm" className="space-y-1 bg-[#152A20] text-white border-l-4 border-l-[#D97845] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
           <span className="text-[10px] text-[#ADCBBB] font-bold uppercase tracking-wider block">TỔNG DOANH SỐ</span>
           <div className="text-lg sm:text-xl font-bold text-[#F3EFE6] font-headline truncate" title={vnd(stats.totalRevenue)}>
             {vnd(stats.totalRevenue)}
