@@ -8,3 +8,4 @@ export * from './AdminCatalogPage';
 export * from './AdminBranchesPage';
 export * from './AdminReportsPage';
 export * from './AdminStaffPage';
+export * from './AdminOrdersPage';
