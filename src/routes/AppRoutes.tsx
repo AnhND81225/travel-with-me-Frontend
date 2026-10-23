@@ -52,6 +52,7 @@ import {
   InterBranchTransferPage,
   CustodyInspectionPage,
   AdminOrdersPage,
+  EventsGuidesAdminPage,
 } from '../pages/admin';
 
 export const AppRoutes: React.FC = () => {
@@ -138,6 +139,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="branches" element={<AdminBranchesPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
+        <Route path="events-guides" element={<EventsGuidesAdminPage />} />
         <Route path="fleet" element={<FleetLedgerPage />} />
         <Route path="sanitize" element={<SanitizationLogPage />} />
         <Route path="transfers" element={<InterBranchTransferPage />} />
