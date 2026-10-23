@@ -47,6 +47,7 @@ import {
   AdminBranchesPage,
   AdminReportsPage,
   AdminStaffPage,
+  AdminUsersPage,
   FleetLedgerPage,
   SanitizationLogPage,
   InterBranchTransferPage,
@@ -136,6 +137,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="catalog/:id/edit" element={<EquipmentEditor />} />
         <Route path="branches" element={<AdminBranchesPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="users" element={<AdminUsersPage />} />
         <Route path="staff" element={<AdminStaffPage />} />
         <Route path="fleet" element={<FleetLedgerPage />} />
         <Route path="sanitize" element={<SanitizationLogPage />} />
