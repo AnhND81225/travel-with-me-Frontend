@@ -16,6 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
+import { useAuth } from '../../hooks/useAuth';
 
 interface PosLineItem {
   gear: typeof GEAR_ITEMS[0];
@@ -26,6 +27,7 @@ interface PosLineItem {
 
 export const StaffPosPage: React.FC = () => {
   const { selectedStation } = useAppStore();
+  const { account } = useAuth();
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<PosLineItem[]>([]);
   const [customerName, setCustomerName] = useState('Alex Rivers (Expedition Squad A)');
@@ -89,7 +91,7 @@ export const StaffPosPage: React.FC = () => {
 
         <div className="text-right">
           <span className="text-[10px] text-[#7A857E] font-bold uppercase block">ARMOURER TERMINAL OPERATOR</span>
-          <span className="text-xs font-bold text-[#152A20]">Ranger Tran • Register #01</span>
+          <span className="text-xs font-bold text-[#152A20]">{account?.fullName || 'Cán bộ trực ban'} • Register #01</span>
         </div>
       </div>
 

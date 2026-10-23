@@ -83,6 +83,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         navigate("/admin", { replace: true });
       } else if (account.role === "STAFF") {
         navigate("/staff", { replace: true });
+      } else if (account.role === "GUIDE") {
+        navigate("/staff/tours", { replace: true });
       } else {
         navigate("/passport", { replace: true });
       }

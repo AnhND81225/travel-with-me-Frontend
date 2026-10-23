@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { catalogApi, Branch, Account } from '../../features/equipment/catalogApi';
 import { markAccountRequiresPasswordChange } from '../../utils/firstLoginUtils';
+import { eventGuideApi } from '../../services/eventGuideApi';
 
 export interface PersonnelRow {
   id: number; // staff record id if STAFF, or user.id if GUIDE
@@ -220,6 +221,17 @@ export const AdminStaffPage: React.FC = () => {
           } catch (_) {}
           throw assignErr;
         }
+      } else {
+        // If GUIDE, register guide profile in /admin/guides so it also shows in Tours & Guides
+        try {
+          await eventGuideApi.createGuide({
+            userId: user.id,
+            experienceYears: 1,
+            specialization: createForm.position.trim() || 'Hướng dẫn viên leo núi',
+          });
+        } catch (guideErr) {
+          console.warn('Could not auto-register guide profile in /admin/guides:', guideErr);
+        }
       }
 
       const email = createForm.email;
@@ -253,7 +265,7 @@ export const AdminStaffPage: React.FC = () => {
     setEditForm({
       fullName: p.userName || '',
       phone: p.phone || '',
-      branchId: p.branchId ? String(p.branchId) : '',
+      branchId: p.branchId ? String(p.branchId) : (branches[0] ? String(branches[0].id) : ''),
       position: p.position || '',
     });
   };
@@ -313,10 +325,24 @@ export const AdminStaffPage: React.FC = () => {
 
     try {
       if (p.role === 'STAFF') {
-        await catalogApi(`/staff/${p.id}/status?status=${next}`, { method: 'PUT' });
+        try {
+          await catalogApi(`/staff/${p.id}/status?status=${next}`, { method: 'PUT' });
+        } catch (_) {}
       }
       // Sync user status
-      await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
+      try {
+        await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
+      } catch (_) {
+        await catalogApi(`/users/${p.userId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            fullName: p.userName,
+            phone: p.phone || undefined,
+            role: p.role,
+            status: next,
+          }),
+        });
+      }
 
       notifyPage('ok', `Đã ${action} tài khoản "${p.userName}".`);
       await load();

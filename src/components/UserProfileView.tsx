@@ -164,6 +164,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
       ? 'Quản trị viên (Admin)'
       : account.role === 'STAFF'
       ? 'Cán bộ trạm (Staff)'
+      : account.role === 'GUIDE'
+      ? 'Hướng dẫn viên thám hiểm (Guide)'
       : 'Thành viên thám hiểm (Customer)';
 
   const initials = account.fullName

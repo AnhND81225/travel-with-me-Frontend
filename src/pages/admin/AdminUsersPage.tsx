@@ -128,7 +128,19 @@ export const AdminUsersPage: React.FC = () => {
     }
 
     try {
-      await catalogApi(`/users/${user.id}/status?status=${nextStatus}`, { method: 'PUT' });
+      try {
+        await catalogApi(`/users/${user.id}/status?status=${nextStatus}`, { method: 'PUT' });
+      } catch (_) {
+        await catalogApi(`/users/${user.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            fullName: user.fullName,
+            phone: user.phone || undefined,
+            role: user.role,
+            status: nextStatus,
+          }),
+        });
+      }
       notify('ok', `Đã ${actionText} tài khoản khách hàng "${user.fullName}".`);
       await loadUsers();
     } catch (err) {

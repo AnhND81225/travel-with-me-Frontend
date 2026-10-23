@@ -116,7 +116,19 @@ export const AdminBranchesPage: React.FC = () => {
     )
       return;
     try {
-      await catalogApi<Branch>(`/branches/${b.id}/status?status=${next}`, { method: 'PUT' });
+      try {
+        await catalogApi<Branch>(`/branches/${b.id}/status?status=${next}`, { method: 'PUT' });
+      } catch (_) {
+        await catalogApi<Branch>(`/branches/${b.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name: b.name,
+            phone: b.phone || '',
+            address: b.address || '',
+            status: next,
+          }),
+        });
+      }
       notify('ok', next === 'ACTIVE' ? 'Đã mở lại chi nhánh.' : 'Đã khóa chi nhánh.');
       await load();
     } catch (err) {

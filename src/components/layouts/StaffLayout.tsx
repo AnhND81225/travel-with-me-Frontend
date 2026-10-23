@@ -20,13 +20,44 @@ import { useAppStore } from '../../store/useAppStore';
 import { useAuth } from '../../hooks/useAuth';
 import { ForceChangePasswordModal } from '../auth/ForceChangePasswordModal';
 import { doesAccountRequirePasswordChange } from '../../utils/firstLoginUtils';
+import { OutpostService } from '../../services/outpostService';
+import { catalogApi } from '../../features/equipment/catalogApi';
 
 export const StaffLayout: React.FC = () => {
   const location = useLocation();
-  const { selectedStation, setSelectedStation, outposts, setUserRole } = useAppStore();
+  const { selectedStation, setSelectedStation, outposts, setOutposts, setUserRole } = useAppStore();
   const { account, logout } = useAuth();
   const [stationDropdownOpen, setStationDropdownOpen] = useState(false);
   const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
+
+  // Load outposts from backend if not already loaded
+  React.useEffect(() => {
+    if (outposts.length === 0) {
+      OutpostService.getOutposts().then((res) => {
+        if (res.data && res.data.length > 0) {
+          setOutposts(res.data);
+        }
+      });
+    }
+  }, [outposts.length, setOutposts]);
+
+  // If logged-in user is STAFF, detect and auto-select their assigned branch
+  React.useEffect(() => {
+    if (account?.role === 'STAFF' && account.id) {
+      catalogApi<Array<{ userId: number; branchId: number; branchName: string }>>('/staff')
+        .then((staffList) => {
+          if (!Array.isArray(staffList)) return;
+          const myStaff = staffList.find((s) => s.userId === account.id);
+          if (myStaff && myStaff.branchId) {
+            const matched = outposts.find((o) => o.id === `branch-${myStaff.branchId}`);
+            if (matched) {
+              setSelectedStation(matched);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [account, outposts, setSelectedStation]);
 
   const staffNav = [
     { path: '/staff', label: 'Staff Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -159,12 +190,16 @@ export const StaffLayout: React.FC = () => {
 
             {/* Staff Profile Badge */}
             <div className="flex items-center gap-2 pl-3 border-l border-[#D8D2C5]">
-              <div className="w-7 h-7 rounded-xs bg-[#152A20] flex items-center justify-center text-white font-bold text-xs">
-                R
+              <div className="w-7 h-7 rounded-xs bg-[#152A20] flex items-center justify-center text-white font-bold text-xs uppercase">
+                {account?.fullName ? account.fullName.trim().charAt(0).toUpperCase() : 'S'}
               </div>
               <div className="hidden sm:block text-left text-xs">
-                <div className="font-bold text-[#152A20] leading-none">Ranger Tran</div>
-                <div className="text-[10px] text-[#7A857E] mt-0.5">Station Armorer</div>
+                <div className="font-bold text-[#152A20] leading-none">
+                  {account?.fullName || 'Cán bộ trạm'}
+                </div>
+                <div className="text-[10px] text-[#7A857E] mt-0.5">
+                  {account?.role === 'GUIDE' ? 'Hướng dẫn viên (Guide)' : 'Cán bộ chi nhánh (Staff)'}
+                </div>
               </div>
             </div>
           </div>

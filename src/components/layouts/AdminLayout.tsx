@@ -16,10 +16,22 @@ import {
   Globe
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { OutpostService } from '../../services/outpostService';
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
-  const { setUserRole } = useAppStore();
+  const { setUserRole, outposts, setOutposts } = useAppStore();
+
+  // Load outposts from backend if not already loaded
+  React.useEffect(() => {
+    if (outposts.length === 0) {
+      OutpostService.getOutposts().then((res) => {
+        if (res.data && res.data.length > 0) {
+          setOutposts(res.data);
+        }
+      });
+    }
+  }, [outposts.length, setOutposts]);
 
   const adminNav = [
     { path: '/admin/orders', label: 'Equipment Orders', icon: <Package className="w-4 h-4" /> },
