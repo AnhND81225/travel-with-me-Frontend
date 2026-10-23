@@ -17,11 +17,16 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
+import { ForceChangePasswordModal } from '../auth/ForceChangePasswordModal';
+import { doesAccountRequirePasswordChange } from '../../utils/firstLoginUtils';
 
 export const StaffLayout: React.FC = () => {
   const location = useLocation();
   const { selectedStation, setSelectedStation, outposts, setUserRole } = useAppStore();
+  const { account, logout } = useAuth();
   const [stationDropdownOpen, setStationDropdownOpen] = useState(false);
+  const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
 
   const staffNav = [
     { path: '/staff', label: 'Staff Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -170,6 +175,15 @@ export const StaffLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {requiresPasswordChange && account?.email && (
+        <ForceChangePasswordModal
+          isOpen={true}
+          userEmail={account.email}
+          onCancel={logout}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 };

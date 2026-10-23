@@ -13,11 +13,17 @@ import {
   MapPin,
   LogOut,
   Save,
-  Loader2
+  Loader2,
+  Lock,
+  Key,
+  Eye,
+  EyeOff,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { catalogApi, Account } from '../features/equipment/catalogApi';
 import { Button } from './ui';
+import { doesAccountRequirePasswordChange, clearAccountPasswordChangeRequirement } from '../utils/firstLoginUtils';
 
 export interface UserProfileViewProps {
   custodyItems?: unknown[];
@@ -32,12 +38,72 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [updateError, setUpdateError] = useState('');
 
+  // Password tab state
+  const isPwdChangeRequired = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
+  const [activeTab, setActiveTab] = useState<'INFO' | 'PASSWORD'>(isPwdChangeRequired ? 'PASSWORD' : 'INFO');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
+  const [pwdSuccess, setPwdSuccess] = useState('');
+  const [pwdError, setPwdError] = useState('');
+
   useEffect(() => {
     if (account) {
       setFullName(account.fullName || '');
       setPhone(account.phone || '');
+      if (doesAccountRequirePasswordChange(account.email)) {
+        setActiveTab('PASSWORD');
+      }
     }
   }, [account]);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdSuccess('');
+    setPwdError('');
+
+    if (!currentPassword) {
+      setPwdError('Vui lòng nhập mật khẩu hiện tại.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwdError('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError('Xác nhận mật khẩu mới không trùng khớp.');
+      return;
+    }
+
+    setIsChangingPwd(true);
+    try {
+      await catalogApi('/users/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      if (account?.email) {
+        clearAccountPasswordChangeRequirement(account.email);
+      }
+
+      setPwdSuccess('Đổi mật khẩu thành công!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPwdSuccess(''), 4000);
+    } catch (err: unknown) {
+      setPwdError(err instanceof Error ? err.message : 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.');
+    } finally {
+      setIsChangingPwd(false);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,95 +303,249 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
           </div>
         </div>
 
-        {/* Right Column: Update Profile Form */}
+        {/* Right Column: Update Profile or Change Password Tabs */}
         <div className="lg:col-span-7 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs p-6 sm:p-8 space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-[#152A20] font-headline">
-              Cập Nhật Thông Tin Tài Khoản
-            </h3>
-            <p className="text-xs text-[#5C665F] font-body mt-1">
-              Thông tin này được đồng bộ và lưu trữ trực tiếp trên cơ sở dữ liệu hệ thống.
-            </p>
+          {/* Tab Selector */}
+          <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('INFO')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xs transition cursor-pointer text-center ${
+                activeTab === 'INFO'
+                  ? 'bg-[#152A20] text-[#F3EFE6] shadow-xs'
+                  : 'text-[#5C665F] hover:text-[#111D16]'
+              }`}
+            >
+              Thông Tin Hồ Sơ
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('PASSWORD')}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xs transition cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                activeTab === 'PASSWORD'
+                  ? 'bg-[#152A20] text-[#F3EFE6] shadow-xs'
+                  : 'text-[#5C665F] hover:text-[#111D16]'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>Đổi Mật Khẩu</span>
+              {isPwdChangeRequired && (
+                <span className="w-2 h-2 rounded-full bg-[#D97845] animate-pulse"></span>
+              )}
+            </button>
           </div>
 
-          {updateSuccess && (
-            <div className="p-3.5 rounded-xs bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="font-medium">{updateSuccess}</span>
+          {/* TAB 1: UPDATE PROFILE */}
+          {activeTab === 'INFO' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-[#152A20] font-headline">
+                  Cập Nhật Thông Tin Tài Khoản
+                </h3>
+                <p className="text-xs text-[#5C665F] font-body mt-1">
+                  Thông tin này được đồng bộ và lưu trữ trực tiếp trên cơ sở dữ liệu hệ thống.
+                </p>
+              </div>
+
+              {updateSuccess && (
+                <div className="p-3.5 rounded-xs bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium">{updateSuccess}</span>
+                </div>
+              )}
+
+              {updateError && (
+                <div className="p-3.5 rounded-xs bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span className="font-medium">{updateError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Họ và tên
+                  </label>
+                  <div className="relative flex items-center">
+                    <User className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Nhập họ và tên đầy đủ"
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Địa chỉ Email (Định danh)
+                  </label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type="email"
+                      disabled
+                      value={account.email || ''}
+                      className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#5C665F] cursor-not-allowed font-body"
+                    />
+                  </div>
+                  <span className="text-[10px] text-[#7A857E] mt-1 block">
+                    * Email dùng để xác thực phiên và không thể thay đổi trực tiếp.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Số điện thoại liên lạc
+                  </label>
+                  <div className="relative flex items-center">
+                    <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="0912 345 678"
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    disabled={isUpdating}
+                    icon={isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  >
+                    {isUpdating ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
 
-          {updateError && (
-            <div className="p-3.5 rounded-xs bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-              <span className="font-medium">{updateError}</span>
+          {/* TAB 2: CHANGE PASSWORD */}
+          {activeTab === 'PASSWORD' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-[#152A20] font-headline">
+                  Thiết Lập Mật Khẩu Mới
+                </h3>
+                <p className="text-xs text-[#5C665F] font-body mt-1">
+                  Đổi mật khẩu định kỳ giúp bảo vệ tài khoản thành viên và quyền truy cập nghiệp vụ nội bộ.
+                </p>
+              </div>
+
+              {isPwdChangeRequired && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xs text-xs text-amber-900 flex items-start gap-2.5 leading-relaxed">
+                  <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold mb-0.5">Yêu cầu đổi mật khẩu lần đầu:</strong>
+                    <span>
+                      Tài khoản của bạn vừa được cấp mật khẩu tạm qua Email. Vui lòng đổi mật khẩu mới để đảm bảo tính an toàn.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {pwdSuccess && (
+                <div className="p-3.5 rounded-xs bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium">{pwdSuccess}</span>
+                </div>
+              )}
+
+              {pwdError && (
+                <div className="p-3.5 rounded-xs bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span className="font-medium">{pwdError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Mật khẩu hiện tại *
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type={showCurrent ? 'text' : 'password'}
+                      required
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu hiện tại hoặc mật khẩu tạm..."
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-10 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      className="absolute right-3 text-[#7A857E] hover:text-[#111D16] cursor-pointer"
+                    >
+                      {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Mật khẩu mới (Tối thiểu 6 ký tự) *
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type={showNew ? 'text' : 'password'}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu mới..."
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-10 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew(!showNew)}
+                      className="absolute right-3 text-[#7A857E] hover:text-[#111D16] cursor-pointer"
+                    >
+                      {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Xác nhận mật khẩu mới *
+                  </label>
+                  <div className="relative flex items-center">
+                    <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu mới..."
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <Button
+                    type="submit"
+                    variant="accent"
+                    size="md"
+                    disabled={isChangingPwd}
+                    icon={isChangingPwd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  >
+                    {isChangingPwd ? 'Đang cập nhật...' : 'Xác Nhận Đổi Mật Khẩu'}
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
-
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div>
-              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                Họ và tên
-              </label>
-              <div className="relative flex items-center">
-                <User className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nhập họ và tên đầy đủ"
-                  className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                Địa chỉ Email (Định danh)
-              </label>
-              <div className="relative flex items-center">
-                <Mail className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
-                <input
-                  type="email"
-                  disabled
-                  value={account.email || ''}
-                  className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#5C665F] cursor-not-allowed font-body"
-                />
-              </div>
-              <span className="text-[10px] text-[#7A857E] mt-1 block">
-                * Email dùng để xác thực phiên và không thể thay đổi trực tiếp.
-              </span>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                Số điện thoại liên lạc
-              </label>
-              <div className="relative flex items-center">
-                <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0912 345 678"
-                  className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
-                />
-              </div>
-            </div>
-
-            <div className="pt-3">
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                disabled={isUpdating}
-                icon={isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              >
-                {isUpdating ? 'Đang lưu...' : 'Lưu Thay Đổi'}
-              </Button>
-            </div>
-          </form>
         </div>
       </div>
     </div>

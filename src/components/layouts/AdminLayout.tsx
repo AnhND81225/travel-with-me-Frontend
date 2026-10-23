@@ -8,6 +8,7 @@ import {
   MapPin, 
   BarChart3, 
   Users, 
+  UserCheck,
   ArrowLeft, 
   Sparkles, 
   Bell, 
@@ -30,7 +31,9 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/transfers', label: 'Shuttle Logistics', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/branches', label: 'Branch Network', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/reports', label: 'BI & Financial Reports', icon: <BarChart3 className="w-4 h-4" /> },
-    { path: '/admin/staff', label: 'Staff Management', icon: <Users className="w-4 h-4" /> },
+    { path: '/admin/users', label: 'Customer Accounts', icon: <UserCheck className="w-4 h-4" /> },
+    { path: '/admin/staff', label: 'Staff & Guides', icon: <Users className="w-4 h-4" /> },
+    { path: '/admin/events-guides', label: 'Tours & Guides', icon: <Mountain className="w-4 h-4" /> },
   ];
 
   return (
