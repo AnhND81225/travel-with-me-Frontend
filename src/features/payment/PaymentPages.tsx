@@ -4,9 +4,8 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, Clock3, Compass, CreditCar
 import { ApiError, catalogApi, vnd, type Branch, type Product } from '../equipment/catalogApi';
 import type { Order, OrderItem } from '../orders/orderApi';
 import './payment-pages.css';
-import { paymentApi } from './paymentApi';
+import { paymentApi, payments, type Payment } from './paymentApi';
 
-type Payment = { orderId?: number | null; participantId?: number | null; transaction_id: number; status: 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'; zalopay_response: { order_url?: string; return_message?: string } };
 const positiveId = (value: string | null) => value && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
 const date = (value: string) => new Date(value).toLocaleDateString('vi-VN');
 function lineTotal(item: OrderItem) {
@@ -49,8 +48,8 @@ export function PaymentResultPage() {
     if (!background) { setChecking(true); setError(''); setAuthError(false); }
     try {
       const result = storedOrderId
-        ? await paymentApi<Payment | null>(`/payments/zalopay/orders/${storedOrderId}/payment`, {}, true)
-        : transactionId ? await paymentApi<Payment>(`/payments/zalopay/query/${transactionId}`) : null;
+        ? await payments.forOrder(storedOrderId)
+        : transactionId ? await payments.query(transactionId) : null;
       if (version !== generation.current) return;
       setPayment(previous => JSON.stringify(previous) === JSON.stringify(result) ? previous : result);
       const resolvedOrderId = result?.orderId || storedOrderId;
@@ -104,11 +103,7 @@ export function PaymentResultPage() {
     generation.current++;
     setPaying(true); setError(''); setNotice(''); setAuthError(false);
     try {
-      const returnUrl = new URL('/payment/result', window.location.origin);
-      returnUrl.searchParams.set('orderId', String(order.id));
-      const result = await paymentApi<Payment>(payment?.status === 'PENDING' ? '/payments/zalopay/retry' : '/payments/zalopay/', {
-        method: 'POST', body: JSON.stringify({ orderId: order.id, redirectUrl: returnUrl.toString() }),
-      });
+      const result = await (payment?.status === 'PENDING' ? payments.retry : payments.create)({ orderId: order.id });
       sessionStorage.setItem(`payment.order.${result.transaction_id}`, String(order.id));
       sessionStorage.setItem(`payment.transaction.${order.id}`, String(result.transaction_id));
       if (result.status === 'SUCCEEDED') {
@@ -143,7 +138,7 @@ export function PaymentResultPage() {
     generation.current++;
     setCancelling(true); setChecking(false); setError(''); setNotice(''); setAuthError(false);
     try {
-      const result = await paymentApi<Payment>(`/payments/zalopay/${id}/cancel`, { method: 'POST' });
+      const result = await payments.cancel(id);
       setPayment(result);
       setNotice(result.status === 'SUCCEEDED'
         ? 'Giao dịch đã thanh toán thành công trước khi hủy.'

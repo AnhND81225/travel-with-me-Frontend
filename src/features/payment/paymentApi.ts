@@ -24,3 +24,48 @@ export async function paymentApi<T>(path: string, init: RequestInit = {}, allowE
   if (!payload?.data && !allowEmpty) throw new Error('API chưa trả dữ liệu xác minh. Kiểm tra cấu hình proxy /api tới backend.');
   return payload.data as T;
 }
+
+/** Contracts shared with the backend Payment controllers. Send exactly one target. */
+export type CreatePaymentRequest = (
+  | { orderId: number; participantId?: never }
+  | { participantId: number; orderId?: never }
+) & { description?: string };
+
+export type PaymentStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+export type Payment = {
+  transaction_id: number;
+  app_trans_id: string;
+  status: PaymentStatus;
+  orderId: number | null;
+  participantId: number | null;
+  participantConfirmation: 'CONFIRMED' | 'REVIEW_REQUIRED' | null;
+  redirectUrl: string;
+  zalopay_response: { order_url?: string; return_message?: string } | null;
+};
+
+export type TransactionHistory = {
+  transactionId: number;
+  orderId: number | null;
+  participantId: number | null;
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  status: PaymentStatus;
+  createdAt: string;
+};
+
+export const payments = {
+  create: (body: CreatePaymentRequest) => paymentApi<Payment>('/payments/zalopay', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  retry: (body: CreatePaymentRequest) => paymentApi<Payment>('/payments/zalopay/retry', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  forOrder: (id: number) => paymentApi<Payment | null>(`/payments/zalopay/orders/${id}`, {}, true),
+  forParticipant: (id: number) => paymentApi<Payment | null>(`/payments/zalopay/participants/${id}`, {}, true),
+  query: (id: number) => paymentApi<Payment>(`/payments/zalopay/query/${id}`),
+  cancel: (id: number) => paymentApi<Payment>(`/payments/zalopay/${id}/cancel`, { method: 'POST' }),
+  history: (page = 0, size = 20) => paymentApi<{
+    content: TransactionHistory[]; page: number; size: number; totalElements: number; totalPages: number;
+  }>(`/payments/transactions/history?page=${page}&size=${size}`),
+};
