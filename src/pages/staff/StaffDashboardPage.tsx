@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../store/useAppStore';
 import { Card, Button, Badge } from '../../components/ui';
 import { 
@@ -21,6 +22,7 @@ import { formatCurrency } from '../../utils/formatters';
 export const StaffDashboardPage: React.FC = () => {
   const { selectedStation, custodyItems, fleetUnits, outposts } = useAppStore();
 
+  const { account } = useAuth();
   const stationCustody = custodyItems;
   const inFieldCount = fleetUnits.filter((u) => u.custodyState === 'DEPLOYED_TO_FIELD').length;
   const sanitizingCount = fleetUnits.filter((u) => u.custodyState === 'SANITIZATION_HOLD').length;
@@ -132,9 +134,9 @@ export const StaffDashboardPage: React.FC = () => {
           <p className="text-xs text-[#5C665F] font-body">
             Request urgent gear courier from Hanoi HQ or Da Lat Highland Depot to fulfill high-altitude weekend summit demand.
           </p>
-          <Link to="/admin/transfers" className="block pt-2">
+          {account?.role === 'ADMIN' && <Link to="/admin/transfers" className="block pt-2">
             <Button variant="secondary" size="sm" fullWidth>Dispatch Shuttle</Button>
-          </Link>
+          </Link>}
         </Card>
       </div>
 

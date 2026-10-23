@@ -83,6 +83,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         navigate("/admin", { replace: true });
       } else if (account.role === "STAFF") {
         navigate("/staff", { replace: true });
+      } else if (account.role === "GUIDE") {
+        navigate("/guide/schedules", { replace: true });
       } else {
         navigate("/passport", { replace: true });
       }
@@ -509,7 +511,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
       {pendingChangePasswordUser && (
         <ForceChangePasswordModal
           isOpen={!!pendingChangePasswordUser}
-          userEmail={pendingChangePasswordUser.email}
+          userEmail={pendingChangePasswordUser.email ?? ""}
           initialCurrentPassword={loginPassword}
           onCancel={() => {
             saveToken(null);
