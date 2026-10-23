@@ -31,6 +31,7 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/branches', label: 'Branch Network', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/reports', label: 'BI & Financial Reports', icon: <BarChart3 className="w-4 h-4" /> },
     { path: '/admin/staff', label: 'Staff Management', icon: <Users className="w-4 h-4" /> },
+    { path: '/admin/events-guides', label: 'Tours & Guides', icon: <Mountain className="w-4 h-4" /> },
   ];
 
   return (
