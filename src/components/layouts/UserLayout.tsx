@@ -51,10 +51,6 @@ export const UserLayout: React.FC = () => {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setCartOpen(false)}
-        cartItems={cartItems}
-        outposts={outposts}
-        onRemoveItem={removeCartItem}
-        onClearCart={clearCart}
       />
     </div>
   );

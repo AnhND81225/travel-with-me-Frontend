@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   MapPin,
@@ -15,14 +15,39 @@ import { storefrontAssets, storefrontBranches } from "../../data/storefront";
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [cartCount, setCartCount] = useState(0);
   const { account, isAuthenticated, logout } = useAuth();
   const {
-    cartItems,
     setCartOpen,
     selectedStation,
     setSelectedStation,
     outposts,
   } = useAppStore();
+
+  useEffect(() => {
+    const updateCount = () => {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem("treektour.order.cart") || "[]");
+        const sessionCount = Array.isArray(stored)
+          ? stored.reduce((sum: number, item: any) => sum + (Number(item.quantity) || 1), 0)
+          : 0;
+        setCartCount(sessionCount);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    updateCount();
+    window.addEventListener("storage", updateCount);
+    window.addEventListener("cart_updated", updateCount);
+    const interval = setInterval(updateCount, 1500);
+
+    return () => {
+      window.removeEventListener("storage", updateCount);
+      window.removeEventListener("cart_updated", updateCount);
+      clearInterval(interval);
+    };
+  }, []);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isReferencePage = pathname === "/orders" || pathname === "/tours";
@@ -94,11 +119,14 @@ export function Header() {
           </button>
         </form>
         <button
-          className="store-cart"
-            onClick={() => navigate("/cart")}
-            aria-label="Mở giỏ thiết bị"
+          type="button"
+          onClick={() => setCartOpen(true)}
+          className="store-cart flex items-center justify-center text-[#111D16] hover:text-[#D97845] transition-colors cursor-pointer border-0 bg-transparent"
+          aria-label={`Mở giỏ thiết bị (${cartCount} món)`}
+          title="Mở giỏ thiết bị xuất trạm"
         >
           <ShoppingBag size={22} />
+          {cartCount > 0 && <span>{cartCount > 99 ? "99+" : cartCount}</span>}
         </button>
         <div className="relative group">
           <Link
@@ -197,7 +225,22 @@ export function Header() {
                 {label}
               </NavLink>
             ))}
-            <div className="pt-2 border-t border-[#D8D2C5] my-1 flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setCartOpen(true);
+                }}
+                className="flex items-center justify-between font-bold text-[#111D16] w-full text-left py-2 hover:text-[#D97845] transition cursor-pointer"
+              >
+                <span>Giỏ thiết bị</span>
+                {cartCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-[#D97845] text-white text-[10px] rounded-xs font-mono-spec">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+              <div className="pt-2 border-t border-[#D8D2C5] my-1 flex flex-col gap-1">
               <NavLink
                 to="/login"
                 onClick={() => setMenuOpen(false)}
