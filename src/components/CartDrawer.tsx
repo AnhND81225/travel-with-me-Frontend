@@ -167,7 +167,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 EXPEDITION DISPATCH
               </div>
               <h3 className="text-sm font-bold text-[#111D16] font-headline">
-                Giỏ Thiết Bị ({totalQuantity} Món)
+                Equipment Cart ({totalQuantity} Items)
               </h3>
             </div>
           </div>
@@ -175,7 +175,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             className="p-1.5 rounded-xs bg-[#F8F6F1] text-[#5C665F] hover:text-[#111D16] hover:bg-[#DDD7CB] transition cursor-pointer border border-[#D8D2C5]"
-            title="Đóng giỏ hàng"
+            title="Close cart"
           >
             <X className="w-4 h-4" />
           </button>
@@ -189,10 +189,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 <Package className="w-6 h-6 stroke-1" />
               </div>
               <h4 className="text-sm font-bold text-[#111D16] font-headline uppercase">
-                Giỏ Trang Bị Trống
+                Your Cart Is Empty
               </h4>
               <p className="text-xs text-[#5C665F] font-body max-w-xs mx-auto">
-                Chưa có thiết bị leo núi hoặc phụ kiện dã ngoại nào trong giỏ hàng của bạn.
+                Your cart does not contain any equipment yet.
               </p>
               <div className="flex justify-center gap-2 pt-2">
                 <button
@@ -203,7 +203,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   }}
                   className="px-3 py-1.5 bg-[#D97845] hover:bg-[#C66735] text-white text-xs font-bold uppercase rounded-xs transition cursor-pointer"
                 >
-                  Thuê Thiết Bị
+                  Rent Equipment
                 </button>
                 <button
                   type="button"
@@ -213,7 +213,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   }}
                   className="px-3 py-1.5 bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold uppercase rounded-xs transition cursor-pointer"
                 >
-                  Mua Thiết Bị
+                  Buy Equipment
                 </button>
               </div>
             </div>
@@ -251,7 +251,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-[#111D16] text-xs truncate font-headline">
-                            {prod?.name || `Thiết bị mã #${line.productId}`}
+                            {prod?.name || `Product #${line.productId}`}
                           </span>
                           <span
                             className={`text-[9px] px-1 py-0.2 rounded-xs font-bold uppercase ${
@@ -260,18 +260,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 : "bg-[#EBE6DC] text-[#152A20] border border-[#D8D2C5]"
                             }`}
                           >
-                            {isRental ? "Thuê" : "Mua"}
+                            {isRental ? "Rental" : "Purchase"}
                           </span>
                         </div>
 
                         <div className="text-[10px] text-[#5C665F] mt-0.5">
                           {isRental ? (
                             <span>
-                              {vnd(unitPrice)}/ngày • {days} ngày ({line.rentalStartDate} →{" "}
+                              {vnd(unitPrice)}/day • {days} days ({line.rentalStartDate} →{" "}
                               {line.rentalEndDate})
                             </span>
                           ) : (
-                            <span>Đơn giá: {vnd(unitPrice)}</span>
+                            <span>Unit price: {vnd(unitPrice)}</span>
                           )}
                         </div>
 
@@ -291,7 +291,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           type="button"
                           onClick={() => handleUpdateQty(index, -1)}
                           className="px-2 py-0.5 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Giảm số lượng"
+                          title="Decrease quantity"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -302,7 +302,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           type="button"
                           onClick={() => handleUpdateQty(index, 1)}
                           className="px-2 py-0.5 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Tăng số lượng"
+                          title="Increase quantity"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -324,7 +324,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           <div className="p-4 border-t border-[#D8D2C5] bg-[#EBE6DC] space-y-3 font-label text-xs">
             <div className="flex justify-between items-baseline">
               <span className="text-xs font-bold text-[#111D16] uppercase">
-                TỔNG THANH TOÁN:
+                ORDER TOTAL:
               </span>
               <span className="text-xl font-bold text-[#D97845] font-headline">
                 {vnd(totalAmount)}
@@ -340,7 +340,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 }}
                 className="w-full py-2.5 rounded-xs bg-[#D97845] hover:bg-[#C66735] text-white font-bold text-xs uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Xem Giỏ Hàng & Lập Biên Bản</span>
+                <span>View Cart & Checkout</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -349,7 +349,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
                 className="w-full py-2 rounded-xs bg-[#F8F6F1] hover:bg-[#EBE6DC] text-[#152A20] font-bold text-xs uppercase tracking-wider transition border border-[#D8D2C5] cursor-pointer"
               >
-                Tiếp Tục Chọn Đồ
+                Continue Shopping
               </button>
             </div>
           </div>
