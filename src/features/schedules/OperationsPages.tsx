@@ -6,7 +6,7 @@ import type { Account, Branch } from '../equipment/catalogApi';
 import { useAuth } from '../../hooks/useAuth';
 import { participantApi, scheduleApi } from './api';
 import { errorMessage, managedBranches, useClock, usePages, useResource } from './hooks';
-import { attendance, cancellable, dateTime, editable, labels, money, payable, toLocal, toOffset, transitions, validId, validateDates } from './rules';
+import { attendance, cancellable, dateTime, editable, labels, money, toLocal, toOffset, transitions, validId, validateDates } from './rules';
 import { Dialog, Loading, Message, More, Page, Status, Timeline } from './ui';
 import { ScheduleSummary } from './BookingPanel';
 import type { Participant, Schedule, ScheduleStatus } from './types';
@@ -122,11 +122,11 @@ function Roster({ schedule: s, manager, onChanged }: { schedule: Schedule; manag
   const [historyId, setHistoryId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const list = usePages(useCallback((page: number) => scheduleApi.roster(s.id, page), [s.id]));
-  const [selected, setSelected] = useState<{ ticket: Participant; action: 'confirm' | 'cancel' | 'checkIn' | 'noShow' } | null>(null);
+  const [selected, setSelected] = useState<{ ticket: Participant; action: 'cancel' | 'checkIn' | 'noShow' } | null>(null);
   const now = useClock();
-  return <div className="m5-card"><div className="m5-row"><h2>Participant Roster</h2><button onClick={list.refresh}>Refresh List</button></div><p className="m5-muted">Search loaded participants by ticket ID, customer ID or notes. Ticket history is available to managers.</p>
+  return <div className="m5-card"><div className="m5-row"><h2>Participant Roster</h2><button onClick={list.refresh}>Refresh List</button></div><p className="m5-muted">Search loaded participants by ticket ID, customer ID or notes. Ticket history is available to managers.</p><Message>Tickets are confirmed automatically after verified ZaloPay payment. Admin approval is not required. Refresh the list to see the latest status.</Message>
     <label>Search loaded participants<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ticket ID, customer ID, notes" /></label>
-    <div className="m5-table-wrap"><table><thead><tr><th>Ticket / Customer</th><th>Locked Price / Hold</th><th>Status</th><th>Actions</th></tr></thead><tbody>{list.items.filter(p => `${p.id} ${p.userId} ${p.note || ''}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p => { const flags = attendance(p, s, now); return <tr key={p.id}><td><b>Ticket #{p.id} · Customer #{p.userId}</b><small>{p.note || 'No notes'}</small>{manager && <button type="button" onClick={() => setHistoryId(p.id)}>Ticket History</button>}</td><td>{money(p.registeredPrice)}{p.participantStatus === 'PENDING' && <small>Until {dateTime(p.expiresAt)}</small>}</td><td><Status value={p.participantStatus} /><Status value={p.checkInStatus} /></td><td><div className="m5-actions">{manager && payable(p, s, now) && <button onClick={() => setSelected({ ticket: p, action: 'confirm' })}>Confirm Receipt</button>}{manager && cancellable(p, s, now) && <button className="m5-danger" onClick={() => setSelected({ ticket: p, action: 'cancel' })}>Cancel Ticket</button>}{flags.checkIn && <button onClick={() => setSelected({ ticket: p, action: 'checkIn' })}>Check In</button>}{flags.noShow && <button onClick={() => setSelected({ ticket: p, action: 'noShow' })}>No-show</button>}</div></td></tr>; })}</tbody></table></div>
+    <div className="m5-table-wrap"><table><thead><tr><th>Ticket / Customer</th><th>Locked Price / Hold</th><th>Status</th><th>Actions</th></tr></thead><tbody>{list.items.filter(p => `${p.id} ${p.userId} ${p.note || ''}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map(p => { const flags = attendance(p, s, now); return <tr key={p.id}><td><b>Ticket #{p.id} · Customer #{p.userId}</b><small>{p.note || 'No notes'}</small>{manager && <button type="button" onClick={() => setHistoryId(p.id)}>Ticket History</button>}</td><td>{money(p.registeredPrice)}{p.participantStatus === 'PENDING' && <small>Until {dateTime(p.expiresAt)}</small>}</td><td><Status value={p.participantStatus} /><Status value={p.checkInStatus} /></td><td><div className="m5-actions">{manager && cancellable(p, s, now) && <button className="m5-danger" onClick={() => setSelected({ ticket: p, action: 'cancel' })}>Cancel Ticket</button>}{flags.checkIn && <button onClick={() => setSelected({ ticket: p, action: 'checkIn' })}>Check In</button>}{flags.noShow && <button onClick={() => setSelected({ ticket: p, action: 'noShow' })}>No-show</button>}</div></td></tr>; })}</tbody></table></div>
     {!list.loading && !list.error && !list.items.length && <Message>No participants yet.</Message>}<More list={list} />{selected && <ParticipantAction ticket={selected.ticket} action={selected.action} onClose={() => { setSelected(null); list.refresh(); }} onSaved={() => { setSelected(null); list.refresh(); onChanged(); }} />}{historyId && manager && <Dialog title={`Ticket History #${historyId}`} onClose={() => setHistoryId(null)}><ParticipantHistory id={historyId} /></Dialog>}
   </div>;
 }
@@ -134,17 +134,17 @@ function ParticipantHistory({ id }: { id: number }) {
   const list = usePages(useCallback((page: number) => participantApi.histories(id, page), [id]));
   return <><Timeline rows={list.items} /><More list={list} /></>;
 }
-function ParticipantAction({ ticket: p, action, onClose, onSaved }: { ticket: Participant; action: 'confirm' | 'cancel' | 'checkIn' | 'noShow'; onClose: () => void; onSaved: () => void }) {
+function ParticipantAction({ ticket: p, action, onClose, onSaved }: { ticket: Participant; action: 'cancel' | 'checkIn' | 'noShow'; onClose: () => void; onSaved: () => void }) {
   const [value, setValue] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState(''); const lock = useRef(false);
-  const titles = { confirm: 'Confirm Manual Payment', cancel: 'Cancel Customer Ticket', checkIn: 'Check In', noShow: 'Mark as No-show' };
+  const titles = { cancel: 'Cancel Customer Ticket', checkIn: 'Check In', noShow: 'Mark as No-show' };
   async function submit(e: FormEvent) {
-    e.preventDefault(); if (lock.current) return; if (['confirm', 'cancel'].includes(action) && !value.trim()) { setError('Please fill in the required information.'); return; }
+    e.preventDefault(); if (lock.current) return; if (action === 'cancel' && !value.trim()) { setError('Please fill in the required information.'); return; }
     lock.current = true; setBusy(true); setError('');
-    try { if (action === 'confirm') await participantApi.confirm(p.id, p.registrationReference, value.trim()); else if (action === 'cancel') await participantApi.cancel(p.id, value.trim()); else if (action === 'checkIn') await participantApi.checkIn(p.id); else await participantApi.noShow(p.id); onSaved(); }
+    try { if (action === 'cancel') await participantApi.cancel(p.id, value.trim()); else if (action === 'checkIn') await participantApi.checkIn(p.id); else await participantApi.noShow(p.id); onSaved(); }
     catch (e) { setError(`${errorMessage(e)} Close and refresh the list to check the result before retrying.`); }
     finally { lock.current = false; setBusy(false); }
   }
-  return <Dialog title={titles[action]} busy={busy} onClose={onClose}><form onSubmit={submit}><p>Ticket #{p.id} · Customer #{p.userId} · {money(p.registeredPrice)}</p>{action === 'confirm' && <><Message>Confirm only after verifying the receipt. Tickets with payment transactions require reconciliation by the payment team.</Message><p>Registration reference: <code>{p.registrationReference}</code></p></>}{action === 'cancel' && <Message>Confirmed tickets require reconciliation. This does not mark them as refunded.</Message>}{['confirm', 'cancel'].includes(action) && <label>{action === 'confirm' ? 'Receipt / Payment reference' : 'Reason for cancelling the customer ticket'}<textarea required maxLength={action === 'confirm' ? 180 : 2000} value={value} onChange={e => setValue(e.target.value)} /></label>}{error && <Message error>{error}</Message>}<button className="m5-primary" disabled={busy}>{busy ? 'Processing…' : 'Confirm'}</button></form></Dialog>;
+  return <Dialog title={titles[action]} busy={busy} onClose={onClose}><form onSubmit={submit}><p>Ticket #{p.id} · Customer #{p.userId} · {money(p.registeredPrice)}</p>{action === 'cancel' && <Message>Confirmed tickets require reconciliation. This does not mark them as refunded.</Message>}{action === 'cancel' && <label>Reason for cancelling the customer ticket<textarea required maxLength={2000} value={value} onChange={e => setValue(e.target.value)} /></label>}{error && <Message error>{error}</Message>}<button className="m5-primary" disabled={busy}>{busy ? 'Processing…' : 'Confirm'}</button></form></Dialog>;
 }
 export function GuideLayout() {
   const { logout } = useAuth();
