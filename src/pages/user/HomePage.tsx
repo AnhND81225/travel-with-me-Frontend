@@ -22,7 +22,6 @@ import {
   storefrontBranches as branches,
 } from "../../data/storefront";
 import { useAppStore } from "../../store/useAppStore";
-import { formatCurrency } from "../../utils/formatters";
 import { eventGuideApi, type EventResponse } from "../../services/eventGuideApi";
 import { scheduleApi } from "../../features/schedules/api";
 import type { Schedule } from "../../features/schedules/types";
@@ -74,6 +73,13 @@ const durationLabel = (start: string, end: string) => {
 
 const difficultyLabel = (level?: string | null) =>
   level === "EASY" ? "Easy" : level === "HARD" ? "Hard" : "Moderate";
+
+const formatVnd = (amount: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(amount);
 function SectionHeading({
   eyebrow,
   title,
@@ -482,7 +488,7 @@ export function HomePage() {
                   <div className="store-tour-bottom">
                     <div>
                       <small>Per {event.eventType === "CAMPING" ? "Camper" : "Expeditionist"}</small>
-                      <strong>{formatCurrency(event.basePrice)}</strong>
+                      <strong>{formatVnd(event.basePrice)}</strong>
                     </div>
                     <Link
                       className="store-button"
