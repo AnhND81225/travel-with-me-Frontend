@@ -1,4 +1,5 @@
 import React from 'react';
+import { PaymentResultPage } from '../features/payment/PaymentPages';
 import { ScheduleGuard } from '../features/schedules/ui';
 import { AuthPage } from '../pages/auth/AuthPage';
 import { OrderCart } from '../features/orders/OrderCart';
@@ -105,8 +106,6 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route path="orders" element={<MyOrdersPage />} />
-        <Route path="my-tours" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><MyToursPage /></ScheduleGuard>} />
-        <Route path="my-tours/:participantId" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><TicketDetailPage /></ScheduleGuard>} />
         <Route path="cart" element={<OrderCart />} />
         <Route path="manifest" element={<OrderCart />} />
         <Route path="confirmation" element={<BookingConfirmationPage />} />

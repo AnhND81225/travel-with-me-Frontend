@@ -1,0 +1,71 @@
+import { ApiError } from '../equipment/catalogApi';
+
+/** Payment returns must retain FE authentication; Swagger's bearer token is separate. */
+export async function paymentApi<T>(path: string, init: RequestInit = {}, allowEmpty = false): Promise<T> {
+  const token = sessionStorage.getItem('treektour.catalog.token');
+  if (!token) throw new ApiError('Vui lòng đăng nhập tài khoản đã thanh toán để xác minh giao dịch.', 401);
+  let response: Response;
+  try {
+    response = await fetch('/api' + path, {
+      ...init,
+      // API authentication must return an error, not silently navigate fetch to Google login.
+      redirect: 'error',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers },
+    });
+  } catch {
+    throw new Error('Không kết nối được API xác minh. Kiểm tra backend đang chạy; nếu phiên đăng nhập hết hạn, đăng nhập lại rồi kiểm tra giao dịch.');
+  }
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(response.status === 401 || response.status === 403
+      ? 'Phiên đăng nhập không hợp lệ hoặc tài khoản không sở hữu giao dịch. Hãy đăng nhập đúng tài khoản đã thanh toán.'
+      : payload?.message || `Không thể xác minh giao dịch (${response.status}).`, response.status);
+  }
+  if (!payload?.data && !allowEmpty) throw new Error('API chưa trả dữ liệu xác minh. Kiểm tra cấu hình proxy /api tới backend.');
+  return payload.data as T;
+}
+
+/** Contracts shared with the backend Payment controllers. Send exactly one target. */
+export type CreatePaymentRequest = (
+  | { orderId: number; participantId?: never }
+  | { participantId: number; orderId?: never }
+) & { description?: string };
+
+export type PaymentStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
+export type Payment = {
+  transaction_id: number;
+  app_trans_id: string;
+  status: PaymentStatus;
+  orderId: number | null;
+  participantId: number | null;
+  participantConfirmation: 'CONFIRMED' | 'REVIEW_REQUIRED' | null;
+  redirectUrl: string;
+  zalopay_response: { order_url?: string; return_message?: string } | null;
+};
+
+export type TransactionHistory = {
+  transactionId: number;
+  orderId: number | null;
+  participantId: number | null;
+  transactionType: string;
+  amount: number;
+  paymentMethod: string;
+  status: PaymentStatus;
+  createdAt: string;
+};
+
+export const payments = {
+  create: (body: CreatePaymentRequest) => paymentApi<Payment>('/payments/zalopay', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  retry: (body: CreatePaymentRequest) => paymentApi<Payment>('/payments/zalopay/retry', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  forOrder: (id: number) => paymentApi<Payment | null>(`/payments/zalopay/orders/${id}`, {}, true),
+  forParticipant: (id: number) => paymentApi<Payment | null>(`/payments/zalopay/participants/${id}`, {}, true),
+  query: (id: number) => paymentApi<Payment>(`/payments/zalopay/query/${id}`),
+  cancel: (id: number) => paymentApi<Payment>(`/payments/zalopay/${id}/cancel`, { method: 'POST' }),
+  history: (page = 0, size = 20) => paymentApi<{
+    content: TransactionHistory[]; page: number; size: number; totalElements: number; totalPages: number;
+  }>(`/payments/transactions/history?page=${page}&size=${size}`),
+};

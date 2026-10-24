@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { catalogApi, Branch, Product, vnd } from "../../features/equipment/catalogApi";
+import { cancelUnpaidOrder } from "../../features/payment/cancelUnpaidOrder";
 import type { Order, OrderStatus } from "../../features/orders/orderApi";
 import { AdminOrdersPage } from "../admin/AdminOrdersPage";
 
@@ -72,7 +73,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     setBusy(id);
     setError("");
     try {
-      const updated = await catalogApi<Order>(`/orders/${id}/${action}`, { method: "POST" });
+      const updated = action === "cancel"
+        ? await cancelUnpaidOrder(id)
+        : await catalogApi<Order>(`/orders/${id}/${action}`, { method: "POST" });
       setOrders((rows) => rows.map((row) => (row.id === id ? updated : row)));
     } catch (e) {
       setError(getErrorMessage(e, "Thao tác hủy đơn không thành công"));
@@ -313,15 +316,20 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     </span>
                   </div>
 
-                  <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {order.status === "PENDING" && order.paymentStatus !== "PAID" && (
+                      <Link to={`/payment/pending?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 bg-[#994717] text-white text-xs font-bold hover:bg-[#793816]">
+                        Thanh toán <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
                     {order.status === "PENDING" && (
                       <Button
                         variant="outlined"
                         size="sm"
-                        disabled={isBusy || !order.canCancel}
+                        disabled={isBusy || !(order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0))}
                         onClick={() => void act(order.id, "cancel")}
                       >
-                        {isBusy ? "Đang hủy..." : order.canCancel ? "Hủy đơn hàng" : "Liên hệ hỗ trợ hủy / hoàn tiền"}
+                        {isBusy ? "Đang hủy..." : (order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0)) ? "Hủy đơn hàng" : "Liên hệ hỗ trợ hủy / hoàn tiền"}
                       </Button>
                     )}
                   </div>
