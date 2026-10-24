@@ -1,4 +1,4 @@
-.m5 { --m5-green:#152a20; --m5-orange:#994717; color:#111d16; font-family:'Work Sans',sans-serif; width:100%; max-width:1200px; margin:0 auto; padding:28px 20px; }
+.m5 { --m5-green:#152a20; --m5-orange:#994717; color:#111d16; font-family:'Space Grotesk',sans-serif; width:100%; max-width:1200px; margin:0 auto; padding:28px 20px; }
 .m5 * { box-sizing:border-box; }
 .m5 h1,.m5 h2,.m5 h3 { font-family:'Space Grotesk',sans-serif; font-weight:700; line-height:1.25; }
 .m5 h1 { font-size:clamp(24px,3vw,34px); margin:7px 0 10px; }

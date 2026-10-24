@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   ArrowRight,
   AlertTriangle,
+  LoaderCircle,
 } from "lucide-react";
 
 export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
@@ -42,23 +43,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     else setRefreshing(true);
 
     try {
-      const [orderData, branchList, productList] = await Promise.allSettled([
-        catalogApi<Order[]>("/orders/me"),
-        catalogApi<Branch[]>("/branches"),
-        catalogApi<{ content: Product[] }>("/products?page=0&size=200"),
-      ]);
-
-      if (orderData.status === "fulfilled" && Array.isArray(orderData.value)) {
-        setOrders(orderData.value);
-      }
-      if (branchList.status === "fulfilled") {
-        setBranches(branchList.value || []);
-      }
-      if (productList.status === "fulfilled") {
-        setProducts(productList.value?.content || []);
-      }
+      const orderData = await catalogApi<Order[]>("/orders/me");
+      setOrders(orderData);
     } catch (e) {
-      setError(getErrorMessage(e, "Không thể tải danh sách đơn hàng của bạn"));
+      setError(getErrorMessage(e, "Unable to load your orders"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,8 +54,24 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   }
 
   useEffect(() => {
+    let active = true;
+    catalogApi<Branch[]>("/branches")
+      .then(data => { if (active) setBranches(data); })
+      .catch(() => {});
     void load();
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const ids = [...new Set(orders.flatMap(order => order.items.map(item => item.productId)))];
+    // Product names enrich the list without blocking order display or refresh.
+    Promise.allSettled(ids.map(id => catalogApi<Product>(`/products/${id}`)))
+      .then(results => {
+        if (active) setProducts(results.flatMap(result => result.status === "fulfilled" ? [result.value] : []));
+      });
+    return () => { active = false; };
+  }, [orders]);
 
   async function act(id: number, action: string) {
     setBusy(id);
@@ -78,7 +82,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         : await catalogApi<Order>(`/orders/${id}/${action}`, { method: "POST" });
       setOrders((rows) => rows.map((row) => (row.id === id ? updated : row)));
     } catch (e) {
-      setError(getErrorMessage(e, "Thao tác hủy đơn không thành công"));
+      setError(getErrorMessage(e, "Unable to cancel the order"));
     } finally {
       setBusy(null);
     }
@@ -102,35 +106,35 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         return (
           <Badge variant="warning" className="flex items-center gap-1 font-bold">
             <Clock className="w-3.5 h-3.5 text-[#D97845] animate-pulse" />
-            <span>Chờ xác nhận</span>
+            <span>Awaiting approval</span>
           </Badge>
         );
       case "CONFIRMED":
         return (
           <Badge variant="neutral" className="flex items-center gap-1 font-bold border-[#3B82F6] text-[#1E40AF] bg-[#EFF6FF]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Đã xác nhận · Sẵn sàng</span>
+            <span>Approved · Ready</span>
           </Badge>
         );
       case "IN_PROGRESS":
         return (
           <Badge variant="success" className="flex items-center gap-1 font-bold bg-[#ECFDF5] border-[#10B981] text-[#065F46]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#059669]" />
-            <span>Đang sử dụng</span>
+            <span>In use</span>
           </Badge>
         );
       case "COMPLETED":
         return (
           <Badge variant="primary" className="flex items-center gap-1 font-bold bg-[#152A20] text-[#F3EFE6]">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Đã hoàn tất</span>
+            <span>Completed</span>
           </Badge>
         );
       case "CANCELLED":
         return (
           <Badge variant="danger" className="flex items-center gap-1 font-bold">
             <XCircle className="w-3.5 h-3.5 text-[#DC2626]" />
-            <span>Đã hủy</span>
+            <span>Cancelled</span>
           </Badge>
         );
       default:
@@ -145,22 +149,22 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         <div>
           <Badge variant="primary" className="mb-1.5">CLIMBER PASSPORT // GEAR LOG</Badge>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-            Đơn Mua & Thuê Thiết Bị Của Tôi
+            My Equipment Orders & Rentals
           </h1>
           <p className="text-xs text-[#5C665F] font-body mt-1">
-            Theo dõi nhật ký đặt cọc, thời hạn thuê trang bị leo núi và lịch sử giao dịch dã ngoại.
+            Track your equipment orders, rental dates and payment history.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link to="/shop">
             <Button variant="secondary" size="sm" icon={<ShoppingBag className="w-3.5 h-3.5" />}>
-              Mua thiết bị
+              Buy equipment
             </Button>
           </Link>
           <Link to="/rent">
             <Button variant="accent" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
-              Thuê thiết bị
+              Rent equipment
             </Button>
           </Link>
           <Button
@@ -170,7 +174,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             disabled={loading || refreshing}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#D97845]" : ""}`} />}
           >
-            Tải lại
+            Refresh
           </Button>
         </div>
       </div>
@@ -186,8 +190,15 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             onClick={() => void load()}
             className="underline font-bold hover:text-black ml-4 shrink-0 cursor-pointer"
           >
-            Thử lại
+            Try again
           </button>
+        </div>
+      )}
+
+      {(loading || refreshing) && (
+        <div role="status" aria-live="polite" className="flex items-center gap-2 py-3 text-sm text-[#152A20]">
+          <LoaderCircle className="w-5 h-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          {refreshing ? "Refreshing orders…" : "Loading your orders…"}
         </div>
       )}
 
@@ -208,17 +219,17 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         <Card padding="lg" className="text-center py-16 space-y-3 bg-[#F8F6F1]">
           <Package className="w-12 h-12 text-[#A39B8D] mx-auto stroke-1" />
           <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
-            Bạn chưa có đơn mua hoặc thuê thiết bị nào
+            You have no equipment orders yet
           </h3>
           <p className="text-xs text-[#5C665F] max-w-md mx-auto font-body">
-            Khám phá kho thiết bị leo núi cao cấp của TerraPeak và chuẩn bị hành trang cho chuyến chinh phục tiếp theo.
+            Explore TerraPeak equipment and prepare for your next adventure.
           </p>
           <div className="flex justify-center gap-3 pt-2">
             <Link to="/shop">
-              <Button variant="primary" size="sm">Xem Cửa Hàng Bán</Button>
+              <Button variant="primary" size="sm">Browse equipment</Button>
             </Link>
             <Link to="/rent">
-              <Button variant="accent" size="sm">Xem Dịch Vụ Cho Thuê</Button>
+              <Button variant="accent" size="sm">Browse rentals</Button>
             </Link>
           </div>
         </Card>
@@ -242,21 +253,21 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-headline font-bold text-base text-[#111D16] flex items-center gap-1.5">
                       <Package className="w-4 h-4 text-[#D97845]" />
-                      ĐƠN HÀNG #{order.id}
+                      ORDER #{order.id}
                     </span>
                     {renderStatusBadge(order.status)}
                     <Badge variant={order.paymentStatus === "PAID" ? "success" : "warning"}>
-                      {order.paymentStatus === "PAID" ? "Đã thanh toán" : order.paymentStatus === "PARTIALLY_PAID" ? "Thanh toán chưa đủ" : order.paymentStatus === "REFUNDED" ? "Đã hoàn tiền" : "Chưa thanh toán"}
+                      {order.paymentStatus === "PAID" ? "Paid" : order.paymentStatus === "PARTIALLY_PAID" ? "Partially paid" : order.paymentStatus === "REFUNDED" ? "Refunded" : "Unpaid"}
                     </Badge>
                     <span className="text-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#737C75]" />
-                      {new Date(order.orderDate).toLocaleString("vi-VN")}
+                      {new Date(order.orderDate).toLocaleString("en-GB")}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-[#152A20] font-bold">
                     <Building className="w-3.5 h-3.5" />
-                    <span>{branch ? branch.name : `Trạm Outpost #${order.branchId}`}</span>
+                    <span>{branch ? branch.name : `Outpost #${order.branchId}`}</span>
                   </div>
                 </div>
 
@@ -278,15 +289,15 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-[#111D16] font-headline">
-                                {product?.name || `Thiết bị mã #${item.productId}`}
+                                {product?.name || `Product #${item.productId}`}
                               </span>
                               <Badge variant={isRental ? "warning" : "neutral"} size="sm">
-                                {isRental ? "THUÊ DÃ NGOẠI" : "MUA SẮM"}
+                                {isRental ? "RENTAL" : "PURCHASE"}
                               </Badge>
                             </div>
 
                             <div className="text-[11px] text-[#5C665F] mt-0.5">
-                              Đơn giá: {vnd(item.unitPrice)}
+                              Unit price: {vnd(item.unitPrice)}
                               {isRental && item.rentalStartDate && (
                                 <span className="ml-2 font-mono-spec text-[#D97845] font-bold">
                                   ({item.rentalStartDate} → {item.rentalEndDate})
@@ -297,7 +308,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-xs text-[#737C75]">Thành tiền</div>
+                          <div className="text-xs text-[#737C75]">Subtotal</div>
                           <div className="font-bold text-sm text-[#152A20] font-headline">
                             {vnd(item.quantity * item.unitPrice)}
                           </div>
@@ -310,7 +321,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 {/* Footer */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs text-[#737C75] uppercase font-bold">Tổng thanh toán:</span>
+                    <span className="text-xs text-[#737C75] uppercase font-bold">Order total:</span>
                     <span className="text-lg sm:text-xl font-bold text-[#D97845] font-headline">
                       {vnd(order.totalAmount)}
                     </span>
@@ -319,7 +330,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   <div className="flex flex-wrap items-center gap-2">
                     {order.status === "PENDING" && order.paymentStatus !== "PAID" && (
                       <Link to={`/payment/pending?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 bg-[#994717] text-white text-xs font-bold hover:bg-[#793816]">
-                        Thanh toán <ArrowRight className="w-4 h-4" />
+                        Pay now <ArrowRight className="w-4 h-4" />
                       </Link>
                     )}
                     {order.status === "PENDING" && (
@@ -329,7 +340,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                         disabled={isBusy || !(order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0))}
                         onClick={() => void act(order.id, "cancel")}
                       >
-                        {isBusy ? "Đang hủy..." : (order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0)) ? "Hủy đơn hàng" : "Liên hệ hỗ trợ hủy / hoàn tiền"}
+                        {isBusy ? "Cancelling..." : (order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0)) ? "Cancel order" : "Contact support for cancellation / refund"}
                       </Button>
                     )}
                   </div>

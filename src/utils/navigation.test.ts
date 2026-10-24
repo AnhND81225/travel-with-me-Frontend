@@ -6,7 +6,7 @@ const destinations = (role?: string) => roleNavigation(role).map(([to]) => to);
 
 test('guests and unknown roles never receive account or workspace destinations', () => {
   for (const role of [undefined, '', 'UNKNOWN']) assert.deepEqual(destinations(role), []);
-  assert.deepEqual(publicNavigation.map(([to]) => to), ['/', '/shop', '/rent', '/tours']);
+  assert.deepEqual(publicNavigation.map(([to]) => to), ['/', '/shop', '/tours']);
 });
 test('customers see their orders and tours without operational consoles', () => {
   assert.deepEqual(destinations('CUSTOMER'), ['/orders', '/my-tours']);
