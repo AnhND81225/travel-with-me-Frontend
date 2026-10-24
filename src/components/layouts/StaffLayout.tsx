@@ -17,17 +17,23 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
+import { ForceChangePasswordModal } from '../auth/ForceChangePasswordModal';
+import { doesAccountRequirePasswordChange } from '../../utils/firstLoginUtils';
 
 export const StaffLayout: React.FC = () => {
   const location = useLocation();
   const { selectedStation, setSelectedStation, outposts, setUserRole } = useAppStore();
+  const { account, logout } = useAuth();
   const [stationDropdownOpen, setStationDropdownOpen] = useState(false);
+  const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
 
   const staffNav = [
     { path: '/staff', label: 'Staff Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { path: '/staff/orders', label: 'Branch Orders', icon: <ShoppingBag className="w-4 h-4" /> },
     { path: '/staff/rentals', label: 'Rental Operations', icon: <ShieldCheck className="w-4 h-4" /> },
-    { path: '/staff/tours', label: 'Tour Bookings', icon: <Calendar className="w-4 h-4" /> },
+    { path: '/staff/schedules', label: 'Schedules & Participants', icon: <Calendar className="w-4 h-4" /> },
+    { path: '/staff/schedule-payment-reviews', label: 'Tour Payment Reviews', icon: <Calendar className="w-4 h-4" /> },
     { path: '/staff/inventory', label: 'Branch Inventory', icon: <Package className="w-4 h-4" /> },
     { path: '/staff/support', label: 'Customer Service', icon: <Headphones className="w-4 h-4" /> },
   ];
@@ -91,12 +97,12 @@ export const StaffLayout: React.FC = () => {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Return to Storefront</span>
           </Link>
-          <Link
+          {account?.role === 'ADMIN' && <Link
             to="/admin"
             className="flex items-center gap-2 text-[#D97845] hover:underline font-bold text-[11px]"
           >
             <span>Switch to Admin Console</span>
-          </Link>
+          </Link>}
         </div>
       </aside>
 
@@ -166,10 +172,19 @@ export const StaffLayout: React.FC = () => {
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto animate-fade-in" key={location.pathname}>
           <Outlet />
         </main>
       </div>
+
+      {requiresPasswordChange && account?.email && (
+        <ForceChangePasswordModal
+          isOpen={true}
+          userEmail={account.email}
+          onCancel={logout}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 };

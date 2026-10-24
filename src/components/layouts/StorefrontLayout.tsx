@@ -18,7 +18,8 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { CartDrawer } from '../CartDrawer';
 import { ProductDetailModal } from '../ProductDetailModal';
-import { GEAR_ITEMS, OUTPOSTS } from '../../data/mockData';
+import { GEAR_ITEMS } from '../../data/mockData';
+import { OutpostService } from '../../services/outpostService';
 
 export const StorefrontLayout: React.FC = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ export const StorefrontLayout: React.FC = () => {
     selectedStation, 
     setSelectedStation, 
     outposts, 
+    setOutposts,
     cartItems, 
     isCartOpen, 
     setCartOpen, 
@@ -43,6 +45,14 @@ export const StorefrontLayout: React.FC = () => {
     setUserRole,
     setSearchQuery
   } = useAppStore();
+
+  React.useEffect(() => {
+    OutpostService.getOutposts().then((res) => {
+      if (res.data && res.data.length > 0) {
+        setOutposts(res.data);
+      }
+    });
+  }, [setOutposts]);
 
   const navLinks = [
     { path: '/', label: 'Home' },
@@ -362,7 +372,7 @@ export const StorefrontLayout: React.FC = () => {
         <ProductDetailModal
           gear={selectedGearModal}
           allGear={GEAR_ITEMS}
-          outposts={OUTPOSTS}
+          outposts={outposts}
           selectedStation={selectedStation}
           onClose={() => setSelectedGearModal(null)}
           onAddToCart={addToCart}
@@ -373,10 +383,6 @@ export const StorefrontLayout: React.FC = () => {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setCartOpen(false)}
-        cartItems={cartItems}
-        outposts={OUTPOSTS}
-        onRemoveItem={removeCartItem}
-        onClearCart={clearCart}
       />
     </div>
   );

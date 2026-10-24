@@ -5,7 +5,7 @@ import { Footer } from '../common/Footer';
 import { CartDrawer } from '../CartDrawer';
 import { ProductDetailModal } from '../ProductDetailModal';
 import { useAppStore } from '../../store/useAppStore';
-import { GEAR_ITEMS, OUTPOSTS } from '../../data/mockData';
+import { GEAR_ITEMS } from '../../data/mockData';
 
 export const UserLayout: React.FC = () => {
   const { pathname, hash } = useLocation();
@@ -21,6 +21,7 @@ export const UserLayout: React.FC = () => {
     selectedGearModal,
     setSelectedGearModal,
     selectedStation,
+    outposts,
     addToCart
   } = useAppStore();
 
@@ -29,7 +30,9 @@ export const UserLayout: React.FC = () => {
       <Header />
 
       <main id="main-content" className="flex-1">
-        <Outlet />
+        <React.Suspense fallback={<div className="min-h-[60vh] p-8" role="status">Loading page…</div>}>
+          <Outlet />
+        </React.Suspense>
       </main>
 
       <Footer />
@@ -39,7 +42,7 @@ export const UserLayout: React.FC = () => {
         <ProductDetailModal
           gear={selectedGearModal}
           allGear={GEAR_ITEMS}
-          outposts={OUTPOSTS}
+          outposts={outposts}
           selectedStation={selectedStation}
           onClose={() => setSelectedGearModal(null)}
           onAddToCart={addToCart}
@@ -50,10 +53,6 @@ export const UserLayout: React.FC = () => {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setCartOpen(false)}
-        cartItems={cartItems}
-        outposts={OUTPOSTS}
-        onRemoveItem={removeCartItem}
-        onClearCart={clearCart}
       />
     </div>
   );

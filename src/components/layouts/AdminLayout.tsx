@@ -8,6 +8,7 @@ import {
   MapPin, 
   BarChart3, 
   Users, 
+  UserCheck,
   ArrowLeft, 
   Sparkles, 
   Bell, 
@@ -21,6 +22,7 @@ export const AdminLayout: React.FC = () => {
   const { setUserRole } = useAppStore();
 
   const adminNav = [
+    { path: '/admin/orders', label: 'Equipment Orders', icon: <Package className="w-4 h-4" /> },
     { path: '/admin', label: 'Executive Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { path: '/admin/inventory', label: 'Multi-Branch Inventory', icon: <Package className="w-4 h-4" /> },
     { path: '/admin/catalog', label: 'Products & Catalog', icon: <Layers className="w-4 h-4" /> },
@@ -29,7 +31,11 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin/transfers', label: 'Shuttle Logistics', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/branches', label: 'Branch Network', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/reports', label: 'BI & Financial Reports', icon: <BarChart3 className="w-4 h-4" /> },
-    { path: '/admin/staff', label: 'Staff Management', icon: <Users className="w-4 h-4" /> },
+    { path: '/admin/users', label: 'Customer Accounts', icon: <UserCheck className="w-4 h-4" /> },
+    { path: '/admin/staff', label: 'Staff & Guides', icon: <Users className="w-4 h-4" /> },
+    { path: '/admin/events-guides', label: 'Tours & Events', icon: <Mountain className="w-4 h-4" /> },
+    { path: '/admin/schedules', label: 'Schedules & Participants', icon: <Mountain className="w-4 h-4" /> },
+    { path: '/admin/schedule-payment-reviews', label: 'Tour Payment Reviews', icon: <BarChart3 className="w-4 h-4" /> },
   ];
 
   return (
@@ -121,7 +127,7 @@ export const AdminLayout: React.FC = () => {
         </header>
 
         {/* Content Viewport */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto animate-fade-in" key={location.pathname}>
           <Outlet />
         </main>
       </div>
