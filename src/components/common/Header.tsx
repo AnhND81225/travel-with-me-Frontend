@@ -54,6 +54,17 @@ export function Header() {
   const privateLinks = roleNavigation(isAuthenticated ? account?.role : undefined);
   const links = [...publicNavigation, ...privateLinks];
   const canShop = !isAuthenticated || account?.role === 'CUSTOMER';
+  const { pathname } = useLocation();
+  const currentBranch = storefrontBranches.find(
+    (b) => b.id === selectedStation.id,
+  );
+  const links = [
+    ["/", "Home"],
+    ["/shop", "Shop (Buy Gear)"],
+    ["/rent", "Rent Gear"],
+    ["/tours", "Tours & Events"],
+    ["/orders", "My Orders"],
+  ];
   function search(e: React.FormEvent) {
     e.preventDefault();
     navigate(`/shop?q=${encodeURIComponent(query)}`);
