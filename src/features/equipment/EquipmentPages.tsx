@@ -331,15 +331,43 @@ export function EquipmentCatalog({
 export function EquipmentDetail() {
   const { id } = useParams(),
     { account } = useAccount();
-  const [product, setProduct] = useState<Product | null>(null),
-    [branches, setBranches] = useState<Branch[]>([]),
-    [error, setError] = useState(""),
-    [answer, setAnswer] = useState(""),
-    [busy, setBusy] = useState(false);
+  const today = new Date();
+  const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const draft = new URLSearchParams(useLocation().search);
+  const [quantity, setQuantity] = useState(draft.get("quantity") || "1");
+  const [booking, setBooking] = useState<{
+    id: number;
+    totalAmount: number;
+  } | null>(null);
+  const [bookingError, setBookingError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [error, setError] = useState("");
+  const [branchId, setBranchId] = useState(draft.get("branch") || "");
+  const [startDate, setStartDate] = useState(draft.get("start") || minDate);
+  const [endDate, setEndDate] = useState(draft.get("end") || minDate);
+  const [retry, setRetry] = useState(0);
+  const [availability, setAvailability] = useState<{
+    key: string;
+    count?: number;
+    error?: string;
+  } | null>(null);
+  const requestKey = [id, branchId, startDate, endDate, retry].join("|");
+  const dateError =
+    !startDate || !endDate
+      ? "Chọn đủ ngày nhận và ngày trả."
+      : startDate < minDate
+        ? "Ngày nhận phải từ hôm nay."
+        : endDate < startDate
+          ? "Ngày trả phải bằng hoặc sau ngày nhận."
+          : "";
   useEffect(() => {
     let alive = true;
     setProduct(null);
     setError("");
+    setBooking(null);
+    setAvailability(null);
     if (!/^[1-9]\d*$/.test(id || "")) {
       setError("Mã thiết bị không hợp lệ.");
       return;
@@ -361,8 +389,84 @@ export function EquipmentDetail() {
       alive = false;
     };
   }, [id]);
-  const today = new Date();
-  const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  useEffect(() => {
+    if (
+      !product ||
+      String(product.id) !== id ||
+      product.rentalPricePerDay === null ||
+      !branchId ||
+      dateError
+    )
+      return;
+    const controller = new AbortController();
+    let alive = true;
+    const params = new URLSearchParams({
+      productId: String(product.id),
+      branchId,
+      startDate,
+      endDate,
+    });
+    catalogApi<{ quantityRentable: number }>(
+      "/inventory/availability?" + params,
+      { signal: controller.signal },
+    )
+      .then((result) => {
+        if (alive)
+          setAvailability({ key: requestKey, count: result.quantityRentable });
+      })
+      .catch((e) => {
+        if (alive) setAvailability({ key: requestKey, error: errorText(e) });
+      });
+    return () => {
+      alive = false;
+      controller.abort();
+    };
+  }, [product, id, branchId, startDate, endDate, dateError, requestKey]);
+  const current = availability?.key === requestKey ? availability : null;
+  const quantityNumber = Number(quantity);
+  const canBook =
+    !!branchId &&
+    !dateError &&
+    !!current &&
+    !current.error &&
+    Number.isInteger(quantityNumber) &&
+    quantityNumber > 0 &&
+    quantityNumber <= (current.count ?? 0);
+  const rentalDays = !dateError
+    ? Math.round(
+        (Date.parse(endDate + "T00:00:00Z") -
+          Date.parse(startDate + "T00:00:00Z")) /
+          86400000,
+      ) + 1
+    : 0;
+  async function bookNow() {
+    if (!canBook || submitting || !account || !product) return;
+    setSubmitting(true);
+    setBookingError("");
+    setBooking(null);
+    try {
+      const order = await catalogApi<{ id: number; totalAmount: number }>(
+        "/inventory/rentals",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            branchId: Number(branchId),
+            productId: product.id,
+            quantity: quantityNumber,
+            startDate,
+            endDate,
+          }),
+        },
+      );
+      setBooking(order);
+      setRetry((v) => v + 1);
+    } catch (error) {
+      setBookingError(errorText(error));
+      setRetry((v) => v + 1);
+    } finally {
+      setSubmitting(false);
+    }
+  }
   return (
     <Frame title={product?.name || "Chi tiết thiết bị"} account={account}>
       <Link to="/shop">← Danh sách thiết bị</Link>
@@ -379,72 +483,186 @@ export function EquipmentDetail() {
               Thuê / ngày: <strong>{vnd(product.rentalPricePerDay)}</strong>
             </p>
           </article>
-          <form
+          <section
             className="eq-panel eq-form"
-            onChange={() => setAnswer("")}
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setAnswer("");
-              const values = new FormData(e.currentTarget),
-                params = new URLSearchParams({
-                  productId: String(product.id),
-                  branchId: String(values.get("branchId")),
-                  startDate: String(values.get("startDate")),
-                  endDate: String(values.get("endDate")),
-                });
-              try {
-                const result = await catalogApi<{ quantityRentable: number }>(
-                  "/inventory/availability?" + params,
-                );
-                setAnswer(
-                  `Có thể thuê: ${result.quantityRentable} thiết bị trong khoảng ngày đã chọn.`,
-                );
-              } catch (e) {
-                setAnswer(errorText(e));
-              } finally {
-                setBusy(false);
-              }
-            }}
+            aria-label="Thông tin thuê thiết bị"
           >
-            <h2>Kiểm tra lượng có thể thuê</h2>
-            {product.rentalPricePerDay === null ? (
-              <p>Thiết bị này không hỗ trợ thuê.</p>
-            ) : (
-              <>
-                <label>
-                  Chi nhánh
-                  <select required name="branchId">
-                    <option value="">Chọn chi nhánh</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Ngày nhận
-                  <input required name="startDate" type="date" min={minDate} />
-                </label>
-                <label>
-                  Ngày trả
-                  <input required name="endDate" type="date" min={minDate} />
-                </label>
-                <button
-                  disabled={busy || !branches.length}
-                  className="eq-primary"
-                >
-                  {busy ? "Đang kiểm tra…" : "Kiểm tra tồn kho"}
-                </button>
-                <Message text={answer} />
-                <p className="eq-note">
-                  Kết quả tra cứu chưa giữ chỗ. Đặt hàng và thanh toán sẽ được
-                  nối với module đơn hàng.
-                </p>
-              </>
-            )}
-          </form>
+            <h2>Thuê thiết bị</h2>
+            <fieldset
+              disabled={submitting}
+              className="eq-form"
+              style={{ border: 0, padding: 0, margin: 0 }}
+            >
+              {product.rentalPricePerDay === null ? (
+                <p>Thiết bị này không hỗ trợ thuê.</p>
+              ) : (
+                <>
+                  <label>
+                    Chi nhánh nhận (Pickup branch)
+                    <select
+                      name="branchId"
+                      value={branchId}
+                      onChange={(e) => {
+                        setBranchId(e.target.value);
+                        setBooking(null);
+                        setBookingError("");
+                      }}
+                    >
+                      <option value="">Chọn chi nhánh nhận</option>
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {!branches.length && (
+                    <p>Hiện chưa có chi nhánh đang hoạt động.</p>
+                  )}
+                  <div className="eq-columns">
+                    <label>
+                      Ngày nhận
+                      <input
+                        name="startDate"
+                        type="date"
+                        min={minDate}
+                        value={startDate}
+                        onInput={(e) => {
+                          const next = e.currentTarget.value;
+                          setStartDate(next);
+                          setBooking(null);
+                          setBookingError("");
+                          if (next && endDate < next) setEndDate(next);
+                        }}
+                      />
+                    </label>
+                    <label>
+                      Ngày trả
+                      <input
+                        name="endDate"
+                        type="date"
+                        min={startDate || minDate}
+                        value={endDate}
+                        onInput={(e) => {
+                          setEndDate(e.currentTarget.value);
+                          setBooking(null);
+                          setBookingError("");
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <div role="status" aria-live="polite" className="eq-message">
+                    {!branchId ? (
+                      "Chọn chi nhánh nhận để xem số lượng có thể đặt."
+                    ) : dateError ? (
+                      dateError
+                    ) : !current ? (
+                      "Đang tải số lượng có thể thuê…"
+                    ) : current.error ? (
+                      <>
+                        {current.error}{" "}
+                        <button
+                          type="button"
+                          onClick={() => setRetry((v) => v + 1)}
+                        >
+                          Thử lại
+                        </button>
+                      </>
+                    ) : current.count === 0 ? (
+                      "Hết thiết bị có thể thuê tại chi nhánh trong khoảng ngày này."
+                    ) : (
+                      <>
+                        Có thể đặt: <strong>{current.count} thiết bị</strong>{" "}
+                        tại chi nhánh trong khoảng ngày đã chọn.
+                      </>
+                    )}
+                  </div>
+                  <label>
+                    Số lượng thuê
+                    <input
+                      type="number"
+                      min="1"
+                      max={current?.count ?? undefined}
+                      step="1"
+                      value={quantity}
+                      onInput={(e) => {
+                        setQuantity(e.currentTarget.value);
+                        setBooking(null);
+                        setBookingError("");
+                      }}
+                    />
+                  </label>
+                  {Number.isInteger(quantityNumber) &&
+                    quantityNumber > 0 &&
+                    rentalDays > 0 && (
+                      <p>
+                        {rentalDays} ngày × {quantityNumber} thiết bị · Tạm
+                        tính:{" "}
+                        <strong>
+                          {vnd(
+                            (product.rentalPricePerDay ?? 0) *
+                              rentalDays *
+                              quantityNumber,
+                          )}
+                        </strong>
+                      </p>
+                    )}
+                  {current &&
+                    !current.error &&
+                    !dateError &&
+                    !canBook &&
+                    (current.count ?? 0) > 0 && (
+                      <p role="alert">
+                        Chọn số lượng từ 1 đến {current.count}.
+                      </p>
+                    )}
+                  {booking ? (
+                    <div role="status" className="eq-message">
+                      <strong>Đặt thuê thành công — đơn #{booking.id}</strong>
+                      <p>
+                        Tổng tiền: {vnd(booking.totalAmount)}. Đơn đang chờ xử
+                        lý, chưa thanh toán.
+                      </p>
+                    </div>
+                  ) : account ? (
+                    <button
+                      type="button"
+                      className="eq-primary"
+                      disabled={!canBook || submitting}
+                      onClick={bookNow}
+                    >
+                      {submitting ? "Đang đặt thuê…" : "Đặt thuê ngay"}
+                    </button>
+                  ) : (
+                    <Link
+                      className="eq-button eq-primary"
+                      to={
+                        "/login?returnTo=" +
+                        encodeURIComponent(
+                          "/gear/" +
+                            id +
+                            "?" +
+                            new URLSearchParams({
+                              branch: branchId,
+                              start: startDate,
+                              end: endDate,
+                              quantity,
+                            }),
+                        )
+                      }
+                    >
+                      Đăng nhập để đặt thuê
+                    </Link>
+                  )}
+                  <Message text={bookingError} />
+                  <p className="eq-note">
+                    Số lượng tự cập nhật khi đổi chi nhánh hoặc ngày thuê. Kết
+                    quả tra cứu chưa giữ chỗ.
+                  </p>
+                </>
+              )}
+            </fieldset>
+          </section>
         </div>
       )}
     </Frame>
