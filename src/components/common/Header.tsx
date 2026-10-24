@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   MapPin,
   ChevronDown,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../hooks/useAuth";
+import { publicNavigation, roleNavigation } from "../../utils/navigation";
 import { storefrontAssets, storefrontBranches } from "../../data/storefront";
 
 export function Header() {
@@ -49,6 +50,10 @@ export function Header() {
     };
   }, []);
   const navigate = useNavigate();
+  const currentBranch = storefrontBranches.find(b => b.id === selectedStation.id);
+  const privateLinks = roleNavigation(isAuthenticated ? account?.role : undefined);
+  const links = [...publicNavigation, ...privateLinks];
+  const canShop = !isAuthenticated || account?.role === 'CUSTOMER';
   const { pathname } = useLocation();
   const currentBranch = storefrontBranches.find(
     (b) => b.id === selectedStation.id,
@@ -116,16 +121,16 @@ export function Header() {
             <ArrowIcon />
           </button>
         </form>
-        <button
+        {canShop && <button
           type="button"
           onClick={() => setCartOpen(true)}
           className="store-cart flex items-center justify-center text-[#111D16] hover:text-[#D97845] transition-colors cursor-pointer border-0 bg-transparent"
-          aria-label={`Mở giỏ thiết bị (${cartCount} món)`}
-          title="Mở giỏ thiết bị xuất trạm"
+          aria-label={`Open gear cart (${cartCount} items)`}
+          title="Open gear cart"
         >
           <ShoppingBag size={22} />
           {cartCount > 0 && <span>{cartCount > 99 ? "99+" : cartCount}</span>}
-        </button>
+        </button>}
         <div className="relative group">
           <Link
             to={isAuthenticated ? "/passport" : "/login"}
@@ -133,11 +138,11 @@ export function Header() {
           >
             <img src={storefrontAssets.avatar} alt="Customer profile" />
             <span>
-              <b>{isAuthenticated ? (account?.fullName || "Tài khoản") : "Đăng nhập"}</b>
+              <b>{isAuthenticated ? (account?.fullName || "My Account") : "Sign In"}</b>
               <small>{isAuthenticated ? (account?.role || "EXPLORER") : "LOGIN / REGISTER"}</small>
             </span>
           </Link>
-          <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-50 min-w-48">
+          <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block group-focus-within:block z-50 min-w-48">
             <div className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs shadow-lg py-1.5 text-xs font-label">
               {!isAuthenticated ? (
                 <>
@@ -145,13 +150,13 @@ export function Header() {
                     to="/login"
                     className="block px-3.5 py-1.5 text-[#111D16] hover:bg-[#EBE6DC] font-bold"
                   >
-                    Đăng nhập (Sign In)
+                    Sign In
                   </Link>
                   <Link
                     to="/register"
                     className="block px-3.5 py-1.5 text-[#D97845] hover:bg-[#EBE6DC] font-bold"
                   >
-                    Đăng ký mới (Register)
+                    Register
                   </Link>
                 </>
               ) : (
@@ -164,37 +169,20 @@ export function Header() {
                     to="/passport"
                     className="block px-3.5 py-1.5 text-[#5C665F] hover:bg-[#EBE6DC]"
                   >
-                    Hồ sơ Passport
+                    My Profile
                   </Link>
-                  <Link
-                    to="/orders"
-                    className="block px-3.5 py-1.5 text-[#5C665F] hover:bg-[#EBE6DC]"
-                  >
-                    Đơn thuê của tôi
-                  </Link>
-                  {account?.role === "ADMIN" && (
-                    <Link
-                      to="/admin"
-                      className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold"
-                    >
-                      Quản trị Admin HQ
+                  {privateLinks.map(([to, label]) => (
+                    <Link key={to} to={to} className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold">
+                      {label}
                     </Link>
-                  )}
-                  {account && ["ADMIN", "STAFF"].includes(account.role) && (
-                    <Link
-                      to="/staff"
-                      className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold"
-                    >
-                      Bàn làm việc Staff
-                    </Link>
-                  )}
+                  ))}
                   <div className="my-1 border-t border-[#D8D2C5]"></div>
                   <button
                     type="button"
                     onClick={logout}
                     className="w-full text-left px-3.5 py-1.5 text-red-600 hover:bg-[#EBE6DC] font-bold cursor-pointer"
                   >
-                    Đăng xuất (Sign Out)
+                    Sign Out
                   </button>
                 </>
               )}
@@ -223,7 +211,7 @@ export function Header() {
                 {label}
               </NavLink>
             ))}
-              <button
+              {canShop && <button
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
@@ -231,28 +219,21 @@ export function Header() {
                 }}
                 className="flex items-center justify-between font-bold text-[#111D16] w-full text-left py-2 hover:text-[#D97845] transition cursor-pointer"
               >
-                <span>Giỏ thiết bị</span>
+                <span>Gear Cart</span>
                 {cartCount > 0 && (
                   <span className="px-1.5 py-0.5 bg-[#D97845] text-white text-[10px] rounded-xs font-mono-spec">
                     {cartCount}
                   </span>
                 )}
-              </button>
+              </button>}
               <div className="pt-2 border-t border-[#D8D2C5] my-1 flex flex-col gap-1">
-              <NavLink
-                to="/login"
-                onClick={() => setMenuOpen(false)}
-                className="font-bold text-[#152A20]"
-              >
-                Đăng nhập (Sign In)
-              </NavLink>
-              <NavLink
-                to="/register"
-                onClick={() => setMenuOpen(false)}
-                className="font-bold text-[#D97845]"
-              >
-                Đăng ký tài khoản (Register)
-              </NavLink>
+              {isAuthenticated ? <>
+                <NavLink to="/passport" onClick={() => setMenuOpen(false)}>My Profile</NavLink>
+                <button type="button" onClick={logout} className="text-left font-bold text-red-600">Sign Out</button>
+              </> : <>
+                <NavLink to="/login" onClick={() => setMenuOpen(false)}>Sign In</NavLink>
+                <NavLink to="/register" onClick={() => setMenuOpen(false)}>Register</NavLink>
+              </>}
             </div>
           </nav>
           <form onSubmit={search}>

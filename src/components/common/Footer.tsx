@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Phone } from "lucide-react";
 import { storefrontAssets, storefrontBranches } from "../../data/storefront";
+import { useAuth } from "../../hooks/useAuth";
+import { roleNavigation } from "../../utils/navigation";
 export function Footer() {
+  const { account, isAuthenticated } = useAuth();
   const [saved, setSaved] = useState(false);
   return (
     <footer className="store-footer">
@@ -58,8 +61,7 @@ export function Footer() {
               ))}
             </ul>
             <div className="store-internal-links">
-              <Link to="/staff">Staff Operations</Link>
-              <Link to="/admin">Admin Console</Link>
+              {roleNavigation(isAuthenticated ? account?.role : undefined).filter(([to]) => to !== '/orders' && to !== '/my-tours').map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}
             </div>
           </div>
           <div>

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { catalogApi, saveToken, Account, ApiError } from "../../features/equipment/catalogApi";
 import { Button } from "../../components/ui";
+import { ForceChangePasswordModal } from "../../components/auth/ForceChangePasswordModal";
+import { doesAccountRequirePasswordChange } from "../../utils/firstLoginUtils";
 
 function GoogleIcon({ className = "w-4 h-4 shrink-0" }: { className?: string }) {
   return (
@@ -65,8 +67,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Pending password change on first login
+  const [pendingChangePasswordUser, setPendingChangePasswordUser] = useState<Account | null>(null);
+
   const returnTo = searchParams.get("returnTo") || "";
   const explicitReturnTo = returnTo;
+
+  const proceedRedirect = React.useCallback((account: Account, targetUrl?: string) => {
+    setSuccessMessage(`Đăng nhập thành công! Chào mừng ${account.fullName}.`);
+    const finalTarget = targetUrl || explicitReturnTo;
+    setTimeout(() => {
+      if (finalTarget && finalTarget !== "/login" && finalTarget !== "/oauth2/callback") {
+        navigate(finalTarget, { replace: true });
+      } else if (account.role === "ADMIN") {
+        navigate("/admin", { replace: true });
+      } else if (account.role === "STAFF") {
+        navigate("/staff", { replace: true });
+      } else if (account.role === "GUIDE") {
+        navigate("/guide/schedules", { replace: true });
+      } else {
+        navigate("/passport", { replace: true });
+      }
+    }, 500);
+  }, [explicitReturnTo, navigate]);
 
   // Check if token returned in URL query parameters or embedded inside returnTo
   let tokenParam = searchParams.get("token") || searchParams.get("accessToken");
@@ -97,18 +120,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
       catalogApi<Account>("/users/me")
         .then((account) => {
-          setSuccessMessage(`Đăng nhập thành công! Chào mừng ${account.fullName}.`);
-          setTimeout(() => {
-            if (cleanTarget && cleanTarget !== "/login" && cleanTarget !== "/oauth2/callback") {
-              navigate(cleanTarget, { replace: true });
-            } else if (account.role === "ADMIN") {
-              navigate("/admin", { replace: true });
-            } else if (account.role === "STAFF") {
-              navigate("/staff", { replace: true });
-            } else {
-              navigate("/passport", { replace: true });
-            }
-          }, 500);
+          if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
+            setPendingChangePasswordUser(account);
+            setBusy(false);
+            return;
+          }
+          proceedRedirect(account, cleanTarget);
         })
         .catch(() => {
           saveToken(null);
@@ -118,7 +135,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
           setBusy(false);
         });
     }
-  }, [tokenParam, explicitReturnTo, navigate]);
+  }, [tokenParam, explicitReturnTo, proceedRedirect]);
 
   const handleGoogleOAuthRedirect = () => {
     setBusy(true);
@@ -146,18 +163,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         throw new Error("Tài khoản hiện đang bị tạm khóa hoặc chưa được kích hoạt.");
       }
 
-      setSuccessMessage(`Đăng nhập thành công! Chào mừng ${account.fullName}.`);
-      setTimeout(() => {
-        if (explicitReturnTo && explicitReturnTo !== "/login") {
-          navigate(explicitReturnTo, { replace: true });
-        } else if (account.role === "ADMIN") {
-          navigate("/admin", { replace: true });
-        } else if (account.role === "STAFF") {
-          navigate("/staff", { replace: true });
-        } else {
-          navigate("/passport", { replace: true });
-        }
-      }, 500);
+      if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
+        setPendingChangePasswordUser(account);
+        setBusy(false);
+        return;
+      }
+
+      proceedRedirect(account);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         setError("Email hoặc mật khẩu không chính xác.");
@@ -494,6 +506,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
       <footer className="px-6 py-3 border-t border-[#D8D2C5] bg-[#F8F6F1] text-center text-xs text-[#5C665F] font-label">
         © 2026 TerraPeak Vietnam.
       </footer>
+
+      {/* Mandatory First-Time Password Change Modal for Staff & Guide */}
+      {pendingChangePasswordUser && (
+        <ForceChangePasswordModal
+          isOpen={!!pendingChangePasswordUser}
+          userEmail={pendingChangePasswordUser.email ?? ""}
+          initialCurrentPassword={loginPassword}
+          onCancel={() => {
+            saveToken(null);
+            setPendingChangePasswordUser(null);
+          }}
+          onSuccess={() => {
+            const acc = pendingChangePasswordUser;
+            setPendingChangePasswordUser(null);
+            proceedRedirect(acc);
+          }}
+        />
+      )}
     </div>
   );
 };
