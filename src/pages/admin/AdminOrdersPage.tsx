@@ -751,11 +751,11 @@ export const AdminOrdersPage: React.FC = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        disabled={isBusy}
+                        disabled={isBusy || !order.canReturn}
                         onClick={() => void handleAction(order.id, 'return')}
                         icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
                       >
-                        {isBusy ? 'Receiving return...' : 'Inspect & receive return'}
+                        {isBusy ? 'Receiving return...' : !order.customerReceivedAt ? 'Awaiting customer receipt' : 'Return & inspection'}
                       </Button>
                     )}
 
@@ -874,9 +874,9 @@ export const AdminOrdersPage: React.FC = () => {
                             <Button
                               variant="primary"
                               size="sm"
-                              disabled={isBusy}
+                              disabled={isBusy || !order.canReturn}
                               onClick={() => void handleAction(order.id, 'return')}
-                              title="Receive return"
+                              title={order.canReturn ? "Return & inspection" : "Awaiting customer receipt"}
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                             </Button>
@@ -1038,11 +1038,11 @@ export const AdminOrdersPage: React.FC = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    disabled={busyOrderId === selectedOrder.id}
+                    disabled={busyOrderId === selectedOrder.id || !selectedOrder.canReturn}
                     onClick={() => void handleAction(selectedOrder.id, 'return')}
                     icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
                   >
-                    Complete return inspection
+                    {selectedOrder.customerReceivedAt ? 'Complete return inspection' : 'Awaiting customer receipt'}
                   </Button>
                 )}
               </div>
