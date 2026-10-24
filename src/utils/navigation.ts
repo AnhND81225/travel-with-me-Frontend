@@ -11,5 +11,5 @@ export function roleNavigation(role?: string): NavigationLink[] {
   }
 }
 export const publicNavigation: NavigationLink[] = [
-  ['/', 'Home'], ['/shop', 'Shop (Buy Gear)'], ['/rent', 'Rent Gear'], ['/tours', 'Tours & Events'],
+  ['/', 'Home'], ['/shop', 'Equipment'], ['/tours', 'Tours & Events'],
 ];

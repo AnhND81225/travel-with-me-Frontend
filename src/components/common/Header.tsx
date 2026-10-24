@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   MapPin,
   ChevronDown,
@@ -50,6 +50,10 @@ export function Header() {
     };
   }, []);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const navClass = (to: string, active: boolean) =>
+    active || (to === "/shop" && (pathname === "/rent" || pathname === "/catalog" || pathname.startsWith("/gear/")))
+      ? "active" : "";
   const currentBranch = storefrontBranches.find(b => b.id === selectedStation.id);
   const privateLinks = roleNavigation(isAuthenticated ? account?.role : undefined);
   const links = [...publicNavigation, ...privateLinks];
@@ -93,7 +97,7 @@ export function Header() {
         </label>
         <nav className="store-desktop-nav" aria-label="Main navigation">
           {links.map(([to, label]) => (
-            <NavLink end={to === "/"} key={to} to={to}>
+            <NavLink end={to === "/"} key={to} to={to} className={({ isActive }) => navClass(to, isActive)}>
               {label}
             </NavLink>
           ))}
@@ -195,6 +199,7 @@ export function Header() {
                 end={to === "/"}
                 key={to}
                 to={to}
+                className={({ isActive }) => navClass(to, isActive)}
                 onClick={() => setMenuOpen(false)}
               >
                 {label}

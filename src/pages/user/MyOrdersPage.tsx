@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   ArrowRight,
   AlertTriangle,
+  LoaderCircle,
 } from "lucide-react";
 
 export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
@@ -42,21 +43,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     else setRefreshing(true);
 
     try {
-      const [orderData, branchList, productList] = await Promise.allSettled([
-        catalogApi<Order[]>("/orders/me"),
-        catalogApi<Branch[]>("/branches"),
-        catalogApi<{ content: Product[] }>("/products?page=0&size=200"),
-      ]);
-
-      if (orderData.status === "fulfilled" && Array.isArray(orderData.value)) {
-        setOrders(orderData.value);
-      }
-      if (branchList.status === "fulfilled") {
-        setBranches(branchList.value || []);
-      }
-      if (productList.status === "fulfilled") {
-        setProducts(productList.value?.content || []);
-      }
+      const orderData = await catalogApi<Order[]>("/orders/me");
+      setOrders(orderData);
     } catch (e) {
       setError(getErrorMessage(e, "Unable to load your orders"));
     } finally {
@@ -66,8 +54,24 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   }
 
   useEffect(() => {
+    let active = true;
+    catalogApi<Branch[]>("/branches")
+      .then(data => { if (active) setBranches(data); })
+      .catch(() => {});
     void load();
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const ids = [...new Set(orders.flatMap(order => order.items.map(item => item.productId)))];
+    // Product names enrich the list without blocking order display or refresh.
+    Promise.allSettled(ids.map(id => catalogApi<Product>(`/products/${id}`)))
+      .then(results => {
+        if (active) setProducts(results.flatMap(result => result.status === "fulfilled" ? [result.value] : []));
+      });
+    return () => { active = false; };
+  }, [orders]);
 
   async function act(id: number, action: string) {
     setBusy(id);
@@ -188,6 +192,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           >
             Try again
           </button>
+        </div>
+      )}
+
+      {(loading || refreshing) && (
+        <div role="status" aria-live="polite" className="flex items-center gap-2 py-3 text-sm text-[#152A20]">
+          <LoaderCircle className="w-5 h-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          {refreshing ? "Refreshing orders…" : "Loading your orders…"}
         </div>
       )}
 
