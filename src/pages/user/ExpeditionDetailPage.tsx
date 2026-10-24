@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  CalendarDays,
   Clock3,
   Compass,
   Footprints,
@@ -15,8 +14,6 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
-  Phone,
-  X,
 } from "lucide-react";
 import { eventGuideApi, EventResponse } from "../../services/eventGuideApi";
 import { BookingPanel } from "../../features/schedules/BookingPanel";
@@ -31,11 +28,10 @@ export function ExpeditionDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
-  const [isReservationPromptOpen, setIsReservationPromptOpen] = useState(false);
 
   useEffect(() => {
     if (!id || !/^\d+$/.test(id)) {
-      setError("Mã hành trình không hợp lệ.");
+      setError("Invalid trip ID.");
       setLoading(false);
       return;
     }
@@ -47,7 +43,7 @@ export function ExpeditionDetailPage() {
         setSelectedImageIndex(0);
       })
       .catch((cause: unknown) => {
-        setError(cause instanceof Error ? cause.message : "Không thể tải thông tin chuyến đi.");
+        setError(cause instanceof Error ? cause.message : "Unable to load trip details.");
       })
       .finally(() => {
         setLoading(false);
@@ -60,7 +56,7 @@ export function ExpeditionDetailPage() {
         <div className="store-container space-y-4">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#152a20]" />
           <p className="text-sm font-semibold text-[#424844]">
-            Đang tải thông tin chuyến đi...
+            Loading trip details...
           </p>
         </div>
       </main>
@@ -73,14 +69,14 @@ export function ExpeditionDetailPage() {
         <div className="store-container max-w-md text-center space-y-4 bg-white p-8 rounded-md border border-[#e6e2d9]">
           <Compass className="w-10 h-10 text-[#994717] mx-auto" />
           <h2 className="text-xl font-bold text-[#02150c] font-headline">
-            {error || "Hành trình không tồn tại"}
+            {error || "Trip not found"}
           </h2>
           <p className="text-xs text-[#424844]">
-            Hành trình này hiện chưa mở hoặc đã kết thúc thời gian đăng ký.
+            This trip is not currently open for registration or its registration period has ended.
           </p>
           <Link to="/tours" className="store-button inline-flex items-center gap-1.5 text-xs py-2 px-4">
             <ArrowLeft size={13} />
-            Quay lại danh sách
+            Back to trips
           </Link>
         </div>
       </main>
@@ -96,18 +92,18 @@ export function ExpeditionDetailPage() {
 
   const durationText = tour.details?.durationMinutes
     ? tour.details.durationMinutes >= 1440
-      ? `${Math.round(tour.details.durationMinutes / 1440)} ngày ${
-          Math.round(tour.details.durationMinutes / 1440) > 1 ? "đêm" : ""
+      ? `${Math.round(tour.details.durationMinutes / 1440)} days${
+          Math.round(tour.details.durationMinutes / 1440) > 1 ? ", 1 night" : ""
         }`
-      : `${tour.details.durationMinutes} phút`
-    : "2 ngày 1 đêm";
+      : `${tour.details.durationMinutes} minutes`
+    : "2 days, 1 night";
 
   const difficultyText =
     tour.details?.difficultyLevel === "EASY"
-      ? "Dễ (Phù hợp người mới)"
+      ? "Easy (beginner friendly)"
       : tour.details?.difficultyLevel === "HARD"
-      ? "Thử thách (Kinh nghiệm cao)"
-      : "Vừa sức (Thể lực cơ bản)";
+      ? "Challenging (experienced hikers)"
+      : "Moderate (basic fitness)";
 
   const isLongDescription = (tour.description || "").length > 250;
 
@@ -121,9 +117,9 @@ export function ExpeditionDetailPage() {
             className="inline-flex items-center gap-1.5 font-bold text-[#994717] hover:underline uppercase tracking-wider"
           >
             <ArrowLeft size={13} />
-            Danh sách chuyến đi
+            All trips
           </Link>
-          <span className="text-gray-500 font-mono text-[11px]">Mã tour: #{tour.eventId}</span>
+          <span className="text-gray-500 font-mono text-[11px]">Trip ID: #{tour.eventId}</span>
         </div>
       </div>
 
@@ -132,18 +128,18 @@ export function ExpeditionDetailPage() {
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="bg-[#152a20] text-white text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-wider uppercase">
-              {tour.eventType === "TREKKING" ? "Leo núi" : "Cắm trại"}
+              {tour.eventType === "TREKKING" ? "Trekking" : "Camping"}
             </span>
             <span className="bg-[#e9e4da] text-[#152a20] text-[10px] font-bold px-2 py-0.5 rounded-xs tracking-wider uppercase">
               {tour.details?.difficultyLevel === "EASY"
-                ? "Dễ"
+                ? "Easy"
                 : tour.details?.difficultyLevel === "HARD"
-                ? "Thử thách"
-                : "Vừa sức"}
+                ? "Challenging"
+                : "Moderate"}
             </span>
             <span className="text-xs text-gray-500 flex items-center gap-1 ml-auto">
               <MapPin size={12} className="text-[#994717]" />
-              {tour.location || "Cao nguyên Việt Nam"}
+              {tour.location || "Vietnamese highlands"}
             </span>
           </div>
 
@@ -163,7 +159,7 @@ export function ExpeditionDetailPage() {
             />
             <div className="absolute bottom-2.5 left-2.5 bg-black/65 backdrop-blur-xs text-white text-[11px] px-2.5 py-1 rounded flex items-center gap-1.5">
               <MapPin size={12} className="text-[#D97845]" />
-              <span>{tour.location || "Địa bàn thực địa"}</span>
+              <span>{tour.location || "Trip area"}</span>
             </div>
           </div>
 
@@ -181,7 +177,7 @@ export function ExpeditionDetailPage() {
                       : "border-transparent opacity-60 hover:opacity-90"
                   }`}
                 >
-                  <img src={imgUrl} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={imgUrl} alt={`Trip photo ${idx + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -192,38 +188,38 @@ export function ExpeditionDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="bg-[#f7f3ea] border border-[#e6e2d9] p-3 rounded-md">
             <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-              <Clock3 size={11} className="text-[#994717]" /> Thời lượng
+              <Clock3 size={11} className="text-[#994717]" /> Duration
             </span>
             <p className="text-xs font-bold text-[#02150c] mt-0.5">{durationText}</p>
           </div>
 
           <div className="bg-[#f7f3ea] border border-[#e6e2d9] p-3 rounded-md">
             <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-              <Compass size={11} className="text-[#152a20]" /> Độ khó
+              <Compass size={11} className="text-[#152a20]" /> Difficulty
             </span>
             <p className="text-xs font-bold text-[#02150c] mt-0.5">
               {tour.details?.difficultyLevel === "EASY"
-                ? "Dễ"
+                ? "Easy"
                 : tour.details?.difficultyLevel === "HARD"
-                ? "Thử thách"
-                : "Vừa sức"}
+                ? "Challenging"
+                : "Moderate"}
             </p>
           </div>
 
           <div className="bg-[#f7f3ea] border border-[#e6e2d9] p-3 rounded-md">
             <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-              <Footprints size={11} className="text-[#994717]" /> Hình thức
+              <Footprints size={11} className="text-[#994717]" /> Experience
             </span>
             <p className="text-xs font-bold text-[#02150c] mt-0.5">
-              {tour.eventType === "TREKKING" ? "Leo núi" : "Cắm trại"}
+              {tour.eventType === "TREKKING" ? "Trekking" : "Camping"}
             </p>
           </div>
 
           <div className="bg-[#f7f3ea] border border-[#e6e2d9] p-3 rounded-md">
             <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1">
-              <Users size={11} className="text-[#152a20]" /> Quy mô
+              <Users size={11} className="text-[#152a20]" /> Group size
             </span>
-            <p className="text-xs font-bold text-[#02150c] mt-0.5">12 - 16 khách</p>
+            <p className="text-xs font-bold text-[#02150c] mt-0.5">12–16 guests</p>
           </div>
         </div>
 
@@ -235,11 +231,11 @@ export function ExpeditionDetailPage() {
             <section className="bg-white border border-[#e6e2d9] rounded-md p-5 space-y-3">
               <h2 className="text-base font-bold text-[#02150c] font-headline flex items-center gap-2">
                 <Compass className="w-4 h-4 text-[#994717]" />
-                Giới thiệu chuyến đi
+                About this trip
               </h2>
               <div className="text-xs md:text-sm text-[#424844] leading-relaxed">
                 <p className={!isDescExpanded && isLongDescription ? "line-clamp-3" : ""}>
-                  {tour.description || "Hành trình trải nghiệm thiên nhiên được thiết kế chu đáo và vận hành an toàn."}
+                  {tour.description || "A carefully designed outdoor experience, operated with safety in mind."}
                 </p>
                 {isLongDescription && (
                   <button
@@ -248,9 +244,9 @@ export function ExpeditionDetailPage() {
                     className="mt-2 text-xs font-semibold text-[#994717] hover:underline inline-flex items-center gap-1"
                   >
                     {isDescExpanded ? (
-                      <>Thu gọn <ChevronUp size={13} /></>
+                      <>Show less <ChevronUp size={13} /></>
                     ) : (
-                      <>Xem thêm <ChevronDown size={13} /></>
+                      <>Read more <ChevronDown size={13} /></>
                     )}
                   </button>
                 )}
@@ -261,22 +257,22 @@ export function ExpeditionDetailPage() {
             <section className="bg-white border border-[#e6e2d9] rounded-md p-5 space-y-3">
               <h2 className="text-base font-bold text-[#02150c] font-headline flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#152a20]" />
-                Thông số & Yêu cầu
+                Details & requirements
               </h2>
 
               <div className="grid sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 bg-[#f7f3ea] rounded border border-[#e6e2d9] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1 font-mono">
-                    <MapPin size={11} className="text-[#994717]" /> Điểm tập trung
+                    <MapPin size={11} className="text-[#994717]" /> Meeting point
                   </span>
                   <p className="font-semibold text-[#02150c] truncate">
-                    {tour.details?.meetingPoint || "Trạm dã ngoại TerraPeak"}
+                    {tour.details?.meetingPoint || "TerraPeak outdoor station"}
                   </p>
                 </div>
 
                 <div className="p-3 bg-[#f7f3ea] rounded border border-[#e6e2d9] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1 font-mono">
-                    <Compass size={11} className="text-[#152a20]" /> Thể lực
+                    <Compass size={11} className="text-[#152a20]" /> Fitness level
                   </span>
                   <p className="font-semibold text-[#02150c]">
                     {difficultyText}
@@ -285,11 +281,11 @@ export function ExpeditionDetailPage() {
 
                 <div className="p-3 bg-[#f7f3ea] rounded border border-[#e6e2d9] space-y-1 sm:col-span-2">
                   <span className="text-[10px] uppercase font-bold text-gray-500 flex items-center gap-1 font-mono">
-                    <PackageCheck size={11} className="text-[#994717]" /> Trang bị cần chuẩn bị
+                    <PackageCheck size={11} className="text-[#994717]" /> What to bring
                   </span>
                   <p className="text-[#424844]">
                     {tour.details?.requirements ||
-                      "Giày trekking chuyên dụng, balo 20-30L, bình nước cá nhân và trang phục dã ngoại phù hợp."}
+                      "Appropriate hiking shoes, a 20–30 L backpack, a personal water bottle, and suitable outdoor clothing."}
                   </p>
                 </div>
               </div>
@@ -299,24 +295,24 @@ export function ExpeditionDetailPage() {
             <section className="bg-[#f7f3ea] border border-[#e6e2d9] rounded-md p-5 space-y-3">
               <h3 className="text-sm font-bold text-[#02150c] font-headline flex items-center gap-2">
                 <PackageCheck className="w-4 h-4 text-[#994717]" />
-                Dịch vụ bao gồm trọn gói
+                What’s included
               </h3>
               <div className="grid sm:grid-cols-2 gap-2 text-xs text-[#152a20]">
                 <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-[#e6e2d9]/70">
                   <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                  <span>Trưởng đoàn & HDV dẫn đường suốt tuyến</span>
+                  <span>Trip leader and guide throughout the route</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-[#e6e2d9]/70">
                   <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                  <span>Trọn bộ lều trại, túi ngủ & nệm cách nhiệt</span>
+                  <span>Camping tent, sleeping bag, and insulated mat</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-[#e6e2d9]/70">
                   <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                  <span>Bảo hiểm cứu hộ & sơ tán y tế</span>
+                  <span>Rescue cover and medical evacuation support</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-[#e6e2d9]/70">
                   <CheckCircle2 size={14} className="text-emerald-700 shrink-0" />
-                  <span>Thiết bị định vị vệ tinh & túi sơ cứu y tế</span>
+                  <span>Satellite navigation equipment and first-aid kit</span>
                 </div>
               </div>
             </section>

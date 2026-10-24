@@ -30,7 +30,13 @@ export function BookingPanel({ eventId, eventName, price }: { eventId: number; e
     e.preventDefault(); if (!schedule || submitting.current) return;
     submitting.current = true; setBusy(true); setError('');
     try { const ticket = await scheduleApi.register(schedule.id, note); navigate(`/my-tours/${ticket.id}`); }
-    catch (e) { setError(`${errorMessage(e)} Check My Tours before retrying if the connection was interrupted.`); list.refresh(); }
+    catch (e) {
+      const message = errorMessage(e);
+      setError(message.includes('Vé có giao dịch cũ')
+        ? 'Bạn đang đăng ký lại cùng lịch khởi hành. Vé cũ đã có giao dịch nên hệ thống hiện chưa hỗ trợ đặt lại vé này. Mở My Tours → vé cũ → Kiểm tra thanh toán để xem kết quả hoặc liên hệ chi nhánh đối soát. Bạn có thể chọn lịch khởi hành khác còn mở.'
+        : `${message} Check My Tours before retrying if the connection was interrupted.`);
+      list.refresh();
+    }
     finally { submitting.current = false; setBusy(false); }
   }
   return <div className="m5 m5-booking"><p className="m5-eyebrow">BOOK YOUR TOUR</p><h2>{money(price)} <small>/ guest</small></h2><p className="m5-muted">Choose a departure · Vietnam time (UTC+7)</p>

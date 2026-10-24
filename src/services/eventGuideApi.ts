@@ -76,6 +76,9 @@ export interface PublicGuide {
   displayName: string;
   experienceYears: number | null;
   specialization: string | null;
+  bio: string | null;
+  languages: string[] | null;
+  avatarUrl: string | null;
 }
 
 export interface AdminGuide extends PublicGuide {
@@ -83,15 +86,36 @@ export interface AdminGuide extends PublicGuide {
   status: GuideStatus;
 }
 
+export interface GuideRegistrationInput {
+  fullName: string;
+  email: string;
+  phone?: string;
+  experienceYears: number;
+  specialization: string;
+  bio?: string;
+  languages?: string[];
+}
+
 export interface GuideInput {
   userId: number;
   experienceYears: number;
   specialization: string;
+  bio?: string;
+  languages?: string[];
+}
+
+export interface GuideRegistrationResponse {
+  guide: AdminGuide;
+  email: string;
+  temporaryPassword: string;
+  emailSent: boolean;
 }
 
 export interface GuideUpdateInput {
   experienceYears: number;
   specialization: string;
+  bio?: string;
+  languages?: string[];
 }
 
 export interface EventFilters {
@@ -151,8 +175,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       ? Object.entries(errorData.fieldErrors).map(([f, m]) => `${f}: ${m}`).join(", ")
       : undefined;
     const message = detailMsg
-      ? `${payload?.message || "Lỗi yêu cầu"}: ${detailMsg}`
-      : (payload?.message || `Yêu cầu thất bại (${response.status})`);
+      ? `${payload?.message || "Request failed"}: ${detailMsg}`
+      : (payload?.message || `Request failed (${response.status})`);
     throw new EventGuideApiError(message, response.status, errorData);
   }
   return payload!.data;
@@ -190,9 +214,20 @@ export const eventGuideApi = {
   listAdminGuides: (filters: GuideFilters = {}) =>
     request<PageResponse<AdminGuide>>(`/admin/guides${query(filters)}`),
   getAdminGuide: (guideId: number) => request<AdminGuide>(`/admin/guides/${guideId}`),
-  createGuide: (input: GuideInput) => request<AdminGuide>("/admin/guides", { method: "POST", body: JSON.stringify(input) }),
+  createGuide: (input: GuideInput) =>
+    request<AdminGuide>("/admin/guides", { method: "POST", body: JSON.stringify(input) }),
+  // Creates both the GUIDE account and profile; IDs are generated server-side.
+  createGuideWithAccount: (input: GuideRegistrationInput) =>
+    request<GuideRegistrationResponse>("/admin/guides/with-account", { method: "POST", body: JSON.stringify(input) }),
   updateGuide: (guideId: number, input: GuideUpdateInput) =>
     request<AdminGuide>(`/admin/guides/${guideId}`, { method: "PUT", body: JSON.stringify(input) }),
   setGuideStatus: (guideId: number, status: GuideStatus) =>
     request<AdminGuide>(`/admin/guides/${guideId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  uploadGuideAvatar: (guideId: number, file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<AdminGuide>(`/admin/guides/${guideId}/avatar`, { method: "PUT", body });
+  },
+  deleteGuideAvatar: (guideId: number) =>
+    request<void>(`/admin/guides/${guideId}/avatar`, { method: "DELETE" }),
 };

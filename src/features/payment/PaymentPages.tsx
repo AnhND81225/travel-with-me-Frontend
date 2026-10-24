@@ -5,6 +5,7 @@ import { ApiError, catalogApi, vnd, type Branch, type Product } from '../equipme
 import type { Order, OrderItem } from '../orders/orderApi';
 import './payment-pages.css';
 import { paymentApi, payments, type Payment } from './paymentApi';
+import { TourPaymentPage } from './TourPaymentPage';
 
 const positiveId = (value: string | null) => value && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
 const date = (value: string) => new Date(value).toLocaleDateString('vi-VN');
@@ -16,6 +17,28 @@ function lineTotal(item: OrderItem) {
 
 /** ZIP's success / payment-interruption designs, with the host project's layout and real data. */
 export function PaymentResultPage() {
+  const [params] = useSearchParams();
+  const participantId = positiveId(params.get('participantId'));
+  const transactionId = positiveId(params.get('transactionId'));
+  const orderId = positiveId(params.get('orderId'));
+  const [resolved, setResolved] = useState<{ transactionId: number; participantId: number | null } | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    if (!transactionId || orderId || participantId) return;
+    let active = true;
+    setError('');
+    payments.query(transactionId).then(result => {
+      if (active) setResolved({ transactionId, participantId: result.participantId });
+    }).catch(e => { if (active) setError(e instanceof Error ? e.message : 'Không tải được giao dịch.'); });
+    return () => { active = false; };
+  }, [transactionId, orderId, participantId]);
+  if (participantId) return <TourPaymentPage key={participantId} id={participantId} />;
+  if (transactionId && !orderId && resolved?.transactionId !== transactionId) return <div className="payment-pages">{error ? <div className="pp-error" role="alert">{error} <Link to={'/login?returnTo=' + encodeURIComponent('/payment/result?' + params.toString())}>Đăng nhập lại</Link><button onClick={() => window.location.reload()}>Thử lại</button></div> : <p>Đang tải giao dịch…</p>}</div>;
+  if (resolved?.transactionId === transactionId && resolved.participantId) return <TourPaymentPage key={resolved.participantId} id={resolved.participantId} />;
+  return <GearPaymentResultPage />;
+}
+
+function GearPaymentResultPage() {
   const [params] = useSearchParams();
   const location = useLocation();
   const loginUrl = '/login?returnTo=' + encodeURIComponent(location.pathname + location.search);
