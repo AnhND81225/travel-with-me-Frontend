@@ -128,6 +128,24 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     }
   }
 
+  async function handleConfirmReceipt(id: number) {
+    if (!window.confirm("Confirm that you have received all equipment in this order?")) return;
+    setBusy(id);
+    setError("");
+    try {
+      const updated = await catalogApi<Order>(`/orders/${id}/confirm-receipt`, { method: "POST" });
+      setOrders(rows => rows.map(row => row.id === id ? updated : row));
+      setSelectedOrder(current => current?.id === id ? updated : current);
+      showToast("Receipt confirmed successfully.", "success");
+    } catch (error) {
+      const message = getErrorMessage(error, "Unable to confirm receipt.");
+      setError(message);
+      showToast(message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const branchMap = useMemo(() => {
     const map = new Map<number, Branch>();
     branches.forEach((b) => map.set(b.id, b));
@@ -273,7 +291,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   };
 
   // Visual Stepper for the expedition lifecycle
-  const renderExpeditionStepper = (status: OrderStatus) => {
+  const renderExpeditionStepper = (order: Order) => {
+    const status = order.status;
     if (status === "CANCELLED") {
       return (
         <div className="py-2 px-3 bg-[#FEE2E2]/60 border border-[#FCA5A5] rounded-xs text-[11px] text-[#B91C1C] flex items-center gap-2">
@@ -284,10 +303,11 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     }
 
     const steps = [
-      { key: "ORDERED", label: "Tiếp nhận đơn", done: true },
-      { key: "CONFIRMED", label: "Phê duyệt xuất kho", done: status === "CONFIRMED" || status === "IN_PROGRESS" || status === "COMPLETED" },
-      { key: "IN_PROGRESS", label: "Nhận đồ & Dã ngoại", done: status === "IN_PROGRESS" || status === "COMPLETED" },
-      { key: "COMPLETED", label: "Hoàn trả nghiệm thu", done: status === "COMPLETED" },
+      { key: "ORDERED", label: "Order placed", done: true },
+      { key: "CONFIRMED", label: "Admin approval", done: status === "CONFIRMED" || status === "IN_PROGRESS" || status === "COMPLETED" },
+      { key: "HANDED_OVER", label: "Equipment handed over", done: status === "IN_PROGRESS" || status === "COMPLETED" },
+      { key: "CUSTOMER_RECEIVED", label: "Customer receipt", done: !!order.customerReceivedAt },
+      { key: "COMPLETED", label: order.items.some(item => item.itemType === "RENTAL") ? "Return & inspection" : "Completed", done: status === "COMPLETED" },
     ];
 
     return (
@@ -666,7 +686,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 </div>
 
                 {/* Expedition Lifecycle Stepper */}
-                {renderExpeditionStepper(order.status)}
+                {renderExpeditionStepper(order)}
 
                 {/* Items */}
                 <div className="bg-white border border-[#D8D2C5] rounded-xs divide-y divide-[#EBE6DC] overflow-hidden">
@@ -771,6 +791,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     )}
 
                     {/* Cancel Order Button */}
+                    {order.canConfirmReceipt && (
+                      <Button variant="primary" size="sm" disabled={isBusy}
+                        onClick={() => void handleConfirmReceipt(order.id)}>
+                        {isBusy ? "Confirming…" : "Confirm receipt"}
+                      </Button>
+                    )}
+                    {order.customerReceivedAt && <span className="text-xs text-[#152A20]">Receipt confirmed</span>}
                     {order.status === "PENDING" && (
                       <Button
                         variant="outlined"
@@ -912,6 +939,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   Đóng
                 </Button>
 
+                {selectedOrder.canConfirmReceipt && (
+                  <Button variant="primary" size="sm" disabled={busy === selectedOrder.id}
+                    onClick={() => void handleConfirmReceipt(selectedOrder.id)}>
+                    {busy === selectedOrder.id ? "Confirming…" : "Confirm receipt"}
+                  </Button>
+                )}
                 {selectedOrder.status === "PENDING" && selectedOrder.paymentStatus !== "PAID" && (
                   <Link to={`/payment/pending?orderId=${selectedOrder.id}`}>
                     <Button
