@@ -38,7 +38,10 @@ export function OrderCheckout({
   const [quantity, setQuantity] = useState(draft.get("quantity") || "1");
   const [retry, setRetry] = useState(0);
   const [availability, setAvailability] = useState<{ key: string; count?: number; error?: string } | null>(null);
-  const requestKey = [productId, branchId, startDate, endDate, retry].join("|");
+  const [selectedMode, setSelectedMode] = useState<"SALE" | "RENTAL">(
+    sale !== null ? "SALE" : "RENTAL"
+  );
+  const requestKey = [productId, branchId, selectedMode, selectedMode === "RENTAL" ? startDate : "", selectedMode === "RENTAL" ? endDate : "", retry].join("|");
   const dateError = !startDate || !endDate ? "Chọn đủ ngày nhận và ngày trả."
     : startDate < minDate ? "Ngày nhận phải từ hôm nay."
     : endDate < startDate ? "Ngày trả phải bằng hoặc sau ngày nhận." : "";
@@ -49,9 +52,7 @@ export function OrderCheckout({
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const createdOrderId = createdOrder?.id ?? null;
   const [busy, setBusy] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<"SALE" | "RENTAL">(
-    sale !== null ? "SALE" : "RENTAL"
-  );
+
 
   useEffect(() => {
     catalogApi<Branch[]>("/branches")
@@ -61,19 +62,21 @@ export function OrderCheckout({
 
   useEffect(() => { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }, [productId]);
   useEffect(() => {
-    if (selectedMode !== "RENTAL" || !branchId || dateError) return;
+    if (!branchId || (selectedMode === "RENTAL" && dateError)) return;
     const controller = new AbortController();
     let alive = true;
-    const params = new URLSearchParams({ productId: String(productId), branchId, startDate, endDate });
-    catalogApi<{ quantityRentable: number }>("/inventory/availability?" + params, { signal: controller.signal })
-      .then((value) => { if (alive) setAvailability({ key: requestKey, count: value.quantityRentable }); })
+    const params = new URLSearchParams({ productId: String(productId), branchId });
+    if (selectedMode === "RENTAL") { params.set("startDate", startDate); params.set("endDate", endDate); }
+    const endpoint = selectedMode === "RENTAL" ? "/inventory/availability" : "/inventory/sale-availability";
+    catalogApi<{ quantityRentable: number; quantityAvailable: number }>(endpoint + "?" + params, { signal: controller.signal })
+      .then((value) => { if (alive) setAvailability({ key: requestKey, count: selectedMode === "RENTAL" ? value.quantityRentable : value.quantityAvailable }); })
       .catch((error) => { if (alive) setAvailability({ key: requestKey, error: error instanceof Error ? error.message : "Không tải được tồn kho." }); });
     return () => { alive = false; controller.abort(); };
   }, [productId, selectedMode, branchId, startDate, endDate, dateError, requestKey]);
   const current = availability?.key === requestKey ? availability : null;
-  const canRent = !!branchId && !dateError && !!current && !current.error &&
+  const canOrder = !!branchId && (selectedMode === "SALE" || !dateError) && !!current && !current.error &&
     Number.isInteger(Number(quantity)) && Number(quantity) > 0 && Number(quantity) <= (current.count ?? 0);
-  const stockBlocked = selectedMode === "RENTAL" && !canRent && createdOrderId === null;
+  const stockBlocked = !canOrder && createdOrderId === null;
 
   return (
     <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
@@ -228,7 +231,7 @@ export function OrderCheckout({
             name="quantity"
             type="number"
             min="1"
-            max={selectedMode === "RENTAL" ? current?.count : 100}
+            max={current?.count}
             value={quantity} onInput={(e) => setQuantity(e.currentTarget.value)}
             required
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] font-mono-spec focus:outline-none focus:border-[#152A20]"
@@ -263,17 +266,15 @@ export function OrderCheckout({
           </div>
         )}
 
-        {selectedMode === "RENTAL" && (
-          <div role="status" aria-live="polite" className="p-3 bg-white border border-[#D8D2C5] rounded-xs">
+        <div role="status" aria-live="polite" className="p-3 bg-white border border-[#D8D2C5] rounded-xs">
             {!branchId ? "Chọn chi nhánh nhận để xem số lượng có thể đặt."
-              : dateError ? dateError : !current ? "Đang tải số lượng có thể thuê…"
+              : selectedMode === "RENTAL" && dateError ? dateError : !current ? "Đang tải số lượng còn lại…"
               : current.error ? <>{current.error} <button type="button" onClick={() => setRetry((v) => v + 1)}>Thử lại</button></>
-              : current.count === 0 ? "Hết thiết bị có thể thuê trong khoảng ngày này."
-              : <>Có thể đặt: <strong>{current.count} thiết bị</strong>.
-                {!canRent && <p>Chọn số lượng từ 1 đến {current.count}.</p>}</>}
-            <p className="mt-1 text-[11px]">Số lượng tự cập nhật khi đổi chi nhánh hoặc ngày thuê. Tra cứu chưa giữ chỗ.</p>
-          </div>
-        )}
+              : current.count === 0 ? (selectedMode === "SALE" ? "Hết hàng tại chi nhánh này." : "Hết thiết bị có thể thuê trong khoảng ngày này.")
+              : <>{selectedMode === "SALE" ? "Còn lại có thể mua: " : "Có thể thuê: "}<strong>{current.count} thiết bị</strong>.
+                {!canOrder && <p>Chọn số lượng từ 1 đến {current.count}.</p>}</>}
+            <p className="mt-1 text-[11px]">Số lượng tự cập nhật theo chi nhánh và hình thức mua/thuê. Tra cứu chưa giữ chỗ.</p>
+        </div>
         {/* Status Message */}
         {message && (
           <div
