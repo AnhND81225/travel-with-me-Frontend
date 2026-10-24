@@ -81,3 +81,13 @@
 .m5-guide > aside button { margin-left:auto; background:transparent; border:1px solid #638472; border-radius:4px; padding:7px 12px; color:#f3efe6; cursor:pointer; font-size:14px; }
 .m5-guide > aside a[aria-current=page] { text-decoration:underline; text-underline-offset:5px; }
 
+
+.m5-ticket-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:auto; padding-top:16px; }
+.m5-ticket-footer > .m5-primary { margin-left:auto; white-space:nowrap; }
+
+/* Match the customer pages and Payment typography, including native controls. */
+.m5 :is(button, input, select, textarea) { font-family:inherit; }
+.m5-ticket-payment { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:20px 0; padding:20px; border:1px solid #d8d2c5; border-radius:6px; background:#f3efe6; }
+.m5-ticket-payment h3 { margin:0 0 8px; }
+.m5-ticket-payment-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:12px; flex-shrink:0; }
+@media(max-width:640px) { .m5-ticket-payment { align-items:stretch; flex-direction:column; } }
