@@ -189,7 +189,7 @@ export const AdminUsersPage: React.FC = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'ADMIN':
-        return <Badge variant="accent">Quản trị viên (Admin)</Badge>;
+        return <Badge variant="secondary">Quản trị viên (Admin)</Badge>;
       case 'STAFF':
         return <Badge variant="primary">Cán bộ trạm (Staff)</Badge>;
       case 'GUIDE':

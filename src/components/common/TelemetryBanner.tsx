@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Radio, Thermometer, Wind, Sparkles, User, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { roleNavigation } from '../../utils/navigation';
 import { useAppStore } from '../../store/useAppStore';
 
 export const TelemetryBanner: React.FC = () => {
-  const { selectedStation, userRole, setUserRole } = useAppStore();
+  const { selectedStation } = useAppStore();
+  const { account, isAuthenticated } = useAuth();
 
   return (
     <div className="bg-[#EBE6DC] border-b border-[#D8D2C5] px-4 sm:px-8 py-1.5 text-xs font-label flex items-center justify-between text-[#5C665F]">
@@ -33,32 +36,12 @@ export const TelemetryBanner: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Role Switcher Pill */}
-        <div className="flex items-center bg-[#D8D2C5]/80 rounded-xs p-0.5 text-[11px] font-label font-bold">
-          <button
-            onClick={() => setUserRole('climber')}
-            className={`px-2 py-0.5 rounded-xs transition cursor-pointer ${
-              userRole === 'climber'
-                ? 'bg-[#152A20] text-white shadow-xs'
-                : 'text-[#5C665F] hover:text-[#111D16]'
-            }`}
-          >
-            Storefront
-          </button>
-          <Link
-            to="/staff"
-            onClick={() => setUserRole('ranger')}
-            className="px-2 py-0.5 rounded-xs text-[#5C665F] hover:text-[#111D16] hover:bg-[#EBE6DC] transition"
-          >
-            Staff POS
-          </Link>
-          <Link
-            to="/admin"
-            className="px-2 py-0.5 rounded-xs text-[#5C665F] hover:text-[#111D16] hover:bg-[#EBE6DC] transition"
-          >
-            Admin HQ
-          </Link>
-        </div>
+        <nav aria-label="Workspace navigation" className="flex items-center gap-2">
+          <Link to="/" className="px-2 py-0.5 rounded-xs text-[#152A20]">Storefront</Link>
+          {roleNavigation(isAuthenticated ? account?.role : undefined).map(([to, label]) => (
+            <Link key={to} to={to} className="px-2 py-0.5 rounded-xs text-[#5C665F] hover:text-[#111D16]">{label}</Link>
+          ))}
+        </nav>
       </div>
     </div>
   );

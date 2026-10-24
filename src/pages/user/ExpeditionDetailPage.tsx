@@ -19,14 +19,8 @@ import {
   X,
 } from "lucide-react";
 import { eventGuideApi, EventResponse } from "../../services/eventGuideApi";
+import { BookingPanel } from "../../features/schedules/BookingPanel";
 import { storefrontAssets as images } from "../../data/storefront";
-
-const vnd = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(amount);
 
 const fallbackImages = [images.tanang, images.camp, images.hike, images.forest];
 
@@ -328,119 +322,11 @@ export function ExpeditionDetailPage() {
             </section>
           </article>
 
-          {/* Cột phải: Thẻ đặt chỗ & Giá niêm yết */}
-          <aside className="space-y-4">
-            <div className="bg-white border border-[#e6e2d9] rounded-md p-5 sticky top-24 space-y-4 shadow-xs">
-              <div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono">
-                  Chi phí niêm yết
-                </span>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-2xl font-extrabold text-[#02150c] font-headline">
-                    {vnd(tour.basePrice)}
-                  </span>
-                  <span className="text-xs text-gray-500 font-medium">/ Khách</span>
-                </div>
-                <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-                  ✓ Trọn gói, không phụ phí ẩn
-                </p>
-              </div>
-
-              {/* Tình trạng chỗ */}
-              <div className="bg-[#f7f3ea] p-2.5 rounded border border-[#e6e2d9] space-y-1">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-[#994717]">Lịch khởi hành</span>
-                  <span className="text-[#02150c]">Còn 5/16 suất</span>
-                </div>
-                <progress value={11} max={16} aria-label="Tiến độ nhận đoàn" className="w-full h-1.5" />
-              </div>
-
-              {/* Nút hành động */}
-              <div className="space-y-2 pt-1">
-                <button
-                  type="button"
-                  className="store-button w-full text-center py-2.5 block text-xs font-bold"
-                  onClick={() => setIsReservationPromptOpen(true)}
-                >
-                  Đăng ký tham gia chuyến đi
-                </button>
-                <Link
-                  to="/tours"
-                  className="border border-[#c7cfc9] bg-white text-[#152a20] hover:bg-gray-50 text-xs py-2 px-3 rounded-xs w-full text-center block font-semibold transition-colors"
-                >
-                  Xem các hành trình khác
-                </Link>
-              </div>
-
-              {/* Chính sách tóm tắt */}
-              <div className="border-t border-[#e6e2d9] pt-3 text-[11px] text-gray-500 space-y-1">
-                <p>• Hoàn 100% nếu báo hủy trước 7 ngày.</p>
-                <p>• Giảm 20% khi thuê thêm dụng cụ dã ngoại kèm.</p>
-              </div>
-            </div>
+          <aside>
+            <BookingPanel eventId={tour.eventId} eventName={tour.eventName} price={tour.basePrice} />
           </aside>
         </div>
       </div>
-      {isReservationPromptOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#02150c]/70 px-4 py-4 backdrop-blur-sm sm:items-center"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsReservationPromptOpen(false);
-          }}
-          role="presentation"
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="reservation-prompt-title"
-            className="w-full max-w-md overflow-hidden rounded-lg border border-[#d8d2c5] bg-[#fdf9f0] shadow-[0_24px_80px_rgba(2,21,12,0.38)]"
-          >
-            <header className="flex items-start justify-between border-b border-[#e6e2d9] bg-[#f7f3ea] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#152a20] text-[#f5b46f]">
-                  <CalendarDays size={19} />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#994717]">Đăng ký hành trình</p>
-                  <h2 id="reservation-prompt-title" className="font-headline text-lg font-bold text-[#02150c]">Giữ chỗ cùng TerraPeak</h2>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsReservationPromptOpen(false)}
-                aria-label="Đóng thông báo đăng ký"
-                className="rounded p-1.5 text-[#59635d] transition hover:bg-[#e9e4da] hover:text-[#02150c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#994717]"
-              >
-                <X size={19} />
-              </button>
-            </header>
-            <div className="space-y-4 px-5 py-5">
-              <div className="rounded-md border border-[#e6e2d9] bg-white px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#717871]">Chuyến đi bạn quan tâm</p>
-                <p className="mt-1 font-semibold text-[#02150c]">{tour.eventName}</p>
-                <p className="mt-1 text-xs text-[#59635d]">{vnd(tour.basePrice)} / khách · Còn 5/16 suất</p>
-              </div>
-              <p className="text-sm leading-6 text-[#424844]">
-                Đăng ký trực tuyến đang được hoàn thiện. Đội ngũ TerraPeak có thể kiểm tra lịch và giữ chỗ cho bạn ngay hôm nay.
-              </p>
-              <a
-                href="tel:+842888997325"
-                className="store-button flex w-full items-center justify-center gap-2 py-3 text-xs font-bold"
-              >
-                <Phone size={16} /> Gọi hotline giữ chỗ
-              </a>
-              <button
-                type="button"
-                onClick={() => setIsReservationPromptOpen(false)}
-                className="w-full rounded border border-[#c7cfc9] bg-white px-3 py-2.5 text-xs font-bold text-[#152a20] transition hover:bg-[#f7f3ea] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#994717]"
-              >
-                Tôi sẽ xem thêm sau
-              </button>
-              <p className="text-center text-[11px] text-[#717871]">Không có thanh toán hoặc thông tin cá nhân nào được gửi ở bước này.</p>
-            </div>
-          </section>
-        </div>
-      )}
     </main>
   );
 }
