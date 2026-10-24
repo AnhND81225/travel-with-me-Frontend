@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { catalogApi, vnd, type Branch } from "../equipment/catalogApi";
 import type { Order } from "./orderApi";
 import { useAuth } from "../../hooks/useAuth";
@@ -23,12 +23,14 @@ export function OrderCheckout({
   sale: number | null;
   rental: number | null;
 }) {
+  const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const signInUrl = `/login?returnTo=${encodeURIComponent(`/gear/${productId}`)}`;
   const [branches, setBranches] = useState<Branch[]>([]);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const createdOrderId = createdOrder?.id ?? null;
   const [busy, setBusy] = useState(false);
   const [selectedMode, setSelectedMode] = useState<"SALE" | "RENTAL">(
     sale !== null ? "SALE" : "RENTAL"
@@ -39,6 +41,8 @@ export function OrderCheckout({
       .then((b) => setBranches(b.filter((x) => x.status === "ACTIVE")))
       .catch((e) => setMessage(e instanceof Error ? e.message : "Unable to load branches"));
   }, []);
+
+  useEffect(() => { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }, [productId]);
 
   return (
     <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
@@ -54,8 +58,16 @@ export function OrderCheckout({
 
       <form
         className="space-y-3.5"
+        onChange={() => {
+          if (createdOrderId !== null) { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
+          if (createdOrderId !== null && (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") !== "cart") {
+            navigate(`/payment/pending?orderId=${createdOrderId}`);
+            return;
+          }
           const data = new FormData(e.currentTarget);
           setBusy(true);
           setMessage("");
@@ -124,7 +136,7 @@ export function OrderCheckout({
             setIsSuccess(true);
             setCreatedOrder(order);
             setMessage(
-              `Order created #${order.id} · ${vnd(order.totalAmount)} · Complete payment, then wait for branch approval.`
+              `Đã tạo đơn #${order.id} · ${vnd(order.totalAmount)} · Chờ chi nhánh duyệt.`
             );
           } catch (error) {
             setIsSuccess(false);
@@ -233,8 +245,8 @@ export function OrderCheckout({
               <span>{message}</span>
             </div>
             {isSuccess && (
-              <Link to={createdOrder ? `/payment/pending?orderId=${createdOrder.id}` : "/cart"} className="underline hover:text-black shrink-0 font-bold">
-                {createdOrder ? "Continue to payment →" : "Open cart →"}
+              <Link to="/cart" className="underline hover:text-black shrink-0 font-bold">
+                Mở giỏ hàng →
               </Link>
             )}
           </div>
@@ -263,14 +275,15 @@ export function OrderCheckout({
           </Button>
 
           <Button
-            type="submit"
+            type={createdOrderId ? "button" : "submit"}
+            onClick={createdOrderId ? () => navigate(`/payment/pending?orderId=${createdOrderId}`) : undefined}
             variant="primary"
             size="md"
             fullWidth
             disabled={busy || authLoading || !isAuthenticated}
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {busy ? "Processing..." : authLoading ? "Checking sign-in..." : "Order Now"}
+            {busy ? "Đang xử lý..." : authLoading ? "Đang kiểm tra đăng nhập..." : createdOrderId ? "Thanh toán" : "Đặt Ngay"}
           </Button>
         </div>
 
