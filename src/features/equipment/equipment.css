@@ -68,7 +68,7 @@
   min-width: 0;
   width: 100%;
 }
-.eq-page button,
+.eq-page button:not([class*="bg-"]),
 .eq-button {
   display: inline-flex;
   align-items: center;

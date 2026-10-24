@@ -15,7 +15,7 @@ Module `src/features/equipment` gọi API thật, hiển thị VND, có phân tr
 
 Danh sách sản phẩm chỉ hiển thị ACTIVE; quản trị có thêm/sửa và ngừng/mở lại. Kho có nhập thêm, kiểm kê giữ nguyên số đang thuê, tạm dừng/mở lại. STAFF chọn chi nhánh được phân công; chi nhánh khác bị API từ chối. Tra cứu ngày thuê không giữ chỗ.
 
-Các trang tour, giỏ hàng/checkout, bảng điều khiển tổng quan và nghiệp vụ module khác vẫn thuộc bản mock hiện có. Đặt thuê trực tiếp trên trang chi tiết qua POST /api/inventory/rentals; backend xác định người đặt và giá, kiểm tra tồn kho dưới khóa product rồi tạo đơn PENDING. Giỏ mock không dùng cho luồng này; chưa nối thanh toán và giao/nhận trả. Các entry mua/thuê đã nối trong thay đổi này là `/shop`, `/rent`, `/catalog`, `/gear/:id`; phần sản phẩm quảng bá ở HomePage vẫn là dữ liệu demo của nhóm.
+Đồng bộ main 2026-10-24: dùng giao diện thiết bị mới và OrderCheckout chung cho mua/thuê, giỏ hàng và thanh toán. POST /api/orders xác định người đặt từ JWT, tính giá và khóa product để kiểm tra lượng khả dụng. POST /api/inventory/rentals vẫn được giữ tương thích cho client đặt thuê trực tiếp.
 
 Kiểm tra:
 ```sh
@@ -27,4 +27,4 @@ Dùng npm/package-lock.json cho bản tích hợp này. esbuild đã chỉnh san
 ## Cập nhật 2026-10-24
 Trang chi tiết tự tra lượng có thể đặt khi chọn Pickup branch hoặc thay đổi ngày nhận/ngày trả; không cần bấm kiểm tra riêng. Ngày mặc định là hôm nay; đổi ngày nhận sẽ đẩy ngày trả lên nếu cần. Kết quả cũ không hiển thị trong khi truy vấn mới đang tải. Request cũ được hủy khi đổi lựa chọn; có trạng thái hết hàng, ngày không hợp lệ và nút thử lại khi lỗi.
 
-Chọn số lượng rồi bấm Đặt thuê ngay. Nếu chưa đăng nhập, trang giữ chi nhánh/ngày/số lượng qua đăng nhập. Thành công hiển thị mã đơn thật, tổng tiền, trạng thái chờ xử lý và cập nhật số còn đủ. Ngày thuê tính cả ngày nhận lẫn ngày trả. Lỗi thiếu kho sẽ tải lại số lượng để chọn lại. Endpoint Order cũ vẫn cần nhóm Order áp dụng cùng khóa/validation cho mọi đường ghi.
+Chọn hình thức Thuê, chi nhánh và ngày để xem số có thể đặt ngay trong OrderCheckout. Không còn form kiểm tra riêng. Chọn số lượng rồi thêm giỏ hàng hoặc Đặt Ngay & Thanh Toán; tạo đơn thật qua POST /api/orders và chuyển sang trang thanh toán của nhóm. Chưa đăng nhập vẫn giữ chi nhánh/ngày/số lượng qua returnTo. Quá lượng còn lại, lỗi/ngày không hợp lệ hoặc đang tải thì khóa thao tác thuê; server kiểm tra lại dưới khóa product. Lỗi tạo đơn tải lại lượng khả dụng. Kiểm tra sau merge: BE compileJava + 139 tests PASS; FE lint/build + 22 tests PASS; UI tự hiện 1 thiết bị theo ngày và chặn quantity 99 PASS.
