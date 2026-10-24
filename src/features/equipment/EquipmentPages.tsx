@@ -62,8 +62,7 @@ function SessionLinks({ account }: { account: Account | null }) {
   const location = useLocation();
   return (
     <nav className="eq-nav" aria-label="Thiết bị và tồn kho">
-      <Link to="/shop">Mua thiết bị</Link>
-      <Link to="/rent">Thuê thiết bị</Link>
+      <Link to="/shop">Equipment</Link>
       <Link to="/cart">Cart</Link>
       <Link to="/orders">My orders</Link>
       {account?.role === "ADMIN" && <Link to="/admin/orders">Manage orders</Link>}
@@ -255,14 +254,20 @@ export function EquipmentCatalog({
   }, [defaultMode]);
   return (
     <Frame
-      title={
-        defaultMode === "rent"
-          ? "Thuê thiết bị cho chuyến đi"
-          : "Thiết bị cho chuyến đi"
-      }
-      description="Chọn thiết bị, xem giá và tra cứu lượng có thể thuê tại chi nhánh."
+      title="Equipment"
+      description="Choose Buy or Rent to find equipment for your next trip."
       account={account}
     >
+      <nav aria-label="Equipment mode" className="flex gap-2 mb-4">
+        <Link to="/shop" aria-current={defaultMode === "buy" ? "page" : undefined}
+          className={`px-5 py-2 rounded border font-bold ${defaultMode === "buy" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5]"}`}>
+          Buy
+        </Link>
+        <Link to="/rent" aria-current={defaultMode === "rent" ? "page" : undefined}
+          className={`px-5 py-2 rounded border font-bold ${defaultMode === "rent" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5]"}`}>
+          Rent
+        </Link>
+      </nav>
       <form
         className="eq-panel eq-filters"
         key={defaultMode}
