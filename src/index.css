@@ -4,6 +4,10 @@
 @import "./styles/stitch-reference.css";
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   :root {
     --color-primary: #152A20;
     --color-secondary: #D97845;
@@ -274,15 +278,15 @@ button.store-button:active {
 /* Desktop Navigation Link Smooth Hover */
 .store-desktop-nav a {
   position: relative;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
 }
 
 .store-desktop-nav a:hover {
-  transform: translateY(-1.5px);
+  transform: none;
 }
 
 .store-desktop-nav a:active {
-  transform: scale(0.97);
+  transform: none;
 }
 
 /* Cart Badge Bounce */
