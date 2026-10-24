@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { catalogApi, vnd, type Branch } from "../equipment/catalogApi";
 import type { Order } from "./orderApi";
 import { Card, Button, Badge } from "../../components/ui";
@@ -22,6 +22,8 @@ export function OrderCheckout({
   sale: number | null;
   rental: number | null;
 }) {
+  const navigate = useNavigate();
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -35,6 +37,8 @@ export function OrderCheckout({
       .then((b) => setBranches(b.filter((x) => x.status === "ACTIVE")))
       .catch((e) => setMessage(e instanceof Error ? e.message : "Không tải được danh sách chi nhánh"));
   }, []);
+
+  useEffect(() => { setCreatedOrderId(null); setMessage(""); setIsSuccess(false); }, [productId]);
 
   return (
     <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
@@ -50,8 +54,16 @@ export function OrderCheckout({
 
       <form
         className="space-y-3.5"
+        onChange={() => {
+          if (createdOrderId !== null) { setCreatedOrderId(null); setMessage(""); setIsSuccess(false); }
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
+          if (createdOrderId !== null && (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") !== "cart") {
+            navigate(`/payment/pending?orderId=${createdOrderId}`);
+            return;
+          }
           const data = new FormData(e.currentTarget);
           setBusy(true);
           setMessage("");
@@ -111,6 +123,7 @@ export function OrderCheckout({
               }),
             });
 
+            setCreatedOrderId(order.id);
             setIsSuccess(true);
             setMessage(
               `Đã tạo đơn #${order.id} · ${vnd(order.totalAmount)} · Chờ chi nhánh duyệt.`
@@ -245,14 +258,15 @@ export function OrderCheckout({
           </Button>
 
           <Button
-            type="submit"
+            type={createdOrderId ? "button" : "submit"}
+            onClick={createdOrderId ? () => navigate(`/payment/pending?orderId=${createdOrderId}`) : undefined}
             variant="primary"
             size="md"
             fullWidth
             disabled={busy}
             icon={<ArrowRight className="w-4 h-4" />}
           >
-            {busy ? "Đang xử lý..." : "Đặt Ngay"}
+            {busy ? "Đang xử lý..." : createdOrderId ? "Thanh toán" : "Đặt Ngay"}
           </Button>
         </div>
 

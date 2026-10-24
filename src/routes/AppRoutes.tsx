@@ -106,6 +106,9 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route path="orders" element={<MyOrdersPage />} />
+        <Route path="payment/result" element={<PaymentResultPage />} />
+        <Route path="payment/pending" element={<PaymentResultPage />} />
+        <Route path="payment/success" element={<PaymentResultPage />} />
         <Route path="my-tours" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><MyToursPage /></ScheduleGuard>} />
         <Route path="my-tours/:participantId" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><TicketDetailPage /></ScheduleGuard>} />
         <Route path="cart" element={<OrderCart />} />
