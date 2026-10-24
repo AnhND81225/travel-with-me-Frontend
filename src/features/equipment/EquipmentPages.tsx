@@ -64,9 +64,9 @@ function SessionLinks({ account }: { account: Account | null }) {
     <nav className="eq-nav" aria-label="Thiết bị và tồn kho">
       <Link to="/shop">Mua thiết bị</Link>
       <Link to="/rent">Thuê thiết bị</Link>
-      <Link to="/cart">Giỏ hàng</Link>
-      <Link to="/orders">Đơn của tôi</Link>
-      {account?.role === "ADMIN" && <Link to="/admin/orders">Vận hành đơn hàng</Link>}
+      <Link to="/cart">Cart</Link>
+      <Link to="/orders">My orders</Link>
+      {account?.role === "ADMIN" && <Link to="/admin/orders">Manage orders</Link>}
       {account?.role === "ADMIN" && (
         <Link to="/admin/catalog">Quản lý thiết bị</Link>
       )}

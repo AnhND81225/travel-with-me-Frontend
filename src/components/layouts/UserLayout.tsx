@@ -29,8 +29,10 @@ export const UserLayout: React.FC = () => {
     <div className="min-h-screen bg-[#F3EFE6] text-[#111D16] flex flex-col selection:bg-[#152A20] selection:text-[#F3EFE6] font-body">
       <Header />
 
-      <main id="main-content" className="flex-1 animate-fade-in" key={pathname}>
-        <Outlet />
+      <main id="main-content" className="flex-1">
+        <React.Suspense fallback={<div className="min-h-[60vh] p-8" role="status">Loading page…</div>}>
+          <Outlet />
+        </React.Suspense>
       </main>
 
       <Footer />

@@ -92,7 +92,7 @@ export const AdminOrdersPage: React.FC = () => {
       const data = await catalogApi<Order[]>('/orders');
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(getErrorMessage(err, 'Không thể tải danh sách đơn hàng từ máy chủ'));
+      setError(getErrorMessage(err, 'Unable to load orders from the server'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -110,10 +110,10 @@ export const AdminOrdersPage: React.FC = () => {
     setError('');
 
     const actionLabels: Record<string, string> = {
-      confirm: 'Xác nhận đơn hàng',
-      'hand-over': 'Bàn giao thiết bị xuất kho',
-      return: 'Nghiệm thu & nhận trả thiết bị',
-      cancel: 'Hủy đơn hàng',
+      confirm: 'Approve order',
+      'hand-over': 'Hand over equipment',
+      return: 'Inspect and receive returned equipment',
+      cancel: 'Cancel order',
     };
 
     try {
@@ -124,10 +124,10 @@ export const AdminOrdersPage: React.FC = () => {
         setSelectedOrder(updated);
       }
 
-      showToast(`Đã thực hiện: ${actionLabels[action]} #${id} thành công!`, 'success');
+      showToast(`Completed: ${actionLabels[action]} #${id} successfully!`, 'success');
       setOrderToCancel(null);
     } catch (err) {
-      const msg = getErrorMessage(err, `Thao tác ${actionLabels[action]} thất bại`);
+      const msg = getErrorMessage(err, `Action ${actionLabels[action]} failed`);
       setError(msg);
       showToast(msg, 'error');
     } finally {
@@ -183,7 +183,7 @@ export const AdminOrdersPage: React.FC = () => {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchId = String(order.id).includes(q) || `ord-${order.id}`.toLowerCase().includes(q);
-          const matchUser = String(order.userId).includes(q) || `khách #${order.userId}`.includes(q);
+          const matchUser = String(order.userId).includes(q) || `customer #${order.userId}`.includes(q);
           const branchName = branchMap.get(order.branchId)?.name?.toLowerCase() || '';
           const matchBranch = branchName.includes(q) || String(order.branchId).includes(q);
           const matchItem = order.items.some((item) => {
@@ -212,35 +212,35 @@ export const AdminOrdersPage: React.FC = () => {
         return (
           <Badge variant="warning" className="flex items-center gap-1.5 py-1 px-2.5 font-bold">
             <Clock className="w-3.5 h-3.5 text-[#D97845] animate-pulse" />
-            <span>Chờ duyệt xuất</span>
+            <span>Awaiting approval</span>
           </Badge>
         );
       case 'CONFIRMED':
         return (
           <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#3B82F6] text-[#1E40AF] bg-[#EFF6FF]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Đã xác nhận · Chờ giao</span>
+            <span>Approved · Awaiting handover</span>
           </Badge>
         );
       case 'IN_PROGRESS':
         return (
           <Badge variant="success" className="flex items-center gap-1.5 py-1 px-2.5 font-bold bg-[#ECFDF5] border-[#10B981] text-[#065F46]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#059669]" />
-            <span>Đang sử dụng · Hiện trường</span>
+            <span>In use · In the field</span>
           </Badge>
         );
       case 'COMPLETED':
         return (
           <Badge variant="primary" className="flex items-center gap-1.5 py-1 px-2.5 font-bold bg-[#152A20] text-[#F3EFE6]">
             <Check className="w-3.5 h-3.5 text-[#10B981]" />
-            <span>Đã hoàn tất / Thu hồi</span>
+            <span>Completed / Returned</span>
           </Badge>
         );
       case 'CANCELLED':
         return (
           <Badge variant="danger" className="flex items-center gap-1.5 py-1 px-2.5 font-bold">
             <XCircle className="w-3.5 h-3.5 text-[#DC2626]" />
-            <span>Đã hủy</span>
+            <span>Cancelled</span>
           </Badge>
         );
       default:
@@ -288,10 +288,10 @@ export const AdminOrdersPage: React.FC = () => {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline tracking-tight">
-            Quản Lý Vận Hành Đơn Hàng & Ký Gửi
+            Equipment Order Operations
           </h1>
           <p className="text-xs text-[#5C665F] font-body mt-1">
-            Điều phối duyệt xuất thiết bị, theo dõi luân chuyển hiện trường và thu hồi ký quỹ toàn hệ thống trạm.
+            Approve paid orders, manage equipment handovers and receive rental returns across branches.
           </p>
         </div>
 
@@ -304,7 +304,7 @@ export const AdminOrdersPage: React.FC = () => {
             disabled={loading || refreshing}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#D97845]' : ''}`} />}
           >
-            {refreshing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
 
           <div className="border-l border-[#D8D2C5] h-6 mx-1"></div>
@@ -312,7 +312,7 @@ export const AdminOrdersPage: React.FC = () => {
           <div className="bg-[#EBE6DC] border border-[#D8D2C5] p-0.5 rounded-xs flex items-center">
             <button
               onClick={() => setViewMode('cards')}
-              title="Chế độ Thẻ chi tiết"
+              title="Card view"
               className={`p-1.5 rounded-xs transition cursor-pointer ${
                 viewMode === 'cards' ? 'bg-[#152A20] text-white shadow-xs' : 'text-[#5C665F] hover:text-[#111D16]'
               }`}
@@ -321,7 +321,7 @@ export const AdminOrdersPage: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              title="Chế độ Bảng danh sách"
+              title="Table view"
               className={`p-1.5 rounded-xs transition cursor-pointer ${
                 viewMode === 'table' ? 'bg-[#152A20] text-white shadow-xs' : 'text-[#5C665F] hover:text-[#111D16]'
               }`}
@@ -335,9 +335,9 @@ export const AdminOrdersPage: React.FC = () => {
       {/* KPI & Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
-          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TỔNG ĐƠN HÀNG</span>
+          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TOTAL ORDERS</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
-          <span className="text-[10px] text-[#5C665F]">Giao dịch ghi nhận</span>
+          <span className="text-[10px] text-[#5C665F]">Recorded orders</span>
         </Card>
 
         <Card
@@ -348,13 +348,13 @@ export const AdminOrdersPage: React.FC = () => {
           onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
         >
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">CHỜ DUYỆT</span>
+            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">AWAITING APPROVAL</span>
             {stats.pending > 0 && (
               <span className="w-2 h-2 rounded-full bg-[#D97845] animate-ping"></span>
             )}
           </div>
           <div className="text-xl sm:text-2xl font-bold text-[#D97845] font-headline">{stats.pending}</div>
-          <span className="text-[10px] text-[#737C75]">Cần duyệt xuất kho</span>
+          <span className="text-[10px] text-[#737C75]">Awaiting order approval</span>
         </Card>
 
         <Card
@@ -364,9 +364,9 @@ export const AdminOrdersPage: React.FC = () => {
           }`}
           onClick={() => setStatusFilter(statusFilter === 'CONFIRMED' ? 'ALL' : 'CONFIRMED')}
         >
-          <span className="text-[10px] text-[#2563EB] font-bold uppercase tracking-wider block">ĐÃ XÁC NHẬN</span>
+          <span className="text-[10px] text-[#2563EB] font-bold uppercase tracking-wider block">APPROVED</span>
           <div className="text-xl sm:text-2xl font-bold text-[#1E40AF] font-headline">{stats.confirmed}</div>
-          <span className="text-[10px] text-[#737C75]">Chờ khách nhận đồ</span>
+          <span className="text-[10px] text-[#737C75]">Awaiting pickup</span>
         </Card>
 
         <Card
@@ -376,9 +376,9 @@ export const AdminOrdersPage: React.FC = () => {
           }`}
           onClick={() => setStatusFilter(statusFilter === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
         >
-          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">ĐANG SỬ DỤNG</span>
+          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">IN USE</span>
           <div className="text-xl sm:text-2xl font-bold text-[#065F46] font-headline">{stats.inProgress}</div>
-          <span className="text-[10px] text-[#737C75]">Trên tuyến dã ngoại</span>
+          <span className="text-[10px] text-[#737C75]">Equipment in the field</span>
         </Card>
 
         <Card
@@ -388,18 +388,18 @@ export const AdminOrdersPage: React.FC = () => {
           }`}
           onClick={() => setStatusFilter(statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
         >
-          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">HOÀN TẤT</span>
+          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">COMPLETED</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.completed}</div>
-          <span className="text-[10px] text-[#737C75]">Đã thu hồi & nghiệm thu</span>
+          <span className="text-[10px] text-[#737C75]">Returned and inspected</span>
         </Card>
 
         <Card padding="sm" className="space-y-1 bg-[#152A20] text-white border-l-4 border-l-[#D97845] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
-          <span className="text-[10px] text-[#ADCBBB] font-bold uppercase tracking-wider block">TỔNG DOANH SỐ</span>
+          <span className="text-[10px] text-[#ADCBBB] font-bold uppercase tracking-wider block">TOTAL ORDER VALUE</span>
           <div className="text-lg sm:text-xl font-bold text-[#F3EFE6] font-headline truncate" title={vnd(stats.totalRevenue)}>
             {vnd(stats.totalRevenue)}
           </div>
           <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> Đơn hợp lệ
+            <TrendingUp className="w-3 h-3" /> Active orders
           </span>
         </Card>
       </div>
@@ -409,12 +409,12 @@ export const AdminOrdersPage: React.FC = () => {
         {/* Status Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#D8D2C5]/60">
           {[
-            { key: 'ALL', label: 'TẤT CẢ ĐƠN', count: stats.total },
-            { key: 'PENDING', label: 'CHỜ DUYỆT', count: stats.pending, alert: stats.pending > 0 },
-            { key: 'CONFIRMED', label: 'ĐÃ DUYỆT', count: stats.confirmed },
-            { key: 'IN_PROGRESS', label: 'ĐANG THUÊ', count: stats.inProgress },
-            { key: 'COMPLETED', label: 'HOÀN THÀNH', count: stats.completed },
-            { key: 'CANCELLED', label: 'ĐÃ HỦY', count: stats.cancelled },
+            { key: 'ALL', label: 'ALL ORDERS', count: stats.total },
+            { key: 'PENDING', label: 'AWAITING APPROVAL', count: stats.pending, alert: stats.pending > 0 },
+            { key: 'CONFIRMED', label: 'APPROVED', count: stats.confirmed },
+            { key: 'IN_PROGRESS', label: 'RENTED', count: stats.inProgress },
+            { key: 'COMPLETED', label: 'COMPLETED', count: stats.completed },
+            { key: 'CANCELLED', label: 'CANCELLED', count: stats.cancelled },
           ].map((tab) => {
             const isActive = statusFilter === tab.key;
             return (
@@ -453,7 +453,7 @@ export const AdminOrdersPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo Mã đơn (#12), Mã khách, Chi nhánh hoặc Tên thiết bị..."
+              placeholder="Search by order ID (#12), customer ID, branch or product..."
               className="w-full pl-9 pr-8 py-2 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] placeholder-[#A39B8D] focus:outline-none focus:border-[#152A20]"
             />
             {searchQuery && (
@@ -473,10 +473,10 @@ export const AdminOrdersPage: React.FC = () => {
               onChange={(e) => setBranchFilter(e.target.value)}
               className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="ALL">Tất cả chi nhánh / Trạm Outpost</option>
+              <option value="ALL">All branches / outposts</option>
               {branches.map((b) => (
                 <option key={b.id} value={String(b.id)}>
-                  Trạm #{b.id} — {b.name}
+                  Branch #{b.id} — {b.name}
                 </option>
               ))}
             </select>
@@ -489,9 +489,9 @@ export const AdminOrdersPage: React.FC = () => {
               onChange={(e) => setTypeFilter(e.target.value as 'ALL' | 'SALE' | 'RENTAL')}
               className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="ALL">Tất cả hình thức</option>
-              <option value="RENTAL">Đơn Thuê thiết bị</option>
-              <option value="SALE">Đơn Mua thiết bị</option>
+              <option value="ALL">All order types</option>
+              <option value="RENTAL">Equipment rental</option>
+              <option value="SALE">Equipment purchase</option>
             </select>
           </div>
 
@@ -502,10 +502,10 @@ export const AdminOrdersPage: React.FC = () => {
               onChange={(e) => setSortOrder(e.target.value as any)}
               className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="newest">Mới nhất trước</option>
-              <option value="oldest">Cũ nhất trước</option>
-              <option value="highest">Giá trị cao nhất</option>
-              <option value="lowest">Giá trị thấp nhất</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="highest">Highest value</option>
+              <option value="lowest">Lowest value</option>
             </select>
           </div>
         </div>
@@ -522,7 +522,7 @@ export const AdminOrdersPage: React.FC = () => {
             onClick={() => void fetchOrders()}
             className="underline font-bold hover:text-black ml-4 shrink-0 cursor-pointer"
           >
-            Thử lại
+            Try again
           </button>
         </div>
       )}
@@ -551,12 +551,12 @@ export const AdminOrdersPage: React.FC = () => {
         <Card padding="lg" className="text-center py-16 space-y-3 bg-[#F8F6F1]">
           <Package className="w-12 h-12 text-[#A39B8D] mx-auto stroke-1" />
           <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
-            Không tìm thấy đơn hàng nào
+            No orders found
           </h3>
           <p className="text-xs text-[#5C665F] max-w-md mx-auto font-body">
             {searchQuery || statusFilter !== 'ALL' || branchFilter !== 'ALL' || typeFilter !== 'ALL'
-              ? 'Thử điều chỉnh lại bộ lọc trạng thái, từ khóa tìm kiếm hoặc chọn tất cả chi nhánh để xem danh sách.'
-              : 'Hiện tại chưa có đơn mua hoặc thuê thiết bị nào được ghi nhận trên hệ thống.'}
+              ? 'Adjust the status, search or branch filters to find orders.'
+              : 'No equipment orders have been recorded yet.'}
           </p>
           {(searchQuery || statusFilter !== 'ALL' || branchFilter !== 'ALL' || typeFilter !== 'ALL') && (
             <Button
@@ -569,7 +569,7 @@ export const AdminOrdersPage: React.FC = () => {
                 setTypeFilter('ALL');
               }}
             >
-              Xóa bộ lọc
+              Clear filters
             </Button>
           )}
         </Card>
@@ -593,14 +593,14 @@ export const AdminOrdersPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-headline font-bold text-base text-[#111D16] flex items-center gap-1.5">
                       <Package className="w-4 h-4 text-[#D97845]" />
-                      ĐƠN HÀNG #{order.id}
+                      ORDER #{order.id}
                     </span>
 
                     {renderStatusBadge(order.status)}
 
                     <span className="text-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#737C75]" />
-                      {new Date(order.orderDate).toLocaleString('vi-VN', {
+                      {new Date(order.orderDate).toLocaleString('en-GB', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -614,7 +614,7 @@ export const AdminOrdersPage: React.FC = () => {
                   <div className="flex items-center gap-2 text-xs">
                     <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#111D16] font-bold flex items-center gap-1">
                       <Building className="w-3.5 h-3.5 text-[#152A20]" />
-                      {branch ? branch.name : `Trạm Outpost #${order.branchId}`}
+                      {branch ? branch.name : `Outpost #${order.branchId}`}
                     </span>
                     <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-[#737C75]" />
@@ -641,34 +641,34 @@ export const AdminOrdersPage: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-[#111D16] font-headline">
-                                {product?.name || `Thiết bị mã #${item.productId}`}
+                                {product?.name || `Product #${item.productId}`}
                               </span>
                               <Badge
                                 variant={isRental ? 'warning' : 'neutral'}
                                 size="sm"
                                 className="text-[9px]"
                               >
-                                {isRental ? 'THUÊ DÃ NGOẠI' : 'MUA SẮM'}
+                                {isRental ? 'RENTAL' : 'PURCHASE'}
                               </Badge>
                             </div>
 
                             <div className="text-[11px] text-[#5C665F] mt-0.5 flex flex-wrap items-center gap-2">
-                              <span>Mã SKU: #{item.productId}</span>
+                              <span>SKU: #{item.productId}</span>
                               {product?.category && (
                                 <>
                                   <span>•</span>
-                                  <span>Phân loại: {product.category}</span>
+                                  <span>Category: {product.category}</span>
                                 </>
                               )}
                               <span>•</span>
-                              <span>Đơn giá: {vnd(item.unitPrice)}</span>
+                              <span>Unit price: {vnd(item.unitPrice)}</span>
                             </div>
 
                             {/* Rental Period Badge if applicable */}
                             {isRental && item.rentalStartDate && item.rentalEndDate && (
                               <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
                                 <Calendar className="w-3 h-3" />
-                                <span>Thời gian thuê: {item.rentalStartDate} → {item.rentalEndDate}</span>
+                                <span>Rental dates: {item.rentalStartDate} → {item.rentalEndDate}</span>
                               </div>
                             )}
                           </div>
@@ -676,7 +676,7 @@ export const AdminOrdersPage: React.FC = () => {
 
                         {/* Line item subtotal */}
                         <div className="text-right sm:text-right shrink-0">
-                          <div className="text-xs text-[#737C75]">Thành tiền</div>
+                          <div className="text-xs text-[#737C75]">Subtotal</div>
                           <div className="font-bold text-sm text-[#152A20] font-headline">
                             {vnd(item.quantity * item.unitPrice)}
                           </div>
@@ -689,12 +689,12 @@ export const AdminOrdersPage: React.FC = () => {
                 {/* Order Footer & Action Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xs text-[#737C75] uppercase font-bold">Tổng thanh toán:</span>
+                    <span className="text-xs text-[#737C75] uppercase font-bold">Order total:</span>
                     <span className="text-lg sm:text-xl font-bold text-[#152A20] font-headline text-[#D97845]">
                       {vnd(order.totalAmount)}
                     </span>
-                      <span className="text-[10px] text-[#5C665F]">({order.items.length} hạng mục trang bị)</span>
-                      <span className="text-xs font-bold">{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Thanh toán chưa đủ' : order.paymentStatus === 'REFUNDED' ? 'Đã hoàn tiền' : 'Chưa thanh toán'} · Còn thiếu: {vnd(order.remainingAmount ?? order.totalAmount)}</span>
+                      <span className="text-[10px] text-[#5C665F]">({order.items.length} equipment items)</span>
+                      <span className="text-xs font-bold">{order.paymentStatus === 'PAID' ? 'Paid' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Partially paid' : order.paymentStatus === 'REFUNDED' ? 'Refunded' : 'Unpaid'} · Amount due: {vnd(order.remainingAmount ?? order.totalAmount)}</span>
                   </div>
 
                   {/* Contextual Action Buttons */}
@@ -706,7 +706,7 @@ export const AdminOrdersPage: React.FC = () => {
                       onClick={() => setSelectedOrder(order)}
                       icon={<Eye className="w-3.5 h-3.5" />}
                     >
-                      Chi tiết
+                      Details
                     </Button>
 
                     {/* Pending Actions */}
@@ -719,7 +719,7 @@ export const AdminOrdersPage: React.FC = () => {
                           onClick={() => setOrderToCancel(order)}
                           icon={<X className="w-3.5 h-3.5" />}
                         >
-                          Hủy đơn
+                          Cancel order
                         </Button>
                         <Button
                           variant="primary"
@@ -728,7 +728,7 @@ export const AdminOrdersPage: React.FC = () => {
                           onClick={() => void handleAction(order.id, 'confirm')}
                           icon={<Check className="w-3.5 h-3.5 text-emerald-400" />}
                         >
-                          {isBusy ? 'Đang duyệt...' : 'Phê duyệt đơn'}
+                          {isBusy ? 'Approving...' : 'Approve order'}
                         </Button>
                       </>
                     )}
@@ -742,7 +742,7 @@ export const AdminOrdersPage: React.FC = () => {
                         onClick={() => void handleAction(order.id, 'hand-over')}
                         icon={<ArrowRight className="w-3.5 h-3.5" />}
                       >
-                        {isBusy ? 'Đang giao...' : 'Bàn giao thiết bị'}
+                        {isBusy ? 'Handing over...' : 'Hand over equipment'}
                       </Button>
                     )}
 
@@ -755,7 +755,7 @@ export const AdminOrdersPage: React.FC = () => {
                         onClick={() => void handleAction(order.id, 'return')}
                         icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
                       >
-                        {isBusy ? 'Đang thu hồi...' : 'Nghiệm thu & Nhận trả'}
+                        {isBusy ? 'Receiving return...' : 'Inspect & receive return'}
                       </Button>
                     )}
 
@@ -763,7 +763,7 @@ export const AdminOrdersPage: React.FC = () => {
                     {order.status === 'COMPLETED' && (
                       <span className="text-xs text-[#152A20] font-bold flex items-center gap-1 px-2.5 py-1 bg-[#E0EFE6] border border-[#ADCBBB] rounded-xs">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Đã quyết toán kho
+                        Fulfillment complete
                       </span>
                     )}
                   </div>
@@ -781,14 +781,14 @@ export const AdminOrdersPage: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#152A20] text-[#F3EFE6] font-bold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4">Mã đơn</th>
-                  <th className="py-3 px-4">Ngày tạo</th>
-                  <th className="py-3 px-4">Trạm xuất phát</th>
-                  <th className="py-3 px-4">Khách hàng</th>
-                  <th className="py-3 px-4">Hạng mục thiết bị</th>
-                  <th className="py-3 px-4">Tổng tiền</th>
-                  <th className="py-3 px-4">Trạng thái</th>
-                  <th className="py-3 px-4 text-right">Thao tác</th>
+                  <th className="py-3 px-4">Order ID</th>
+                  <th className="py-3 px-4">Created</th>
+                  <th className="py-3 px-4">Pickup branch</th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Equipment items</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EBE6DC]">
@@ -802,14 +802,14 @@ export const AdminOrdersPage: React.FC = () => {
                         #{order.id}
                       </td>
                       <td className="py-3.5 px-4 font-mono-spec text-[#5C665F]">
-                        {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                        {new Date(order.orderDate).toLocaleDateString('en-GB')}
                         <div className="text-[10px] text-[#A39B8D]">
-                          {new Date(order.orderDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(order.orderDate).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-[#111D16]">
-                          {branch ? branch.name : `Trạm #${order.branchId}`}
+                          {branch ? branch.name : `Branch #${order.branchId}`}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-mono-spec text-[#5C665F]">
@@ -825,7 +825,7 @@ export const AdminOrdersPage: React.FC = () => {
                           ))}
                         </div>
                         <span className="text-[10px] text-[#D97845] font-bold">
-                          {order.items.some(i => i.itemType === 'RENTAL') ? 'Có đồ thuê' : 'Đơn mua thẳng'}
+                          {order.items.some(i => i.itemType === 'RENTAL') ? 'Includes rentals' : 'Purchase order'}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-bold text-[#152A20] font-headline whitespace-nowrap">
@@ -833,7 +833,7 @@ export const AdminOrdersPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                           {renderStatusBadge(order.status)}
-                          <span className="block mt-1 text-xs">{order.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán đủ'}</span>
+                          <span className="block mt-1 text-xs">{order.paymentStatus === 'PAID' ? 'Paid' : 'Not fully paid'}</span>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
@@ -841,7 +841,7 @@ export const AdminOrdersPage: React.FC = () => {
                             variant="secondary"
                             size="sm"
                             onClick={() => setSelectedOrder(order)}
-                            title="Xem chi tiết"
+                            title="View details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
@@ -852,7 +852,7 @@ export const AdminOrdersPage: React.FC = () => {
                               size="sm"
                                 disabled={isBusy || !order.canApprove}
                               onClick={() => void handleAction(order.id, 'confirm')}
-                              title="Duyệt đơn"
+                              title="Approve order"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </Button>
@@ -864,7 +864,7 @@ export const AdminOrdersPage: React.FC = () => {
                               size="sm"
                               disabled={isBusy}
                               onClick={() => void handleAction(order.id, 'hand-over')}
-                              title="Bàn giao"
+                              title="Hand over"
                             >
                               <ArrowRight className="w-3.5 h-3.5" />
                             </Button>
@@ -876,7 +876,7 @@ export const AdminOrdersPage: React.FC = () => {
                               size="sm"
                               disabled={isBusy}
                               onClick={() => void handleAction(order.id, 'return')}
-                              title="Nhận trả"
+                              title="Receive return"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                             </Button>
@@ -897,7 +897,7 @@ export const AdminOrdersPage: React.FC = () => {
         <Modal
           isOpen={Boolean(selectedOrder)}
           onClose={() => setSelectedOrder(null)}
-          title={`BIÊN BẢN ĐIỀU PHỐI & MANIFEST #${selectedOrder.id}`}
+          title={`ORDER MANIFEST #${selectedOrder.id}`}
           maxWidth="lg"
         >
           <div className="space-y-6 font-label text-xs">
@@ -909,7 +909,7 @@ export const AdminOrdersPage: React.FC = () => {
                     TERRAPEAK EXPEDITION MANIFEST
                   </span>
                   <h3 className="text-lg font-bold font-headline mt-0.5">
-                    HỒ SƠ ĐƠN HÀNG #{selectedOrder.id}
+                    ORDER RECORD #{selectedOrder.id}
                   </h3>
                 </div>
                 <div>{renderStatusBadge(selectedOrder.status)}</div>
@@ -917,23 +917,23 @@ export const AdminOrdersPage: React.FC = () => {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Trạm phụ trách</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Branch</span>
                   <span className="font-bold text-white">
-                    {branchMap.get(selectedOrder.branchId)?.name || `Trạm #${selectedOrder.branchId}`}
+                    {branchMap.get(selectedOrder.branchId)?.name || `Branch #${selectedOrder.branchId}`}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Khách hàng</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Customer</span>
                   <span className="font-bold text-white">Climber #{selectedOrder.userId}</span>
                 </div>
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Thời gian lập</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Created at</span>
                   <span className="font-mono-spec text-white">
-                    {new Date(selectedOrder.orderDate).toLocaleString('vi-VN')}
+                    {new Date(selectedOrder.orderDate).toLocaleString('en-GB')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Tổng giá trị</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Order value</span>
                   <span className="font-bold text-[#D97845] font-headline text-sm">
                     {vnd(selectedOrder.totalAmount)}
                   </span>
@@ -945,7 +945,7 @@ export const AdminOrdersPage: React.FC = () => {
             <div>
               <h4 className="font-bold text-sm text-[#111D16] uppercase mb-2 flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-[#D97845]" />
-                Danh mục thiết bị ký gửi & bàn giao
+                Equipment handover list
               </h4>
               <div className="border border-[#D8D2C5] rounded-xs divide-y divide-[#EBE6DC] overflow-hidden bg-white">
                 {selectedOrder.items.map((item) => {
@@ -957,14 +957,14 @@ export const AdminOrdersPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-[#111D16]">
-                            {product?.name || `Thiết bị #${item.productId}`}
+                            {product?.name || `Product #${item.productId}`}
                           </span>
                           <Badge variant={isRental ? 'warning' : 'neutral'} size="sm">
-                            {isRental ? 'THUÊ DÃ NGOẠI' : 'MUA'}
+                            {isRental ? 'RENTAL' : 'PURCHASE'}
                           </Badge>
                         </div>
                         <div className="text-[11px] text-[#5C665F] mt-0.5">
-                          Số lượng: {item.quantity} × {vnd(item.unitPrice)}
+                          Quantity: {item.quantity} × {vnd(item.unitPrice)}
                           {isRental && item.rentalStartDate && (
                             <span className="ml-2 font-mono-spec text-[#D97845]">
                               ({item.rentalStartDate} → {item.rentalEndDate})
@@ -985,12 +985,12 @@ export const AdminOrdersPage: React.FC = () => {
             <div className="p-3.5 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-2">
               <h5 className="font-bold text-[#111D16] uppercase text-[11px] flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-[#152A20]" />
-                Quy trình Nghiệm thu An toàn & Bàn giao Trạm
+                Safety Inspection & Handover Checklist
               </h5>
               <ul className="text-[11px] text-[#5C665F] space-y-1 list-disc pl-4 font-body">
-                <li>Kiểm tra số sê-ri / tem niêm phong và độ mỏi kết cấu trước khi xuất trạm.</li>
-                <li>Đảm bảo người thuê đã đồng ý với Điều khoản Ký quỹ và Biên bản miễn trừ trách nhiệm.</li>
-                <li>Khi nhận trả: Khử trùng buồng tia cực tím UV và kiểm tra phụ kiện hao mòn trước khi hoàn tất.</li>
+                <li>Check serial numbers, seals and structural wear before handover.</li>
+                <li>Ensure the renter has accepted the deposit terms and liability waiver.</li>
+                <li>On return, sanitize equipment and check accessories for wear before completing the order.</li>
               </ul>
             </div>
 
@@ -1002,12 +1002,12 @@ export const AdminOrdersPage: React.FC = () => {
                 onClick={() => window.print()}
                 icon={<Printer className="w-3.5 h-3.5" />}
               >
-                In Phiếu Xuất Trạm (Print)
+                Print handover record
               </Button>
 
               <div className="flex items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={() => setSelectedOrder(null)}>
-                  Đóng
+                  Close
                 </Button>
 
                 {selectedOrder.status === 'PENDING' && (
@@ -1018,7 +1018,7 @@ export const AdminOrdersPage: React.FC = () => {
                     onClick={() => void handleAction(selectedOrder.id, 'confirm')}
                     icon={<Check className="w-3.5 h-3.5 text-emerald-400" />}
                   >
-                    Xác nhận xuất kho
+                    Approve order
                   </Button>
                 )}
 
@@ -1030,7 +1030,7 @@ export const AdminOrdersPage: React.FC = () => {
                     onClick={() => void handleAction(selectedOrder.id, 'hand-over')}
                     icon={<ArrowRight className="w-3.5 h-3.5" />}
                   >
-                    Bàn giao khách
+                    Hand over to customer
                   </Button>
                 )}
 
@@ -1042,7 +1042,7 @@ export const AdminOrdersPage: React.FC = () => {
                     onClick={() => void handleAction(selectedOrder.id, 'return')}
                     icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
                   >
-                    Nghiệm thu hoàn tất
+                    Complete return inspection
                   </Button>
                 )}
               </div>
@@ -1056,27 +1056,27 @@ export const AdminOrdersPage: React.FC = () => {
         <Modal
           isOpen={Boolean(orderToCancel)}
           onClose={() => setOrderToCancel(null)}
-          title={`HỦY ĐƠN HÀNG #${orderToCancel.id}`}
+          title={`CANCEL ORDER #${orderToCancel.id}`}
           maxWidth="sm"
         >
           <div className="space-y-4 font-label text-xs">
             <div className="p-3 bg-[#FEE2E2] border border-[#FCA5A5] rounded-xs text-[#B91C1C] flex items-start gap-2.5">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold">Bạn có chắc chắn muốn hủy đơn hàng này?</p>
+                <p className="font-bold">Are you sure you want to cancel this order?</p>
                 <p className="text-[11px] mt-0.5 font-body">
-                  Thao tác này sẽ chuyển đơn sang trạng thái CANCELLED và giải phóng lượng tồn kho đã đặt trước.
+                  This will cancel the order and release its rental reservation.
                 </p>
               </div>
             </div>
 
             <div className="border border-[#D8D2C5] p-3 rounded-xs bg-[#F8F6F1]">
               <div className="flex justify-between">
-                <span className="text-[#737C75]">Mã đơn:</span>
+                <span className="text-[#737C75]">Order ID:</span>
                 <span className="font-bold">#{orderToCancel.id}</span>
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[#737C75]">Tổng tiền:</span>
+                <span className="text-[#737C75]">Total:</span>
                 <span className="font-bold text-[#D97845]">{vnd(orderToCancel.totalAmount)}</span>
               </div>
             </div>
@@ -1088,7 +1088,7 @@ export const AdminOrdersPage: React.FC = () => {
                 onClick={() => setOrderToCancel(null)}
                 disabled={busyOrderId === orderToCancel.id}
               >
-                Giữ lại
+                Keep order
               </Button>
               <Button
                 variant="danger"
@@ -1096,7 +1096,7 @@ export const AdminOrdersPage: React.FC = () => {
                 onClick={() => void handleAction(orderToCancel.id, 'cancel')}
                   disabled={busyOrderId === orderToCancel.id || !orderToCancel.canCancel}
               >
-                {busyOrderId === orderToCancel.id ? 'Đang hủy...' : 'Xác nhận hủy'}
+                {busyOrderId === orderToCancel.id ? 'Cancelling...' : 'Confirm cancellation'}
               </Button>
             </div>
           </div>
