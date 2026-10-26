@@ -18,10 +18,11 @@ import {
   Mail,
   ShieldCheck,
   UserCheck,
+  Upload,
 } from 'lucide-react';
 import { catalogApi, Branch, Account } from '../../features/equipment/catalogApi';
 import { markAccountRequiresPasswordChange } from '../../utils/firstLoginUtils';
-import { eventGuideApi } from '../../services/eventGuideApi';
+import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../services/eventGuideApi';
 
 export interface PersonnelRow {
   id: number; // staff record id if STAFF, or user.id if GUIDE
@@ -34,6 +35,11 @@ export interface PersonnelRow {
   branchName?: string;
   position?: string | null;
   status: string;
+  guideId?: number;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  languages?: string[] | null;
+  experienceYears?: number | null;
 }
 
 interface StaffResponseItem {
@@ -62,6 +68,9 @@ const emptyCreate = {
   role: 'STAFF',
   branchId: '',
   position: '',
+  specialization: '',
+  bio: '',
+  languages: '',
 };
 
 export const AdminStaffPage: React.FC = () => {
@@ -78,6 +87,7 @@ export const AdminStaffPage: React.FC = () => {
   const [createForm, setCreateForm] = useState(emptyCreate);
   const [createError, setCreateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [guideCredentials, setGuideCredentials] = useState<GuideRegistrationResponse | null>(null);
 
   // Edit Personnel Modal State
   const [editing, setEditing] = useState<PersonnelRow | null>(null);
@@ -86,6 +96,9 @@ export const AdminStaffPage: React.FC = () => {
     phone: '',
     branchId: '',
     position: '',
+    specialization: '',
+    bio: '',
+    languages: '',
   });
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -102,7 +115,7 @@ export const AdminStaffPage: React.FC = () => {
     setLoading(true);
     try {
       // 1. Fetch branches, all users, and staff list in parallel
-      const [bs, allUsers, staffList] = await Promise.all([
+      const [bs, allUsers, staffList, guidePage] = await Promise.all([
         catalogApi<Branch[]>('/branches').catch(() => [] as Branch[]),
         catalogApi<Account[]>('/users').catch(() => [] as Account[]),
         catalogApi<StaffResponseItem[]>('/staff').catch(async () => {
@@ -113,6 +126,7 @@ export const AdminStaffPage: React.FC = () => {
           );
           return nested.flat();
         }),
+        eventGuideApi.listAdminGuides({ size: 100 }).catch(() => ({ items: [] as AdminGuide[] })),
       ]);
 
       setBranches(bs || []);
@@ -138,19 +152,26 @@ export const AdminStaffPage: React.FC = () => {
       });
 
       // 3. Map GUIDE rows (internal tour guides without a fixed branch assignment)
-      const guideUsers = (allUsers || []).filter((u) => u.role === 'GUIDE');
-      const guideRows: PersonnelRow[] = guideUsers.map((g) => ({
-        id: g.id,
-        userId: g.id,
-        userName: g.fullName,
-        email: g.email,
-        phone: g.phone,
+      const guideRows: PersonnelRow[] = guidePage.items.map((guide) => {
+        const account = userMap.get(guide.userId);
+        return {
+        id: guide.guideId,
+        guideId: guide.guideId,
+        userId: guide.userId,
+        userName: guide.displayName,
+        email: account?.email,
+        phone: account?.phone,
         role: 'GUIDE',
         branchId: null,
         branchName: 'Toàn hệ thống (Tour thám hiểm)',
-        position: 'Hướng dẫn viên leo núi (Guide)',
-        status: g.status,
-      }));
+        position: guide.specialization || 'Hướng dẫn viên leo núi (Guide)',
+        status: guide.status,
+        avatarUrl: guide.avatarUrl,
+        bio: guide.bio,
+        languages: guide.languages,
+        experienceYears: guide.experienceYears,
+      };
+      });
 
       // Combine both Staff & Guides
       setPersonnel([...staffRows, ...guideRows]);
@@ -191,6 +212,24 @@ export const AdminStaffPage: React.FC = () => {
     setSaving(true);
     let user: CreatedUser | null = null;
     try {
+      if (!isStaff) {
+        const guide = await eventGuideApi.createGuideWithAccount({
+          fullName: createForm.fullName.trim(),
+          email: createForm.email.trim(),
+          phone: createForm.phone.trim() || undefined,
+          experienceYears: 0,
+          specialization: createForm.specialization.trim(),
+          bio: createForm.bio.trim() || undefined,
+          languages: createForm.languages.split(',').map((item) => item.trim()).filter(Boolean),
+        });
+        setGuideCredentials(guide);
+        setCreateOpen(false);
+        setCreateForm(emptyCreate);
+        notifyPage('ok', `Đã tạo tài khoản và hồ sơ hướng dẫn viên "${guide.guide.displayName}".`);
+        await load();
+        return;
+      }
+
       // 1. Create internal user (STAFF or GUIDE)
       user = await catalogApi<CreatedUser>('/users/internal', {
         method: 'POST',
@@ -198,7 +237,7 @@ export const AdminStaffPage: React.FC = () => {
           fullName: createForm.fullName.trim(),
           email: createForm.email.trim(),
           phone: createForm.phone.trim() || undefined,
-          role: createForm.role,
+          role: 'STAFF',
         }),
       });
 
@@ -267,6 +306,9 @@ export const AdminStaffPage: React.FC = () => {
       phone: p.phone || '',
       branchId: p.branchId ? String(p.branchId) : (branches[0] ? String(branches[0].id) : ''),
       position: p.position || '',
+      specialization: p.position || '',
+      bio: p.bio || '',
+      languages: (p.languages || []).join(', '),
     });
   };
 
@@ -282,6 +324,14 @@ export const AdminStaffPage: React.FC = () => {
     setSaving(true);
     setEditError(null);
     try {
+      if (editing.role === 'GUIDE' && editing.guideId) {
+        await eventGuideApi.updateGuide(editing.guideId, {
+          experienceYears: editing.experienceYears ?? 0,
+          specialization: editForm.specialization.trim(),
+          bio: editForm.bio.trim() || undefined,
+          languages: editForm.languages.split(',').map((item) => item.trim()).filter(Boolean),
+        });
+      }
       if (editing.role === 'STAFF') {
         // Update staff branch & position
         await catalogApi(`/staff/${editing.id}`, {
@@ -324,24 +374,28 @@ export const AdminStaffPage: React.FC = () => {
     if (next === 'INACTIVE' && !window.confirm(`Khóa tài khoản ${roleLabel} "${p.userName}"?`)) return;
 
     try {
+      if (p.role === 'GUIDE' && p.guideId) {
+        await eventGuideApi.setGuideStatus(p.guideId, next as 'ACTIVE' | 'INACTIVE');
+      }
       if (p.role === 'STAFF') {
         try {
           await catalogApi(`/staff/${p.id}/status?status=${next}`, { method: 'PUT' });
         } catch (_) {}
       }
-      // Sync user status
-      try {
-        await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
-      } catch (_) {
-        await catalogApi(`/users/${p.userId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            fullName: p.userName,
-            phone: p.phone || undefined,
-            role: p.role,
-            status: next,
-          }),
-        });
+      if (p.role === 'STAFF') {
+        try {
+          await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
+        } catch (_) {
+          await catalogApi(`/users/${p.userId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              fullName: p.userName,
+              phone: p.phone || undefined,
+              role: p.role,
+              status: next,
+            }),
+          });
+        }
       }
 
       notifyPage('ok', `Đã ${action} tài khoản "${p.userName}".`);
@@ -351,10 +405,31 @@ export const AdminStaffPage: React.FC = () => {
     }
   };
 
+  const uploadGuideAvatar = async (p: PersonnelRow, file?: File) => {
+    if (!p.guideId || !file) return;
+    setSaving(true);
+    try {
+      await eventGuideApi.uploadGuideAvatar(p.guideId, file);
+      notifyPage('ok', `Đã cập nhật ảnh đại diện cho "${p.userName}".`);
+      await load();
+    } catch (err) {
+      notifyPage('err', err instanceof Error ? err.message : 'Không thể tải ảnh đại diện.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeletePersonnel = async () => {
     if (!deletingPersonnel) return;
     setDeleting(true);
     try {
+      if (deletingPersonnel.role === 'GUIDE' && deletingPersonnel.guideId) {
+        await eventGuideApi.setGuideStatus(deletingPersonnel.guideId, 'INACTIVE');
+        notifyPage('ok', `Đã ngừng hoạt động hướng dẫn viên "${deletingPersonnel.userName}".`);
+        setDeletingPersonnel(null);
+        await load();
+        return;
+      }
       if (deletingPersonnel.role === 'STAFF') {
         // 1. Delete staff assignment from branch
         await catalogApi(`/staff/${deletingPersonnel.id}`, { method: 'DELETE' });
@@ -457,6 +532,21 @@ export const AdminStaffPage: React.FC = () => {
             ✕
           </button>
         </div>
+      )}
+
+      {guideCredentials && (
+        <Card padding="md" className="border-emerald-300 bg-emerald-50">
+          <div className="flex items-start justify-between gap-4 text-xs text-emerald-950">
+            <div className="space-y-1">
+              <p className="font-bold">Tài khoản hướng dẫn viên đã được tạo: {guideCredentials.guide.displayName}</p>
+              <p>Email: {guideCredentials.email}</p>
+              <p>Mật khẩu tạm: <code className="select-all font-bold">{guideCredentials.temporaryPassword}</code></p>
+              <p>{guideCredentials.emailSent ? 'Thông tin đăng nhập đã được gửi qua email.' : 'Email chưa gửi được; hãy bàn giao thông tin này qua kênh bảo mật.'}</p>
+              <p className="text-[11px]">Mật khẩu chỉ hiển thị trong phiên hiện tại. Hướng dẫn viên cần đổi mật khẩu sau lần đăng nhập đầu tiên.</p>
+            </div>
+            <button type="button" onClick={() => setGuideCredentials(null)} className="font-bold underline shrink-0">Đóng</button>
+          </div>
+        </Card>
       )}
 
       {/* KPI Metric Cards */}
@@ -584,13 +674,17 @@ export const AdminStaffPage: React.FC = () => {
               <Card key={`${p.role}-${p.id}`} padding="md" className="space-y-3">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-10 h-10 rounded-xs text-white flex items-center justify-center font-bold text-sm shrink-0 ${
-                        isGuide ? 'bg-[#D97845]' : 'bg-[#152A20]'
-                      }`}
-                    >
-                      {initials}
-                    </div>
+                    {isGuide && p.avatarUrl ? (
+                      <img src={p.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-[#D8D2C5] shrink-0" />
+                    ) : (
+                      <div
+                        className={`w-10 h-10 rounded-xs text-white flex items-center justify-center font-bold text-sm shrink-0 ${
+                          isGuide ? 'bg-[#D97845]' : 'bg-[#152A20]'
+                        }`}
+                      >
+                        {initials}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="font-bold text-sm text-[#111D16] font-headline truncate">{p.userName}</h3>
@@ -628,6 +722,13 @@ export const AdminStaffPage: React.FC = () => {
                   )}
                 </div>
 
+                {isGuide && (p.languages?.length || p.bio) && (
+                  <div className="text-xs text-[#5C665F] space-y-1">
+                    {p.languages?.length ? <p><strong>Languages:</strong> {p.languages.join(', ')}</p> : null}
+                    {p.bio ? <p className="line-clamp-2">{p.bio}</p> : null}
+                  </div>
+                )}
+
                 <div className="pt-2 border-t border-[#D8D2C5] flex gap-2">
                   <Button
                     size="sm"
@@ -637,6 +738,12 @@ export const AdminStaffPage: React.FC = () => {
                   >
                     Sửa
                   </Button>
+                  {isGuide && (
+                    <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-[#D8D2C5] bg-[#EBE6DC] text-[#111D16] text-xs font-bold cursor-pointer hover:bg-white">
+                      <Upload className="w-3.5 h-3.5" /> Ảnh
+                      <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(e) => void uploadGuideAvatar(p, e.target.files?.[0])} />
+                    </label>
+                  )}
                   <Button
                     size="sm"
                     variant="secondary"
@@ -803,6 +910,43 @@ export const AdminStaffPage: React.FC = () => {
                 }
               />
             </div>
+
+            {createForm.role === 'GUIDE' && (
+              <>
+                <div>
+                  <label className={labelCls}>Chuyên môn dẫn đoàn *</label>
+                  <input
+                    required
+                    disabled={saving}
+                    className={inputCls}
+                    value={createForm.specialization}
+                    onChange={(e) => setCreateForm({ ...createForm, specialization: e.target.value })}
+                    placeholder="Trekking, camping, first aid..."
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Ngôn ngữ</label>
+                  <input
+                    disabled={saving}
+                    className={inputCls}
+                    value={createForm.languages}
+                    onChange={(e) => setCreateForm({ ...createForm, languages: e.target.value })}
+                    placeholder="Vietnamese, English"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Giới thiệu hồ sơ</label>
+                  <textarea
+                    disabled={saving}
+                    className={inputCls}
+                    rows={3}
+                    value={createForm.bio}
+                    onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
+                    placeholder="Kinh nghiệm và phong cách dẫn đoàn..."
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <p className="text-[11px] text-[#7A857E] bg-[#EBE6DC] p-2.5 rounded-xs border border-[#D8D2C5]">
@@ -904,6 +1048,23 @@ export const AdminStaffPage: React.FC = () => {
                 ))}
               </select>
             </div>
+          )}
+
+          {editing?.role === 'GUIDE' && (
+            <>
+              <div>
+                <label className={labelCls}>Chuyên môn dẫn đoàn *</label>
+                <input required disabled={saving} className={inputCls} value={editForm.specialization} onChange={(e) => setEditForm({ ...editForm, specialization: e.target.value })} />
+              </div>
+              <div>
+                <label className={labelCls}>Ngôn ngữ</label>
+                <input disabled={saving} className={inputCls} value={editForm.languages} onChange={(e) => setEditForm({ ...editForm, languages: e.target.value })} placeholder="Vietnamese, English" />
+              </div>
+              <div>
+                <label className={labelCls}>Giới thiệu hồ sơ</label>
+                <textarea disabled={saving} className={inputCls} rows={3} value={editForm.bio} onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })} />
+              </div>
+            </>
           )}
 
           <div>

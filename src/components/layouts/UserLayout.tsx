@@ -30,7 +30,9 @@ export const UserLayout: React.FC = () => {
       <Header />
 
       <main id="main-content" className="flex-1">
-        <Outlet />
+        <React.Suspense fallback={<div className="min-h-[60vh] p-8" role="status">Loading page…</div>}>
+          <Outlet />
+        </React.Suspense>
       </main>
 
       <Footer />

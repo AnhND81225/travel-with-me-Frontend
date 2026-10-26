@@ -20,8 +20,8 @@ export const Card: React.FC<CardProps> = ({
   }[padding];
 
   const hoverClass = hoverable 
-    ? 'hover:border-[#152A20] transition-colors duration-150' 
-    : '';
+    ? 'hover:border-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-300'
+    : 'transition-all duration-200';
 
   return (
     <div

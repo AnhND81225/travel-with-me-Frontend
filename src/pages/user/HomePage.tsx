@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -16,13 +16,15 @@ import {
   ShoppingCart,
   SlidersHorizontal,
 } from "lucide-react";
-import { HOME_GEAR, HOME_TOURS } from "../../data/mockData";
+import { HOME_GEAR } from "../../data/mockData";
 import {
   storefrontAssets as images,
   storefrontBranches as branches,
 } from "../../data/storefront";
 import { useAppStore } from "../../store/useAppStore";
-import { formatCurrency } from "../../utils/formatters";
+import { eventGuideApi, type EventResponse } from "../../services/eventGuideApi";
+import { scheduleApi } from "../../features/schedules/api";
+import type { Schedule } from "../../features/schedules/types";
 
 const services = [
   {
@@ -61,8 +63,23 @@ const services = [
 ];
 const productCategories = ["Packs", "Tents", "Trekking", "Kitchen"];
 const productBadges = ["Dual Option", "1.45 kg", "100% Carbon", "2,800W Flame"];
-const tourLabels = ["Trekking Tour", "Camping Event", "Trekking Tour"];
-const tourDifficulty = ["Moderate – Challenging", "Easy", "Hard"];
+type UpcomingAdventure = { schedule: Schedule; event: EventResponse; branchName?: string };
+
+const durationLabel = (start: string, end: string) => {
+  const hours = Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / 3_600_000));
+  const days = Math.max(1, Math.ceil(hours / 24));
+  return `${days} day${days > 1 ? "s" : ""}${days > 1 ? ` ${Math.max(1, days - 1)} night${days > 2 ? "s" : ""}` : ""}`;
+};
+
+const difficultyLabel = (level?: string | null) =>
+  level === "EASY" ? "Easy" : level === "HARD" ? "Hard" : "Moderate";
+
+const formatVnd = (amount: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(amount);
 function SectionHeading({
   eyebrow,
   title,
@@ -92,6 +109,42 @@ export function HomePage() {
   const [purpose, setPurpose] = useState("rent");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("All Gear");
+  const [upcomingAdventures, setUpcomingAdventures] = useState<UpcomingAdventure[]>([]);
+  const [adventuresLoading, setAdventuresLoading] = useState(true);
+  const [adventuresError, setAdventuresError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    const loadUpcomingAdventures = async () => {
+      setAdventuresLoading(true);
+      setAdventuresError("");
+      try {
+        const [schedules, apiBranches] = await Promise.all([
+          scheduleApi.list({ page: 0 }),
+          scheduleApi.branches(),
+        ]);
+        const now = Date.now();
+        const upcoming = schedules
+          .filter((schedule) => ["OPEN", "FULL"].includes(schedule.status) && Date.parse(schedule.startDatetime) >= now)
+          .sort((a, b) => Date.parse(a.startDatetime) - Date.parse(b.startDatetime))
+          .slice(0, 3);
+        const details = await Promise.all(
+          upcoming.map(async (schedule) => ({
+            schedule,
+            event: await eventGuideApi.getEvent(schedule.eventId),
+            branchName: apiBranches.find((branch) => branch.id === schedule.branchId)?.name,
+          })),
+        );
+        if (active) setUpcomingAdventures(details);
+      } catch (error) {
+        if (active) setAdventuresError(error instanceof Error ? error.message : "Unable to load upcoming adventures.");
+      } finally {
+        if (active) setAdventuresLoading(false);
+      }
+    };
+    void loadUpcomingAdventures();
+    return () => { active = false; };
+  }, []);
   function dispatch(e: React.FormEvent) {
     e.preventDefault();
     const selected = outposts.find((b) => b.id === branch);
@@ -375,70 +428,71 @@ export function HomePage() {
             </span>
           </SectionHeading>
           <div className="store-grid-three">
-            {HOME_TOURS.map((tour, i) => (
-              <article className="store-tour-card" key={tour.id}>
+            {upcomingAdventures.map(({ schedule, event, branchName }) => {
+              const remaining = Math.max(0, schedule.maxParticipants - schedule.currentParticipants);
+              const imageUrl = event.coverImageUrl || event.images[0]?.imageUrl || images.hike;
+              const departureDate = new Date(schedule.startDatetime);
+              return (
+              <article className="store-tour-card" key={schedule.id}>
                 <Link
                   className="store-tour-image"
-                  to={`/expeditions/${tour.id}`}
+                  to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}
                 >
-                  <img src={tour.imageUrl} alt={tour.title} loading="lazy" />
+                  <img src={imageUrl} alt={event.eventName} loading="lazy" />
                   <span className="store-image-tag store-orange-tag">
-                    {tourLabels[i]}
+                    {event.eventType === "TREKKING" ? "Trekking Tour" : "Camping Event"}
                   </span>
                   <span className="store-image-tag store-image-tag-right">
-                    {tourDifficulty[i]}
+                    {difficultyLabel(event.details?.difficultyLevel)}
                   </span>
                   <span className="store-image-caption">
                     <MapPin size={13} />
-                    {tour.region}
+                    {event.location || branchName || "Vietnam"}
                   </span>
                 </Link>
                 <div className="store-card-body">
                   <div className="store-tour-meta">
                     <span>
                       <CalendarDays size={13} />
-                      {new Date(
-                        tour.nextDeparture + "T12:00:00",
-                      ).toLocaleDateString("en-US", {
+                      {departureDate.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                       })}
                     </span>
                     <b>
                       <Clock3 size={13} />
-                      {tour.duration}
+                      {durationLabel(schedule.startDatetime, schedule.endDatetime)}
                     </b>
                   </div>
-                  <Link to={`/expeditions/${tour.id}`}>
-                    <h3>{tour.title}</h3>
+                  <Link to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}>
+                    <h3>{event.eventName}</h3>
                   </Link>
-                  <p>{tour.subtitle}</p>
+                  <p>{event.description || "A guided outdoor experience with full field support and equipment planning."}</p>
                   <div className="store-slots">
                     <div>
                       <b>
-                        {tour.slotsRemaining === 2
+                        {remaining <= 2
                           ? "Last 2 spots!"
-                          : `${tour.slotsRemaining} slots remaining`}
+                          : `${remaining} slots remaining`}
                       </b>
                       <span>
-                        {tour.totalSlots - tour.slotsRemaining} /{" "}
-                        {tour.totalSlots} booked
+                        {schedule.currentParticipants} / {schedule.maxParticipants} booked
                       </span>
                     </div>
                     <progress
-                      value={tour.totalSlots - tour.slotsRemaining}
-                      max={tour.totalSlots}
-                      aria-label={`Booked places for ${tour.title}`}
+                      value={schedule.currentParticipants}
+                      max={schedule.maxParticipants}
+                      aria-label={`Booked places for ${event.eventName}`}
                     />
                   </div>
                   <div className="store-tour-bottom">
                     <div>
-                      <small>Per {i === 1 ? "Camper" : "Expeditionist"}</small>
-                      <strong>{formatCurrency(tour.pricePerClimber)}</strong>
+                      <small>Per {event.eventType === "CAMPING" ? "Camper" : "Expeditionist"}</small>
+                      <strong>{formatVnd(event.basePrice)}</strong>
                     </div>
                     <Link
                       className="store-button"
-                      to={`/expeditions/${tour.id}`}
+                      to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}
                     >
                       View Adventure
                       <ArrowRight size={14} />
@@ -446,7 +500,11 @@ export function HomePage() {
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
+            {adventuresLoading && <p className="col-span-full text-sm text-[#5C665F]">Loading upcoming adventures…</p>}
+            {!adventuresLoading && adventuresError && <p className="col-span-full text-sm text-[#994717]">{adventuresError}</p>}
+            {!adventuresLoading && !adventuresError && !upcomingAdventures.length && <p className="col-span-full text-sm text-[#5C665F]">No upcoming departures are available yet.</p>}
           </div>
         </div>
       </section>

@@ -7,7 +7,28 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { Mountain } from "lucide-react";
+import {
+  Mountain,
+  ShieldCheck,
+  CheckCircle2,
+  Calendar,
+  Building,
+  MapPin,
+  Sparkles,
+  Clock,
+  ArrowRight,
+  ChevronRight,
+  Search,
+  ShoppingBag,
+  Package,
+  RefreshCw,
+  AlertCircle,
+  Check,
+  Truck,
+  Compass,
+} from "lucide-react";
+import { Card, Button, Badge } from "../../components/ui";
+import { storefrontAssets as images } from "../../data/storefront";
 import {
   Account,
   ApiError,
@@ -62,11 +83,10 @@ function SessionLinks({ account }: { account: Account | null }) {
   const location = useLocation();
   return (
     <nav className="eq-nav" aria-label="Thiết bị và tồn kho">
-      <Link to="/shop">Mua thiết bị</Link>
-      <Link to="/rent">Thuê thiết bị</Link>
-      <Link to="/cart">Giỏ hàng</Link>
-      <Link to="/orders">Đơn của tôi</Link>
-      {account?.role === "ADMIN" && <Link to="/admin/orders">Vận hành đơn hàng</Link>}
+      <Link to="/shop">Equipment</Link>
+      <Link to="/cart">Cart</Link>
+      <Link to="/orders">My orders</Link>
+      {account?.role === "ADMIN" && <Link to="/admin/orders">Manage orders</Link>}
       {account?.role === "ADMIN" && (
         <Link to="/admin/catalog">Quản lý thiết bị</Link>
       )}
@@ -204,14 +224,34 @@ function Pager({
     </div>
   );
 }
-function ProductArt() {
+function getProductImage(category?: string | null, name?: string | null, id?: number): string {
+  const text = `${category || ""} ${name || ""}`.toLowerCase();
+  if (text.includes("lều") || text.includes("tent") || text.includes("shelter")) return images.tent;
+  if (text.includes("balo") || text.includes("pack") || text.includes("bag") || text.includes("túi")) return images.pack;
+  if (text.includes("gậy") || text.includes("pole") || text.includes("trek")) return images.poles;
+  if (text.includes("bếp") || text.includes("nấu") || text.includes("kitchen") || text.includes("cook") || text.includes("stove")) return images.kitchen;
+  if (text.includes("giày") || text.includes("boot") || text.includes("shoe")) return images.hike;
+  const list = [images.tent, images.pack, images.poles, images.kitchen, images.camp, images.hike];
+  return list[(id || 0) % list.length];
+}
+
+function ProductArt({ category, name, id }: { category?: string | null; name?: string | null; id?: number } = {}) {
+  const imgUrl = getProductImage(category, name, id);
   return (
-    <div className="eq-art">
-      <Mountain size={80} strokeWidth={1} />
-      <span>TERRAPEAK EQUIPMENT</span>
+    <div className="w-full h-44 bg-[#EBE6DC] relative overflow-hidden rounded-xs group">
+      <img
+        src={imgUrl}
+        alt={name || "Thiết bị TerraPeak"}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+      <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white tracking-widest uppercase bg-[#152A20]/80 px-2 py-0.5 rounded-xs backdrop-blur-xs">
+        {category || "TERRAPEAK GEAR"}
+      </span>
     </div>
   );
 }
+
 export function EquipmentCatalog({
   defaultMode = "all",
 }: {
@@ -255,16 +295,22 @@ export function EquipmentCatalog({
   }, [defaultMode]);
   return (
     <Frame
-      title={
-        defaultMode === "rent"
-          ? "Thuê thiết bị cho chuyến đi"
-          : "Thiết bị cho chuyến đi"
-      }
-      description="Chọn thiết bị, xem giá và tra cứu lượng có thể thuê tại chi nhánh."
+      title="Equipment"
+      description="Choose Buy or Rent to find equipment for your next trip."
       account={account}
     >
+      <nav aria-label="Equipment mode" className="flex gap-2 mb-4 font-label">
+        <Link to="/shop" aria-current={defaultMode === "buy" ? "page" : undefined}
+          className={`px-5 py-2 rounded-xs border font-bold text-xs uppercase tracking-wider transition ${defaultMode === "buy" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5] hover:bg-[#EBE6DC]"}`}>
+          Mua thiết bị (Buy)
+        </Link>
+        <Link to="/rent" aria-current={defaultMode === "rent" ? "page" : undefined}
+          className={`px-5 py-2 rounded-xs border font-bold text-xs uppercase tracking-wider transition ${defaultMode === "rent" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5] hover:bg-[#EBE6DC]"}`}>
+          Thuê dã ngoại (Rent)
+        </Link>
+      </nav>
       <form
-        className="eq-panel eq-filters"
+        className="eq-panel eq-filters font-label"
         key={defaultMode}
         onSubmit={(e) => {
           e.preventDefault();
@@ -298,7 +344,7 @@ export function EquipmentCatalog({
             </label>
           </>
         )}
-        <button className="eq-primary" disabled={busy}>
+        <button className="eq-primary font-bold" disabled={busy}>
           Tìm kiếm
         </button>
       </form>
@@ -309,18 +355,18 @@ export function EquipmentCatalog({
         <>
           <div className="eq-grid">
             {data?.content.map((item) => (
-              <article key={item.id} className="eq-panel eq-product">
-                <ProductArt />
-                <small>{item.category || "Thiết bị"}</small>
-                <h2>{item.name}</h2>
+              <article key={item.id} className="eq-panel eq-product group hover:border-[#152A20] transition shadow-xs">
+                <ProductArt category={item.category} name={item.name} id={item.id} />
+                <small className="text-[#D97845] font-bold uppercase tracking-wider">{item.category || "Thiết bị"}</small>
+                <h2 className="font-headline font-bold text-base text-[#152A20]">{item.name}</h2>
                 <p>
                   Giá bán: <strong>{vnd(item.salePrice)}</strong>
                 </p>
                 <p>
                   Thuê / ngày: <strong>{vnd(item.rentalPricePerDay)}</strong>
                 </p>
-                <Link className="eq-button" to={"/gear/" + item.id}>
-                  Xem chi tiết →
+                <Link className="eq-button font-bold text-xs" to={"/gear/" + item.id}>
+                  Xem chi tiết & Đặt đồ →
                 </Link>
               </article>
             ))}
@@ -332,14 +378,15 @@ export function EquipmentCatalog({
     </Frame>
   );
 }
+
 export function EquipmentDetail() {
-  const { id } = useParams(),
-    { account } = useAccount();
-  const [product, setProduct] = useState<Product | null>(null),
-    [branches, setBranches] = useState<Branch[]>([]),
-    [error, setError] = useState(""),
-    [answer, setAnswer] = useState(""),
-    [busy, setBusy] = useState(false);
+  const { id } = useParams();
+  const [product, setProduct] = useState<Product | null>(null);
+
+  const [error, setError] = useState("");
+
+
+
   useEffect(() => {
     let alive = true;
     setProduct(null);
@@ -348,16 +395,8 @@ export function EquipmentDetail() {
       setError("Mã thiết bị không hợp lệ.");
       return;
     }
-    Promise.all([
-      catalogApi<Product>("/products/" + id),
-      catalogApi<Branch[]>("/branches"),
-    ])
-      .then(([p, b]) => {
-        if (alive) {
-          setProduct(p);
-          setBranches(b.filter((v) => v.status === "ACTIVE"));
-        }
-      })
+    catalogApi<Product>("/products/" + id)
+      .then((p) => { if (alive) setProduct(p); })
       .catch((e) => {
         if (alive) setError(errorText(e));
       });
@@ -365,94 +404,179 @@ export function EquipmentDetail() {
       alive = false;
     };
   }, [id]);
-  const today = new Date();
-  const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  return (
-    <Frame title={product?.name || "Chi tiết thiết bị"} account={account}>
-      <Link to="/shop">← Danh sách thiết bị</Link>
-      <Message text={error} />
-      {product && (
-        <div className="eq-columns">
-          <article className="eq-panel">
-            <ProductArt />
-            <h2>{product.category || "Thiết bị"}</h2>
-            <p>
-              Giá bán: <strong>{vnd(product.salePrice)}</strong>
-            </p>
-            <p>
-              Thuê / ngày: <strong>{vnd(product.rentalPricePerDay)}</strong>
-            </p>
-          </article>
-          <OrderCheckout productId={product.id} sale={product.salePrice} rental={product.rentalPricePerDay} />
-          <form
-            className="eq-panel eq-form"
-            onChange={() => setAnswer("")}
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setAnswer("");
-              const values = new FormData(e.currentTarget),
-                params = new URLSearchParams({
-                  productId: String(product.id),
-                  branchId: String(values.get("branchId")),
-                  startDate: String(values.get("startDate")),
-                  endDate: String(values.get("endDate")),
-                });
-              try {
-                const result = await catalogApi<{ quantityRentable: number }>(
-                  "/inventory/availability?" + params,
-                );
-                setAnswer(
-                  `Có thể thuê: ${result.quantityRentable} thiết bị trong khoảng ngày đã chọn.`,
-                );
-              } catch (e) {
-                setAnswer(errorText(e));
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <h2>Kiểm tra lượng có thể thuê</h2>
-            {product.rentalPricePerDay === null ? (
-              <p>Thiết bị này không hỗ trợ thuê.</p>
-            ) : (
-              <>
-                <label>
-                  Chi nhánh
-                  <select required name="branchId">
-                    <option value="">Chọn chi nhánh</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Ngày nhận
-                  <input required name="startDate" type="date" min={minDate} />
-                </label>
-                <label>
-                  Ngày trả
-                  <input required name="endDate" type="date" min={minDate} />
-                </label>
-                <button
-                  disabled={busy || !branches.length}
-                  className="eq-primary"
-                >
-                  {busy ? "Đang kiểm tra…" : "Kiểm tra tồn kho"}
-                </button>
-                <Message text={answer} />
-                <p className="eq-note">
-                  Kết quả tra cứu chưa giữ chỗ. Đặt hàng và thanh toán sẽ được
-                  nối với module đơn hàng.
-                </p>
-              </>
-            )}
-          </form>
+
+  if (error && !product) {
+    return (
+      <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
+        <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
+          <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
+          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Không tìm thấy trang bị</h1>
+          <p className="text-sm text-[#5C665F]">{error}</p>
+          <div className="pt-2">
+            <Link to="/shop">
+              <Button variant="secondary" icon={<ArrowRight className="w-3.5 h-3.5 rotate-180" />}>
+                Quay lại danh sách trang bị
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main className="max-w-6xl mx-auto px-4 py-16 font-label">
+        <div className="flex flex-col items-center justify-center space-y-3 py-20">
+          <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
+          <p className="text-sm font-bold text-[#5C665F]">Đang tải thông số thiết bị dã ngoại...</p>
         </div>
-      )}
-    </Frame>
+      </main>
+    );
+  }
+
+  const coverImg = getProductImage(product.category, product.name, product.id);
+
+  return (
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]">
+        <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
+          <Link to="/" className="hover:text-[#111D16]">Trang chủ</Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <Link to="/shop" className="hover:text-[#111D16]">Cửa hàng trang bị</Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-[#152A20] truncate max-w-xs">{product.name}</span>
+        </div>
+
+        <Link to="/shop">
+          <Button variant="outlined" size="sm" icon={<ArrowRight className="w-3.5 h-3.5 rotate-180" />}>
+            Quay lại cửa hàng
+          </Button>
+        </Link>
+      </div>
+
+      {/* Hero Showcase Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Product Imagery, Specs & Availability */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* Main Product Image Banner */}
+          <div className="relative rounded-xs overflow-hidden h-72 sm:h-96 bg-[#EBE6DC] shadow-md group border border-[#D8D2C5]">
+            <img
+              src={coverImg}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+
+            {/* Floating Tags */}
+            <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+              <span className="px-2.5 py-1 rounded-xs text-[10px] font-bold bg-[#152A20]/90 text-white uppercase tracking-wider backdrop-blur-xs">
+                {product.category || "ALPINE GEAR"}
+              </span>
+              <span className="px-2.5 py-1 rounded-xs text-[10px] font-bold bg-[#D97845] text-white uppercase tracking-wider backdrop-blur-xs shadow-xs">
+                CHÍNH HÃNG TERRAPEAK
+              </span>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 text-white">
+              <span className="text-[11px] font-bold tracking-widest uppercase opacity-80 block">
+                MÃ SẢN PHẨM: TP-EQ-{product.id}
+              </span>
+              <h1 className="text-xl sm:text-2xl font-bold font-headline leading-tight mt-0.5">
+                {product.name}
+              </h1>
+            </div>
+          </div>
+
+          {/* Pricing Summary Card */}
+          <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">
+                GIÁ MUA SỞ HỮU MỚI
+              </span>
+              <div className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
+                {product.salePrice !== null ? vnd(product.salePrice) : "Chỉ cho thuê"}
+              </div>
+            </div>
+
+            <div className="border-l border-[#D8D2C5] pl-6">
+              <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
+                GIÁ THUÊ THỰC ĐỊA
+              </span>
+              <div className="text-xl sm:text-2xl font-bold text-[#D97845] font-headline">
+                {product.rentalPricePerDay !== null ? `${vnd(product.rentalPricePerDay)} / ngày` : "Chỉ bán"}
+              </div>
+            </div>
+          </Card>
+
+          {/* Equipment Quality Assurance Badges */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#059669]">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>Khử trùng Ozone</span>
+              </div>
+              <p className="text-[11px] text-[#5C665F] leading-snug">
+                Khử khuẩn tiêu chuẩn y tế tại trạm trước mỗi lần xuất kho.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#D97845]">
+                <Package className="w-4 h-4 shrink-0" />
+                <span>Kiểm định tải trọng</span>
+              </div>
+              <p className="text-[11px] text-[#5C665F] leading-snug">
+                Vật liệu chống rách Ripstop, chịu thời tiết khắc nghiệt.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#152A20]">
+                <Building className="w-4 h-4 shrink-0" />
+                <span>3 Trạm Outpost</span>
+              </div>
+              <p className="text-[11px] text-[#5C665F] leading-snug">
+                Nhận và hoàn trả linh hoạt tại TP.HCM, Đà Lạt, Đà Nẵng.
+              </p>
+            </div>
+          </div>
+
+
+        </div>
+
+        {/* Right Column: Sticky Order & Checkout Panel */}
+        <div className="lg:col-span-5 sticky top-24 space-y-4">
+          <OrderCheckout
+            productId={product.id}
+            sale={product.salePrice}
+            rental={product.rentalPricePerDay}
+          />
+
+          {/* Expedition Policy & Support */}
+          <Card padding="md" className="space-y-3 bg-[#F8F6F1] border border-[#D8D2C5] text-xs">
+            <h4 className="font-bold text-[#111D16] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <Compass className="w-3.5 h-3.5 text-[#D97845]" /> Chính sách nhận & trả trang bị
+            </h4>
+            <ul className="space-y-2 text-[#5C665F] text-[11px] leading-relaxed">
+              <li className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Nhận đồ trực tiếp tại trạm Outpost đã chọn hoặc chuyển giao giữa các trạm.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Biên bản bàn giao kiểm kê tình trạng chi tiết đi kèm chứng nhận khử trùng.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <span>Hỗ trợ gia hạn thời gian thuê trực tuyến nếu bạn kéo dài chuyến đi dã ngoại.</span>
+              </li>
+            </ul>
+          </Card>
+        </div>
+      </div>
+    </main>
   );
 }
 export function EquipmentAdmin() {

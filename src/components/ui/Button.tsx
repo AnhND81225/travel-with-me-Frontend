@@ -17,8 +17,8 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  // Rectangular with subtle rounding (rounded-xs / rounded-sm)
-  const baseClasses = 'inline-flex items-center justify-center font-label font-bold transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-xs tracking-wide uppercase';
+  // Rectangular with subtle rounding, hover lift & active click spring
+  const baseClasses = 'inline-flex items-center justify-center font-label font-bold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:active:scale-100 select-none rounded-xs tracking-wide uppercase hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] shadow-2xs hover:shadow-sm';
 
   const variantClasses = {
     // Primary forest green: #152A20

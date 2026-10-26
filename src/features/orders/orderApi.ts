@@ -31,6 +31,9 @@ export type Order = {
   remainingAmount: number;
   canApprove: boolean;
   canCancel: boolean;
+  customerReceivedAt: string | null;
+  canConfirmReceipt: boolean;
+  canReturn: boolean;
   orderDate: string;
   items: OrderItem[];
 };
