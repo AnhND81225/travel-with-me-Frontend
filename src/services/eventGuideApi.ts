@@ -34,7 +34,32 @@ export interface ApiErrorData {
   fieldErrors?: Record<string, string>;
 }
 
+export interface TourActivity {
+  time: string;
+  title: string;
+  location?: string | null;
+  description?: string | null;
+  icon: "meet" | "hike" | "food" | "summit" | "camp" | "rest" | "flag";
+}
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  summary?: string | null;
+  distanceKm?: string | null;
+  elevation?: string | null;
+  highlights: string[];
+  activities: TourActivity[];
+}
+
+export interface PackingItem {
+  text: string;
+  required: boolean;
+}
+
 export interface EventDetailsInput {
+  itinerary?: ItineraryDay[];
+  packingItems?: PackingItem[];
   durationMinutes?: number;
   difficultyLevel?: DifficultyLevel;
   meetingPoint?: string;
@@ -42,6 +67,8 @@ export interface EventDetailsInput {
 }
 
 export interface EventDetailsResponse {
+  itinerary?: ItineraryDay[];
+  packingItems?: PackingItem[];
   durationMinutes?: number | null;
   difficultyLevel?: DifficultyLevel | null;
   meetingPoint?: string | null;
