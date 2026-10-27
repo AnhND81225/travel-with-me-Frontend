@@ -25,6 +25,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+import { TourContentEditor } from "../../components/tours/TourContentEditor";
+
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : "Unable to complete the request.";
 
@@ -39,6 +41,8 @@ const eventBlank: EventInput = {
     difficultyLevel: "MODERATE",
     meetingPoint: "",
     requirements: "",
+    itinerary: [],
+    packingItems: [],
   },
 };
 
@@ -368,6 +372,8 @@ export function EventsGuidesAdminPage() {
           difficultyLevel: full.details?.difficultyLevel ?? "MODERATE",
           meetingPoint: full.details?.meetingPoint ?? "",
           requirements: full.details?.requirements ?? "",
+          itinerary: full.details?.itinerary ?? [],
+          packingItems: full.details?.packingItems ?? [],
         },
       });
     } catch (error) {
@@ -615,6 +621,10 @@ export function EventsGuidesAdminPage() {
                 </div>
               </div>
             )}
+
+            <div className="md:col-span-2">
+              <TourContentEditor value={event.details ?? {}} onChange={details => setEvent({ ...event, details })} />
+            </div>
 
             <div className="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]">
               <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2.5 border border-[#D8D2C5] bg-white text-xs font-bold uppercase tracking-wider hover:bg-[#EBE6DC]">Cancel</button>
@@ -1029,6 +1039,8 @@ export function EventsGuidesAdminPage() {
                     </div>
                   </div>
                 </div>
+
+                <TourContentEditor value={editForm.details ?? {}} onChange={details => setEditForm({ ...editForm, details })} />
 
                 <div className="flex justify-end gap-2 pt-3 border-t">
                   <button
