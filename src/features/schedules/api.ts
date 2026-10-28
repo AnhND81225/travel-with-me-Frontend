@@ -17,21 +17,21 @@ export const scheduleApi = {
   list: (filters: { eventId?: number; branchId?: number; status?: string; page?: number }, signal?: AbortSignal) =>
     catalogApi<Schedule[]>(`/schedules${query({ ...filters, size: PAGE_SIZE })}`, { signal }),
   assigned: (filters: { status?: string; page?: number }, signal?: AbortSignal) =>
-    catalogApi<GuideAssignment[]>(`/schedules/assigned-to-me${query({ ...filters, size: PAGE_SIZE })}`, { signal }),
-  assignedDetail: (id: number) => catalogApi<GuideAssignment>(`/schedules/assigned-to-me/${id}`),
+    catalogApi<GuideAssignment[]>(`/guide-assignments${query({ ...filters, size: PAGE_SIZE })}`, { signal }),
+  assignedDetail: (id: number) => catalogApi<GuideAssignment>(`/guide-assignments/${id}`),
   get: (id: number) => catalogApi<Schedule>(`/schedules/${id}`),
   create: (body: ScheduleInput) => write<Schedule>('/schedules', 'POST', body),
   update: (id: number, body: { guideId: number | null; maxParticipants: number }) => write<Schedule>(`/schedules/${id}`, 'PATCH', body),
-  reschedule: (id: number, body: { newStartDatetime: string; newEndDatetime: string; registrationClosesAt?: string; changeReason: string }) => write<Schedule>(`/schedules/${id}/reschedule`, 'POST', body),
+  reschedule: (id: number, body: { newStartDatetime: string; newEndDatetime: string; registrationClosesAt?: string; changeReason: string }) => write<Schedule>(`/schedules/${id}/reschedulings`, 'POST', body),
   status: (id: number, status: ScheduleStatus, changeReason: string) => write<Schedule>(`/schedules/${id}/status`, 'PATCH', { status, changeReason }),
   histories: (id: number, page: number) => catalogApi<Audit[]>(`/schedules/${id}/history${query({ page, size: PAGE_SIZE })}`),
   register: (id: number, note: string) => write<Participant>(`/schedules/${id}/participants`, 'POST', { note }),
   roster: (id: number, page: number) => catalogApi<Participant[]>(`/schedules/${id}/participants${query({ page, size: PAGE_SIZE })}`),
 };
 export const participantApi = {
-  mine: (page: number) => catalogApi<Participant[]>(`/participants/me${query({ page, size: PAGE_SIZE })}`),
+  mine: (page: number) => catalogApi<Participant[]>(`/participants${query({ page, size: PAGE_SIZE })}`),
   get: (id: number) => catalogApi<Participant>(`/participants/${id}`),
-  cancel: (id: number, reason: string) => write<Participant>(`/participants/${id}/cancel`, 'POST', { reason }),
+  cancel: (id: number, reason: string) => write<Participant>(`/participants/${id}/cancellations`, 'POST', { reason }),
   confirm: (id: number, registrationReference: string, paymentReference: string) => write<Participant>(`/participants/${id}/manual-payment-confirmations`, 'POST', { registrationReference, paymentReference }),
   checkIn: (id: number) => write<Participant>(`/participants/${id}/attendance`, 'PATCH', { status: 'CHECKED_IN' }),
   noShow: (id: number) => write<Participant>(`/participants/${id}/attendance`, 'PATCH', { status: 'NO_SHOW' }),

@@ -43,6 +43,8 @@ test('attendance sends only the allowed status through the canonical endpoint', 
 });
 test('cancellation forwards manager reason, update can explicitly unassign guide', async () => {
   await participantApi.cancel(2, 'Khách yêu cầu'); await scheduleApi.update(8, { guideId: null, maxParticipants: 20 });
+  assert.equal(calls[0].path, '/api/participants/2/cancellations');
+  assert.equal(calls[0].init.method, 'POST');
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), { reason: 'Khách yêu cầu' });
   assert.equal(calls[1].path, '/api/schedules/8');
   assert.equal(calls[1].init.method, 'PATCH');
@@ -70,12 +72,12 @@ test('staff context fails closed when assignment API fails', async () => {
 test('guide assignments use principal-scoped endpoints with pagination and status', async () => {
   await scheduleApi.assigned({ page: 1, status: 'CLOSED' });
   const url = new URL(calls[0].path, 'http://localhost');
-  assert.equal(url.pathname, '/api/schedules/assigned-to-me');
+  assert.equal(url.pathname, '/api/guide-assignments');
   assert.deepEqual([...url.searchParams.keys()].sort(), ['page', 'size', 'status']);
   assert.equal(url.searchParams.get('status'), 'CLOSED');
   assert.equal(url.searchParams.get('page'), '1');
   await scheduleApi.assignedDetail(42);
-  assert.equal(calls[1].path, '/api/schedules/assigned-to-me/42');
+  assert.equal(calls[1].path, '/api/guide-assignments/42');
 });
 test('revoked guide assignment remains a forbidden error', async () => {
   globalThis.fetch = async () => Response.json({ message: 'Không còn được phân công' }, { status: 403 });
@@ -86,7 +88,7 @@ test('revoked guide assignment remains a forbidden error', async () => {
 test('my tickets use the principal-scoped route with bounded pagination', async () => {
   await participantApi.mine(2);
   const url = new URL(calls[0].path, 'http://localhost');
-  assert.equal(url.pathname, '/api/participants/me');
+  assert.equal(url.pathname, '/api/participants');
   assert.deepEqual([...url.searchParams.keys()].sort(), ['page', 'size']);
   assert.equal(url.searchParams.get('page'), '2');
   assert.equal(url.searchParams.get('size'), '20');
@@ -101,4 +103,13 @@ test('history and review requests use canonical resources and preserve filters',
   assert.equal(urls[0].searchParams.get('page'), '1');
   assert.equal(urls[1].searchParams.get('page'), '2');
   assert.equal(urls[2].searchParams.get('branchId'), '3');
+});
+
+
+test('rescheduling creates a resource operation with the original request contract', async () => {
+  const body = { newStartDatetime: '2026-12-20T07:00:00+07:00', newEndDatetime: '2026-12-20T17:00:00+07:00', changeReason: 'Weather' };
+  await scheduleApi.reschedule(8, body);
+  assert.equal(calls[0].path, '/api/schedules/8/reschedulings');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.deepEqual(JSON.parse(String(calls[0].init.body)), body);
 });
