@@ -24,6 +24,9 @@ import { catalogApi, Branch, Account } from '../../features/equipment/catalogApi
 import { markAccountRequiresPasswordChange } from '../../utils/firstLoginUtils';
 import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../services/eventGuideApi';
 
+import { CatalogForm, CatalogField } from '../../components/tours/CatalogForm';
+import { catalogErrorMessage, inputNumber, validateCatalogImage, validateGuide, validateGuideAccountUpdate } from '../../utils/tourGuideValidation';
+
 export interface PersonnelRow {
   id: number; // staff record id if STAFF, or user.id if GUIDE
   userId: number;
@@ -69,6 +72,7 @@ const emptyCreate = {
   branchId: '',
   position: '',
   specialization: '',
+  experienceYears: '0',
   bio: '',
   languages: '',
 };
@@ -97,6 +101,7 @@ export const AdminStaffPage: React.FC = () => {
     branchId: '',
     position: '',
     specialization: '',
+    experienceYears: '0',
     bio: '',
     languages: '',
   });
@@ -105,6 +110,19 @@ export const AdminStaffPage: React.FC = () => {
   // Delete Personnel Modal State
   const [deletingPersonnel, setDeletingPersonnel] = useState<PersonnelRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Chỉ dùng validation này cho GUIDE, giữ nguyên form và luồng STAFF của member 1.
+  const guideCreateInput = {
+    fullName: createForm.fullName.trim(), email: createForm.email.trim(), phone: createForm.phone.trim() || undefined,
+    experienceYears: inputNumber(createForm.experienceYears), specialization: createForm.specialization.trim(),
+    bio: createForm.bio.trim() || undefined,
+    languages: createForm.languages.split(',').map(item => item.trim()).filter(Boolean),
+  };
+  const guideEditInput = {
+    experienceYears: inputNumber(editForm.experienceYears), specialization: editForm.specialization.trim(),
+    bio: editForm.bio.trim() || undefined,
+    languages: editForm.languages.split(',').map(item => item.trim()).filter(Boolean),
+  };
 
   const notifyPage = (type: 'ok' | 'err', text: string) => {
     setPageMessage({ type, text });
@@ -213,15 +231,7 @@ export const AdminStaffPage: React.FC = () => {
     let user: CreatedUser | null = null;
     try {
       if (!isStaff) {
-        const guide = await eventGuideApi.createGuideWithAccount({
-          fullName: createForm.fullName.trim(),
-          email: createForm.email.trim(),
-          phone: createForm.phone.trim() || undefined,
-          experienceYears: 0,
-          specialization: createForm.specialization.trim(),
-          bio: createForm.bio.trim() || undefined,
-          languages: createForm.languages.split(',').map((item) => item.trim()).filter(Boolean),
-        });
+        const guide = await eventGuideApi.createGuideWithAccount(guideCreateInput);
         setGuideCredentials(guide);
         setCreateOpen(false);
         setCreateForm(emptyCreate);
@@ -281,6 +291,7 @@ export const AdminStaffPage: React.FC = () => {
 
       await load();
     } catch (err) {
+      if (!isStaff) throw err;
       setCreateError(err instanceof Error ? err.message : 'Không thể tạo tài khoản.');
     } finally {
       setSaving(false);
@@ -296,6 +307,7 @@ export const AdminStaffPage: React.FC = () => {
       branchId: p.branchId ? String(p.branchId) : '',
       position: p.position || '',
       specialization: p.position || '',
+      experienceYears: String(p.experienceYears ?? 0),
       bio: p.bio || '',
       languages: (p.languages || []).join(', '),
     });
@@ -314,12 +326,7 @@ export const AdminStaffPage: React.FC = () => {
     setEditError(null);
     try {
       if (editing.role === 'GUIDE' && editing.guideId) {
-        await eventGuideApi.updateGuide(editing.guideId, {
-          experienceYears: editing.experienceYears ?? 0,
-          specialization: editForm.specialization.trim(),
-          bio: editForm.bio.trim() || undefined,
-          languages: editForm.languages.split(',').map((item) => item.trim()).filter(Boolean),
-        });
+        await eventGuideApi.updateGuide(editing.guideId, guideEditInput);
       }
       if (editing.role === 'STAFF') {
         // Update staff branch & position
@@ -349,6 +356,7 @@ export const AdminStaffPage: React.FC = () => {
       notifyPage('ok', `Đã cập nhật thông tin cho "${editForm.fullName}".`);
       await load();
     } catch (err) {
+      if (editing.role === 'GUIDE') throw err;
       setEditError(err instanceof Error ? err.message : 'Không thể cập nhật thông tin.');
     } finally {
       setSaving(false);
@@ -382,13 +390,15 @@ export const AdminStaffPage: React.FC = () => {
 
   const uploadGuideAvatar = async (p: PersonnelRow, file?: File) => {
     if (!p.guideId || !file) return;
+    const imageError = await validateCatalogImage(file);
+    if (imageError) { notifyPage('err', imageError); return; }
     setSaving(true);
     try {
       await eventGuideApi.uploadGuideAvatar(p.guideId, file);
       notifyPage('ok', `Đã cập nhật ảnh đại diện cho "${p.userName}".`);
       await load();
     } catch (err) {
-      notifyPage('err', err instanceof Error ? err.message : 'Không thể tải ảnh đại diện.');
+      notifyPage('err', catalogErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -716,7 +726,7 @@ export const AdminStaffPage: React.FC = () => {
                   {isGuide && (
                     <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-[#D8D2C5] bg-[#EBE6DC] text-[#111D16] text-xs font-bold cursor-pointer hover:bg-white">
                       <Upload className="w-3.5 h-3.5" /> Ảnh
-                      <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(e) => void uploadGuideAvatar(p, e.target.files?.[0])} />
+                      <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={saving} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void uploadGuideAvatar(p, file); }} />
                     </label>
                   )}
                   <Button
@@ -752,7 +762,7 @@ export const AdminStaffPage: React.FC = () => {
 
       {/* POPUP 1: MODAL THÊM MỚI NHÂN SỰ (STAFF / GUIDE) */}
       <Modal isOpen={createOpen} onClose={closeCreateModal} title="Thêm Nhân Sự Mới" maxWidth="lg">
-        <form onSubmit={handleCreate} className="space-y-4 font-label">
+        <CatalogForm key={createForm.role} enabled={createForm.role === 'GUIDE'} validate={() => validateGuide(guideCreateInput)} onSubmit={handleCreate} className="space-y-4 font-label">
           {createError && (
             <div className="p-3 rounded-xs bg-red-50 border border-red-300 text-red-700 text-xs flex items-start justify-between gap-2 shadow-xs">
               <div className="flex items-start gap-2">
@@ -775,7 +785,7 @@ export const AdminStaffPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Họ và tên *</label>
-              <input
+              <CatalogField enabled={createForm.role === 'GUIDE'} name="fullName" label="Họ tên"><input maxLength={createForm.role === 'GUIDE' ? 150 : undefined}
                 required
                 disabled={saving}
                 className={inputCls}
@@ -785,12 +795,12 @@ export const AdminStaffPage: React.FC = () => {
                   setCreateForm({ ...createForm, fullName: e.target.value });
                 }}
                 placeholder="Nguyễn Văn A"
-              />
+              /></CatalogField>
             </div>
 
             <div>
               <label className={labelCls}>Email Đăng Nhập *</label>
-              <input
+              <CatalogField enabled={createForm.role === 'GUIDE'} name="email" label="Email"><input maxLength={createForm.role === 'GUIDE' ? 255 : undefined}
                 required
                 type="email"
                 disabled={saving}
@@ -801,19 +811,19 @@ export const AdminStaffPage: React.FC = () => {
                   setCreateForm({ ...createForm, email: e.target.value });
                 }}
                 placeholder="nhansu@terrapeak.vn"
-              />
+              /></CatalogField>
             </div>
 
             <div>
               <label className={labelCls}>Số điện thoại</label>
-              <input
+              <CatalogField enabled={createForm.role === 'GUIDE'} name="phone" label="Số điện thoại"><input maxLength={createForm.role === 'GUIDE' ? 30 : undefined}
                 type="tel"
                 disabled={saving}
                 className={inputCls}
                 value={createForm.phone}
                 onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
                 placeholder="0912 345 678"
-              />
+              /></CatalogField>
             </div>
 
             <div>
@@ -890,35 +900,42 @@ export const AdminStaffPage: React.FC = () => {
               <>
                 <div>
                   <label className={labelCls}>Chuyên môn dẫn đoàn *</label>
-                  <input
+                  <CatalogField enabled={createForm.role === 'GUIDE'} name="specialization" label="Chuyên môn"><input maxLength={createForm.role === 'GUIDE' ? 1000 : undefined}
                     required
                     disabled={saving}
                     className={inputCls}
                     value={createForm.specialization}
                     onChange={(e) => setCreateForm({ ...createForm, specialization: e.target.value })}
                     placeholder="Trekking, camping, first aid..."
-                  />
+                  /></CatalogField>
                 </div>
+              <div>
+                <label className={labelCls}>Số năm kinh nghiệm *</label>
+                <CatalogField name="experienceYears" label="Số năm kinh nghiệm">
+                  <input type="number" min="0" max={2147483647} step="1" required disabled={saving} className={inputCls}
+                    value={createForm.experienceYears} onChange={e => setCreateForm({ ...createForm, experienceYears: e.target.value })} />
+                </CatalogField>
+              </div>
                 <div>
                   <label className={labelCls}>Ngôn ngữ</label>
-                  <input
+                  <CatalogField enabled={createForm.role === 'GUIDE'} name="languages" label="Ngôn ngữ"><input
                     disabled={saving}
                     className={inputCls}
                     value={createForm.languages}
                     onChange={(e) => setCreateForm({ ...createForm, languages: e.target.value })}
                     placeholder="Vietnamese, English"
-                  />
+                  /></CatalogField>
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelCls}>Giới thiệu hồ sơ</label>
-                  <textarea
+                  <CatalogField enabled={createForm.role === 'GUIDE'} name="bio" label="Giới thiệu guide"><textarea maxLength={createForm.role === 'GUIDE' ? 5000 : undefined}
                     disabled={saving}
                     className={inputCls}
                     rows={3}
                     value={createForm.bio}
                     onChange={(e) => setCreateForm({ ...createForm, bio: e.target.value })}
                     placeholder="Kinh nghiệm và phong cách dẫn đoàn..."
-                  />
+                  /></CatalogField>
                 </div>
               </>
             )}
@@ -948,7 +965,7 @@ export const AdminStaffPage: React.FC = () => {
               {saving ? 'Đang tạo...' : 'Tạo Tài Khoản'}
             </Button>
           </div>
-        </form>
+        </CatalogForm>
       </Modal>
 
       {/* POPUP 2: MODAL SỬA NHÂN SỰ */}
@@ -958,7 +975,7 @@ export const AdminStaffPage: React.FC = () => {
         title={`Chỉnh Sửa ${editing?.role === 'GUIDE' ? 'Hướng Dẫn Viên' : 'Nhân Viên'} — ${editing?.userName || ''}`}
         maxWidth="lg"
       >
-        <form onSubmit={handleEdit} className="space-y-4 font-label">
+        <CatalogForm key={editing?.guideId ?? 'staff'} enabled={editing?.role === 'GUIDE'} validate={() => validateGuideAccountUpdate({ ...guideEditInput, fullName: editForm.fullName, phone: editForm.phone })} onSubmit={handleEdit} className="space-y-4 font-label">
           {editError && (
             <div className="p-3 rounded-xs bg-red-50 border border-red-300 text-red-700 text-xs flex items-center justify-between gap-2 shadow-xs">
               <div className="flex items-center gap-2">
@@ -977,7 +994,7 @@ export const AdminStaffPage: React.FC = () => {
 
           <div>
             <label className={labelCls}>Họ và tên *</label>
-            <input
+            <CatalogField enabled={editing?.role === 'GUIDE'} name="fullName" label="Họ tên"><input maxLength={editing?.role === 'GUIDE' ? 150 : undefined}
               required
               disabled={saving}
               className={inputCls}
@@ -986,12 +1003,12 @@ export const AdminStaffPage: React.FC = () => {
                 setEditError(null);
                 setEditForm({ ...editForm, fullName: e.target.value });
               }}
-            />
+            /></CatalogField>
           </div>
 
           <div>
             <label className={labelCls}>Số điện thoại</label>
-            <input
+            <CatalogField enabled={editing?.role === 'GUIDE'} name="phone" label="Số điện thoại"><input maxLength={editing?.role === 'GUIDE' ? 30 : undefined}
               type="tel"
               disabled={saving}
               className={inputCls}
@@ -1001,7 +1018,7 @@ export const AdminStaffPage: React.FC = () => {
                 setEditForm({ ...editForm, phone: e.target.value });
               }}
               placeholder="0912 345 678"
-            />
+            /></CatalogField>
           </div>
 
           {editing?.role === 'STAFF' && (
@@ -1029,15 +1046,22 @@ export const AdminStaffPage: React.FC = () => {
             <>
               <div>
                 <label className={labelCls}>Chuyên môn dẫn đoàn *</label>
-                <input required disabled={saving} className={inputCls} value={editForm.specialization} onChange={(e) => setEditForm({ ...editForm, specialization: e.target.value })} />
+                <CatalogField enabled={editing?.role === 'GUIDE'} name="specialization" label="Chuyên môn"><input maxLength={editing?.role === 'GUIDE' ? 1000 : undefined} required disabled={saving} className={inputCls} value={editForm.specialization} onChange={(e) => setEditForm({ ...editForm, specialization: e.target.value })} /></CatalogField>
+              </div>
+              <div>
+                <label className={labelCls}>Số năm kinh nghiệm *</label>
+                <CatalogField name="experienceYears" label="Số năm kinh nghiệm">
+                  <input type="number" min="0" max={2147483647} step="1" required disabled={saving} className={inputCls}
+                    value={editForm.experienceYears} onChange={e => setEditForm({ ...editForm, experienceYears: e.target.value })} />
+                </CatalogField>
               </div>
               <div>
                 <label className={labelCls}>Ngôn ngữ</label>
-                <input disabled={saving} className={inputCls} value={editForm.languages} onChange={(e) => setEditForm({ ...editForm, languages: e.target.value })} placeholder="Vietnamese, English" />
+                <CatalogField enabled={editing?.role === 'GUIDE'} name="languages" label="Ngôn ngữ"><input disabled={saving} className={inputCls} value={editForm.languages} onChange={(e) => setEditForm({ ...editForm, languages: e.target.value })} placeholder="Vietnamese, English" /></CatalogField>
               </div>
               <div>
                 <label className={labelCls}>Giới thiệu hồ sơ</label>
-                <textarea disabled={saving} className={inputCls} rows={3} value={editForm.bio} onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })} />
+                <CatalogField enabled={editing?.role === 'GUIDE'} name="bio" label="Giới thiệu guide"><textarea maxLength={editing?.role === 'GUIDE' ? 5000 : undefined} disabled={saving} className={inputCls} rows={3} value={editForm.bio} onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })} /></CatalogField>
               </div>
             </>
           )}
@@ -1070,7 +1094,7 @@ export const AdminStaffPage: React.FC = () => {
               {saving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
             </Button>
           </div>
-        </form>
+        </CatalogForm>
       </Modal>
 
       {/* POPUP 3: MODAL XÁC NHẬN XÓA NHÂN SỰ */}

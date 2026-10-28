@@ -10,7 +10,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:module5": "tsx --test src/features/schedules/rules.test.ts src/features/schedules/api.test.ts",
-    "test:navigation": "tsx --test src/utils/navigation.test.ts"
+    "test:navigation": "tsx --test src/utils/navigation.test.ts",
+    "test:tour-guide": "tsx --test src/utils/tourGuideValidation.test.ts src/components/tours/CatalogForm.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
