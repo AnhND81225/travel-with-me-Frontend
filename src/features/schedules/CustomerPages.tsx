@@ -170,14 +170,14 @@ export function MyToursPage() {
     );
   }
 
-  return <MyTickets userId={auth.data.id} />;
+  return <MyTickets key={auth.data.id} />;
 }
 
 // ==========================================
 // MY TICKETS LIST
 // ==========================================
-function MyTickets({ userId }: { userId: number }) {
-  const loader = useCallback((page: number) => participantApi.mine(userId, page), [userId]);
+function MyTickets() {
+  const loader = useCallback((page: number) => participantApi.mine(page), []);
   const list = usePages(loader);
   const now = useClock(1000);
   const navigate = useNavigate();
