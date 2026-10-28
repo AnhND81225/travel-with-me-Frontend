@@ -10,6 +10,7 @@ import {
   GuideStatus,
   GuideUpdateInput,
   GuideRegistrationResponse,
+  GuideRegistrationInput,
 } from "../../services/eventGuideApi";
 import {
   Image as ImageIcon,
@@ -27,8 +28,10 @@ import {
 
 import { TourContentEditor } from "../../components/tours/TourContentEditor";
 
-const messageOf = (error: unknown) =>
-  error instanceof Error ? error.message : "Unable to complete the request.";
+import { CatalogField, CatalogForm } from "../../components/tours/CatalogForm";
+import { catalogErrorMessage, inputNumber, validateCatalogImage, validateEvent, validateGuide } from "../../utils/tourGuideValidation";
+
+const messageOf = catalogErrorMessage;
 
 const eventBlank: EventInput = {
   eventName: "",
@@ -115,6 +118,7 @@ export function EventsGuidesAdminPage() {
   const [guideSpecialization, setGuideSpecialization] = useState("");
   const [guideBio, setGuideBio] = useState("");
   const [guideLanguages, setGuideLanguages] = useState("");
+  const [guideEditLanguages, setGuideEditLanguages] = useState("");
   const [editingGuide, setEditingGuide] = useState<AdminGuide | null>(null);
   const [guideEditForm, setGuideEditForm] = useState<GuideUpdateInput>({
     experienceYears: 0,
@@ -130,11 +134,20 @@ export function EventsGuidesAdminPage() {
   const [modalLoading, setModalLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageDescription, setImageDescription] = useState("");
+  const [imageError, setImageError] = useState("");
 
   // Modal chỉnh sửa chuyến đi
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<EventInput>(eventBlank);
   const [editLoading, setEditLoading] = useState(false);
+
+  const guideInput: GuideRegistrationInput = {
+    fullName: guideFullName.trim(), email: guideEmail.trim(), phone: guidePhone.trim() || undefined,
+    experienceYears: inputNumber(guideExperience), specialization: guideSpecialization,
+    bio: guideBio || undefined, languages: parseLanguages(guideLanguages),
+  };
+  const guideEditInput: GuideUpdateInput = { ...guideEditForm, languages: parseLanguages(guideEditLanguages) };
+  const editingPublished = events.find(item => item.eventId === editingEventId)?.status === "PUBLISHED";
 
   const load = async () => {
     setBusy(true);
@@ -164,11 +177,11 @@ export function EventsGuidesAdminPage() {
       await eventGuideApi.createEvent(event);
       setEvent(eventBlank);
       setCreateModalOpen(false);
-      setNotice("Trip created as a draft. Upload at least one image before publishing.");
       await load();
+      setNotice("Đã tạo bản nháp. Bổ sung nội dung và ảnh trước khi công bố.");
     } catch (error) {
-      setNotice(messageOf(error));
       setBusy(false);
+      throw error;
     }
   };
 
@@ -177,15 +190,7 @@ export function EventsGuidesAdminPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      const created = await eventGuideApi.createGuideWithAccount({
-        fullName: guideFullName.trim(),
-        email: guideEmail.trim(),
-        phone: guidePhone.trim() || undefined,
-        experienceYears: Number(guideExperience),
-        specialization: guideSpecialization,
-        bio: guideBio || undefined,
-        languages: parseLanguages(guideLanguages),
-      });
+      const created = await eventGuideApi.createGuideWithAccount(guideInput);
       setGuideCredentials(created);
       setGuideFullName("");
       setGuideEmail("");
@@ -197,13 +202,22 @@ export function EventsGuidesAdminPage() {
       await load();
       setNotice("Guide account and profile created. You can now upload an avatar from the guide list.");
     } catch (error) {
-      setNotice(messageOf(error));
       setBusy(false);
+      throw error;
     }
   };
 
   const updateEventStatus = async (id: number, status: EventStatus) => {
     try {
+      if (status === "PUBLISHED") {
+        const full = await eventGuideApi.getAdminEvent(id);
+        const errors = validateEvent(full, true);
+        if (!full.images.length) errors.images = "Cần ít nhất một ảnh trước khi công bố.";
+        if (Object.keys(errors).length) {
+          setNotice(`Chưa thể công bố: ${Object.values(errors).join(" ")}`);
+          return;
+        }
+      }
       await eventGuideApi.setEventStatus(id, status);
       const statusLabel =
         status === "PUBLISHED" ? "Published" : status === "ARCHIVED" ? "Archived" : "Draft";
@@ -211,7 +225,7 @@ export function EventsGuidesAdminPage() {
       await load();
     } catch (error) {
       setNotice(
-        `${messageOf(error)} (To publish a trip, add at least one image and complete its description, location, meeting point, requirements, duration, and difficulty.)`
+        messageOf(error)
       );
     }
   };
@@ -231,12 +245,12 @@ export function EventsGuidesAdminPage() {
     if (!editingGuide) return;
     setBusy(true);
     try {
-      await eventGuideApi.updateGuide(editingGuide.guideId, guideEditForm);
+      await eventGuideApi.updateGuide(editingGuide.guideId, guideEditInput);
       setEditingGuide(null);
-      setNotice("Guide profile updated successfully.");
       await load();
+      setNotice("Đã cập nhật hồ sơ hướng dẫn viên.");
     } catch (error) {
-      setNotice(messageOf(error));
+      throw error;
     } finally {
       setBusy(false);
     }
@@ -244,6 +258,7 @@ export function EventsGuidesAdminPage() {
 
   const openGuideEditor = (guide: AdminGuide) => {
     setEditingGuide(guide);
+    setGuideEditLanguages((guide.languages ?? []).join(", "));
     setGuideEditForm({
       experienceYears: guide.experienceYears ?? 0,
       specialization: guide.specialization || "",
@@ -254,6 +269,8 @@ export function EventsGuidesAdminPage() {
 
   const uploadGuideAvatar = async (guideId: number, file?: File) => {
     if (!file) return;
+    const imageValidation = await validateCatalogImage(file);
+    if (imageValidation) { setNotice(imageValidation);  return; }
     setBusy(true);
     try {
       await eventGuideApi.uploadGuideAvatar(guideId, file);
@@ -283,6 +300,8 @@ export function EventsGuidesAdminPage() {
   // Tải ảnh nhanh trực tiếp từ dòng trong bảng
   const upload = async (id: number, file?: File) => {
     if (!file) return;
+    const imageValidation = await validateCatalogImage(file);
+    if (imageValidation) { setNotice(imageValidation);  return; }
     setBusy(true);
     try {
       await eventGuideApi.uploadEventImage(id, file);
@@ -301,6 +320,7 @@ export function EventsGuidesAdminPage() {
     setSelectedEventTitle(item.eventName);
     setModalLoading(true);
     setImageDescription("");
+    setImageError("");
     try {
       const full = await eventGuideApi.getAdminEvent(item.eventId);
       setEventImages(full.images || []);
@@ -337,6 +357,10 @@ export function EventsGuidesAdminPage() {
   // Tải ảnh lên từ trong modal
   const handleUploadInsideModal = async (file?: File) => {
     if (!file || !selectedEventId) return;
+    const imageValidation = await validateCatalogImage(file);
+    if (imageValidation) { setNotice(imageValidation); setImageError(imageValidation); return; }
+    if (imageDescription.length > 1000) { setImageError("Mô tả ảnh tối đa 1.000 ký tự."); return; }
+    setImageError("");
     setUploadingImage(true);
     try {
       const newImg = await eventGuideApi.uploadEventImage(
@@ -349,7 +373,7 @@ export function EventsGuidesAdminPage() {
       setNotice("Image uploaded successfully.");
       await load();
     } catch (error) {
-      setNotice(messageOf(error));
+      setImageError(messageOf(error));
     } finally {
       setUploadingImage(false);
     }
@@ -391,11 +415,11 @@ export function EventsGuidesAdminPage() {
     setBusy(true);
     try {
       await eventGuideApi.updateEvent(editingEventId, editForm);
-      setNotice("Trip details updated successfully.");
       setEditingEventId(null);
       await load();
+      setNotice("Đã cập nhật nội dung tour.");
     } catch (error) {
-      setNotice(messageOf(error));
+      throw error;
     } finally {
       setBusy(false);
     }
@@ -452,8 +476,8 @@ export function EventsGuidesAdminPage() {
         <>
           {createModalOpen && (
             <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
-              <div className="w-full max-w-4xl my-8 bg-[#F8F6F1] border border-[#D8D2C5] shadow-xl">
-          <form onSubmit={createEvent} className="grid gap-3 p-5 md:grid-cols-2">
+              <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#F8F6F1] border border-[#D8D2C5] shadow-xl">
+          <CatalogForm onSubmit={createEvent} validate={() => validateEvent(event)} onInvalid={() => setShowDetailsForm(true)} className="grid gap-3 p-5 md:grid-cols-2">
             <div className="md:col-span-2 flex items-center justify-between border-b border-[#D8D2C5] pb-3">
               <div>
                 <p className="text-[10px] font-bold text-[#7A857E] uppercase tracking-wider">Trip catalogue</p>
@@ -467,18 +491,18 @@ export function EventsGuidesAdminPage() {
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Trip name *</label>
-              <input
+              <CatalogField name="eventName" label="Tên tour"><input maxLength={200}
                 required
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 placeholder="Example: Ta Nang — Phan Dung Trek"
                 value={event.eventName}
                 onChange={(e) => setEvent({ ...event, eventName: e.target.value })}
-              />
+              /></CatalogField>
             </div>
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Experience type *</label>
-              <select
+              <CatalogField name="eventType" label="Loại trải nghiệm"><select
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 value={event.eventType}
                 onChange={(e) =>
@@ -487,47 +511,47 @@ export function EventsGuidesAdminPage() {
               >
                 <option value="TREKKING">Trekking</option>
                 <option value="CAMPING">Camping</option>
-              </select>
+              </select></CatalogField>
             </div>
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Base price (VND) *</label>
-              <input
+              <CatalogField name="basePrice" label="Giá cơ sở"><input step="0.01"
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 type="number"
                 min="0"
                 required
                 placeholder="Example: 1500000"
-                value={event.basePrice}
-                onChange={(e) => setEvent({ ...event, basePrice: Number(e.target.value) })}
-              />
+                value={Number.isNaN(event.basePrice) ? "" : event.basePrice}
+                onChange={(e) => setEvent({ ...event, basePrice: inputNumber(e.target.value) })}
+              /></CatalogField>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">Trip location *</label>
-              <select
-                required
+              <label className="text-xs font-bold text-gray-700 block mb-1">Tỉnh/thành phố (cần khi công bố)</label>
+              <CatalogField name="location" label="Tỉnh/thành phố"><select
+
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 value={event.location ?? ""}
                 onChange={(e) => setEvent({ ...event, location: e.target.value })}
               >
-                <option value="" disabled>Select a location</option>
+                <option value="">Chưa chọn tỉnh/thành phố</option>
                 {TOUR_LOCATIONS.map((location) => (
                   <option key={location} value={location}>{location}</option>
                 ))}
-              </select>
+              </select></CatalogField>
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 block mb-1">Overview *</label>
-              <textarea
-                required
+              <label className="text-xs font-bold text-gray-700 block mb-1">Giới thiệu (cần khi công bố)</label>
+              <CatalogField name="description" label="Giới thiệu tour"><textarea maxLength={50000}
+
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 placeholder="Describe scenery, route, and trip experience..."
                 rows={2}
                 value={event.description ?? ""}
                 onChange={(e) => setEvent({ ...event, description: e.target.value })}
-              />
+              /></CatalogField>
             </div>
 
             {/* Mục chi tiết hành trình bắt buộc */}
@@ -539,7 +563,7 @@ export function EventsGuidesAdminPage() {
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">Trail difficulty</label>
-                  <select
+                  <CatalogField name="details.difficultyLevel" label="Độ khó"><select
                     className="w-full border border-[#c7cfc9] p-2 bg-white rounded-xs text-sm"
                     value={event.details?.difficultyLevel || "MODERATE"}
                     onChange={(e) =>
@@ -555,36 +579,36 @@ export function EventsGuidesAdminPage() {
                     <option value="EASY">Easy (beginners)</option>
                     <option value="MODERATE">Moderate (basic fitness)</option>
                     <option value="HARD">Challenging (experienced hikers)</option>
-                  </select>
+                  </select></CatalogField>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Estimated duration (minutes)
                   </label>
-                  <input
+                  <CatalogField name="details.durationMinutes" label="Thời lượng (phút)"><input max={2147483647} step="1"
                     type="number"
-                    min="60"
+                    min="1"
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                     placeholder="Example: 2880 (2 days)"
-                    value={event.details?.durationMinutes ?? 1440}
+                    value={event.details?.durationMinutes ?? ""}
                     onChange={(e) =>
                       setEvent({
                         ...event,
                         details: {
                           ...event.details,
-                          durationMinutes: Number(e.target.value),
+                          durationMinutes: e.target.value === "" ? undefined : inputNumber(e.target.value),
                         },
                       })
                     }
-                  />
+                  /></CatalogField>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Pickup & meeting point
                   </label>
-                  <input
+                  <CatalogField name="details.meetingPoint" label="Điểm tập trung"><input maxLength={10000}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                     placeholder="Example: TerraPeak field operations station"
                     value={event.details?.meetingPoint ?? ""}
@@ -597,14 +621,14 @@ export function EventsGuidesAdminPage() {
                         },
                       })
                     }
-                  />
+                  /></CatalogField>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Participation requirements (fitness & equipment)
                   </label>
-                  <input
+                  <CatalogField name="details.requirements" label="Yêu cầu tham gia"><input maxLength={10000}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                     placeholder="Example: Good fitness, suitable hiking shoes..."
                     value={event.details?.requirements ?? ""}
@@ -617,7 +641,7 @@ export function EventsGuidesAdminPage() {
                         },
                       })
                     }
-                  />
+                  /></CatalogField>
                 </div>
               </div>
             )}
@@ -632,7 +656,7 @@ export function EventsGuidesAdminPage() {
               {busy ? "Processing..." : "Create trip"}
             </button>
             </div>
-          </form>
+          </CatalogForm>
               </div>
             </div>
           )}
@@ -663,7 +687,7 @@ export function EventsGuidesAdminPage() {
                     <div className="flex gap-1.5">
                       <button type="button" onClick={() => void openEditModal(item)} className="border border-[#D8D2C5] bg-white px-2 py-1.5 text-xs hover:bg-[#EBE6DC]" title="Edit trip details"><Edit3 className="w-3.5 h-3.5" /></button>
                       <button type="button" onClick={() => void openImageManager(item)} className="border border-[#D8D2C5] bg-white px-2 py-1.5 text-xs hover:bg-[#EBE6DC]" title="Manage image library"><Eye className="w-3.5 h-3.5" /></button>
-                      <label className="bg-[#152A20] text-[#F3EFE6] px-2 py-1.5 text-xs cursor-pointer hover:bg-[#264334]" title="Upload image"><Upload className="w-3.5 h-3.5" /><input className="hidden" type="file" accept="image/*" disabled={busy} onChange={(e) => void upload(item.eventId, e.target.files?.[0])} /></label>
+                      <label className="bg-[#152A20] text-[#F3EFE6] px-2 py-1.5 text-xs cursor-pointer hover:bg-[#264334]" title="Upload image"><Upload className="w-3.5 h-3.5" /><input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void upload(item.eventId, file); }} /></label>
                     </div>
                   </div>
                   {item.status === "DRAFT" && !item.coverImageUrl ? <p className="mt-2 text-[10px] text-amber-700 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Upload an image before publishing</p> : null}
@@ -677,8 +701,8 @@ export function EventsGuidesAdminPage() {
       ) : (
         <>
           {/* Form tạo hồ sơ người dẫn đoàn */}
-          <form
-            onSubmit={createGuide}
+          <CatalogForm
+            onSubmit={createGuide} validate={() => validateGuide(guideInput)}
             className="grid gap-3 bg-white border border-[#d8d2c5] p-5 md:grid-cols-3"
           >
             <h2 className="md:col-span-3 font-bold text-lg">Create a guide profile</h2>
@@ -687,23 +711,23 @@ export function EventsGuidesAdminPage() {
             </p>
             <label className="text-sm grid gap-1">
               Full name *
-              <input required maxLength={150} autoComplete="name"
+              <CatalogField name="fullName" label="Họ tên"><input required maxLength={150} autoComplete="name"
                 className="border border-[#c7cfc9] p-2 rounded-xs"
-                value={guideFullName} onChange={(e) => setGuideFullName(e.target.value)} />
+                value={guideFullName} onChange={(e) => setGuideFullName(e.target.value)} /></CatalogField>
             </label>
             <label className="text-sm grid gap-1">
               Email *
-              <input required type="email" maxLength={255} autoComplete="email"
+              <CatalogField name="email" label="Email"><input required type="email" maxLength={255} autoComplete="email"
                 className="border border-[#c7cfc9] p-2 rounded-xs"
-                value={guideEmail} onChange={(e) => setGuideEmail(e.target.value)} />
+                value={guideEmail} onChange={(e) => setGuideEmail(e.target.value)} /></CatalogField>
             </label>
             <label className="text-sm grid gap-1">
               Phone
-              <input type="tel" maxLength={30} autoComplete="tel"
+              <CatalogField name="phone" label="Số điện thoại"><input type="tel" maxLength={30} autoComplete="tel"
                 className="border border-[#c7cfc9] p-2 rounded-xs"
-                value={guidePhone} onChange={(e) => setGuidePhone(e.target.value)} />
+                value={guidePhone} onChange={(e) => setGuidePhone(e.target.value)} /></CatalogField>
             </label>
-            <input
+            <CatalogField name="experienceYears" label="Số năm kinh nghiệm"><input max={2147483647} step="1"
               required
               className="border border-[#c7cfc9] p-2 rounded-xs"
               type="number"
@@ -711,31 +735,31 @@ export function EventsGuidesAdminPage() {
               placeholder="Years of field experience *"
               value={guideExperience}
               onChange={(e) => setGuideExperience(e.target.value)}
-            />
-            <input
+            /></CatalogField>
+            <CatalogField name="specialization" label="Chuyên môn"><input maxLength={1000}
               required
               className="border border-[#c7cfc9] p-2 rounded-xs"
               placeholder="Guiding specialization *"
               value={guideSpecialization}
               onChange={(e) => setGuideSpecialization(e.target.value)}
-            />
-            <input
+            /></CatalogField>
+            <CatalogField name="languages" label="Ngôn ngữ"><input
               className="border border-[#c7cfc9] p-2 rounded-xs"
               placeholder="Languages, separated by commas"
               value={guideLanguages}
               onChange={(e) => setGuideLanguages(e.target.value)}
-            />
-            <textarea
+            /></CatalogField>
+            <CatalogField name="bio" label="Giới thiệu guide"><textarea maxLength={5000}
               className="border border-[#c7cfc9] p-2 rounded-xs md:col-span-2"
               rows={2}
               placeholder="Short guide biography"
               value={guideBio}
               onChange={(e) => setGuideBio(e.target.value)}
-            />
+            /></CatalogField>
             <button className="store-button md:col-span-3" disabled={busy}>
               Create guide account and profile
             </button>
-          </form>
+          </CatalogForm>
 
           {/* Chỉ giữ mật khẩu tạm trong state; không lưu vào storage hoặc log. */}
           {guideCredentials && (
@@ -805,7 +829,7 @@ export function EventsGuidesAdminPage() {
                         <button type="button" onClick={() => openGuideEditor(guide)} className="border border-[#c7cfc9] bg-white px-2.5 py-1.5 text-xs rounded-xs hover:bg-gray-100">Edit</button>
                         <label className="border border-[#c7cfc9] bg-white px-2.5 py-1.5 text-xs rounded-xs hover:bg-gray-100 cursor-pointer">
                           {guide.avatarUrl ? "Replace avatar" : "Upload avatar"}
-                          <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(e) => void uploadGuideAvatar(guide.guideId, e.target.files?.[0])} />
+                          <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void uploadGuideAvatar(guide.guideId, file); }} />
                         </label>
                         {guide.avatarUrl ? <button type="button" onClick={() => void deleteGuideAvatar(guide.guideId)} className="text-red-700 border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs rounded-xs hover:bg-red-100">Remove avatar</button> : null}
                       </div>
@@ -827,7 +851,7 @@ export function EventsGuidesAdminPage() {
 
       {editingGuide && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <form onSubmit={saveGuide} className="bg-white rounded-xs max-w-lg w-full border border-[#d8d2c5] shadow-xl">
+          <CatalogForm onSubmit={saveGuide} validate={() => validateGuide(guideEditInput)} className="bg-white rounded-xs max-w-lg w-full border border-[#d8d2c5] shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-[#d8d2c5] bg-[#F3EFE6]">
               <div>
                 <h3 className="font-bold text-lg text-[#111D16]">Edit guide profile</h3>
@@ -839,23 +863,23 @@ export function EventsGuidesAdminPage() {
             </div>
             <div className="p-5 space-y-3">
               <label className="block text-sm font-medium">Years of field experience
-                <input required min="0" type="number" className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={guideEditForm.experienceYears} onChange={(e) => setGuideEditForm({ ...guideEditForm, experienceYears: Number(e.target.value) })} />
+                <CatalogField name="experienceYears" label="Số năm kinh nghiệm"><input max={2147483647} step="1" required min="0" type="number" className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={Number.isNaN(guideEditForm.experienceYears) ? "" : guideEditForm.experienceYears} onChange={(e) => setGuideEditForm({ ...guideEditForm, experienceYears: inputNumber(e.target.value) })} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Guiding specialization
-                <input required className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={guideEditForm.specialization} onChange={(e) => setGuideEditForm({ ...guideEditForm, specialization: e.target.value })} />
+                <CatalogField name="specialization" label="Chuyên môn"><input maxLength={1000} required className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={guideEditForm.specialization} onChange={(e) => setGuideEditForm({ ...guideEditForm, specialization: e.target.value })} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Languages
-                <input className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" placeholder="English, Vietnamese" value={(guideEditForm.languages || []).join(", ")} onChange={(e) => setGuideEditForm({ ...guideEditForm, languages: parseLanguages(e.target.value) })} />
+                <CatalogField name="languages" label="Ngôn ngữ"><input className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" placeholder="English, Vietnamese" value={guideEditLanguages} onChange={(e) => setGuideEditLanguages(e.target.value)} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Biography
-                <textarea className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" rows={4} value={guideEditForm.bio || ""} onChange={(e) => setGuideEditForm({ ...guideEditForm, bio: e.target.value })} />
+                <CatalogField name="bio" label="Giới thiệu guide"><textarea maxLength={5000} className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" rows={4} value={guideEditForm.bio || ""} onChange={(e) => setGuideEditForm({ ...guideEditForm, bio: e.target.value })} /></CatalogField>
               </label>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-[#d8d2c5] bg-gray-50">
               <button type="button" onClick={() => setEditingGuide(null)} className="border border-[#c7cfc9] bg-white px-4 py-2 text-sm rounded-xs">Cancel</button>
               <button className="store-button text-sm py-2 px-5" disabled={busy}>{busy ? "Saving..." : "Save profile"}</button>
             </div>
-          </form>
+          </CatalogForm>
         </div>
       )}
 
@@ -883,20 +907,20 @@ export function EventsGuidesAdminPage() {
             {editLoading ? (
               <div className="p-10 text-center text-gray-500">Loading trip details...</div>
             ) : (
-              <form onSubmit={handleSaveEdit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              <CatalogForm onSubmit={handleSaveEdit} validate={() => validateEvent(editForm, editingPublished)} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Trip name *</label>
-                    <input
+                    <CatalogField name="eventName" label="Tên tour"><input maxLength={200}
                       required
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                       value={editForm.eventName}
                       onChange={(e) => setEditForm({ ...editForm, eventName: e.target.value })}
-                    />
+                    /></CatalogField>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Experience type</label>
-                    <select
+                    <CatalogField name="eventType" label="Loại trải nghiệm"><select
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                       value={editForm.eventType}
                       onChange={(e) =>
@@ -908,48 +932,48 @@ export function EventsGuidesAdminPage() {
                     >
                       <option value="TREKKING">Trekking</option>
                       <option value="CAMPING">Camping</option>
-                    </select>
+                    </select></CatalogField>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Base price (VND)</label>
-                    <input
+                    <CatalogField name="basePrice" label="Giá cơ sở"><input step="0.01" min="0"
                       type="number"
                       required
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
-                      value={editForm.basePrice}
+                      value={Number.isNaN(editForm.basePrice) ? "" : editForm.basePrice}
                       onChange={(e) =>
-                        setEditForm({ ...editForm, basePrice: Number(e.target.value) })
+                        setEditForm({ ...editForm, basePrice: inputNumber(e.target.value) })
                       }
-                    />
+                    /></CatalogField>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">Trip location *</label>
-                    <select
-                      required
+                    <label className="text-xs font-bold text-gray-700 block mb-1">Tỉnh/thành phố (cần khi công bố)</label>
+                    <CatalogField name="location" label="Tỉnh/thành phố"><select
+
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                       value={editForm.location ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                     >
-                      {!editForm.location && <option value="" disabled>Select a location</option>}
+                      <option value="">Chưa chọn tỉnh/thành phố</option>
                       {editForm.location && !TOUR_LOCATIONS.includes(editForm.location) && (
                         <option value={editForm.location}>{editForm.location}</option>
                       )}
                       {TOUR_LOCATIONS.map((location) => (
                         <option key={location} value={location}>{location}</option>
                       ))}
-                    </select>
+                    </select></CatalogField>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Detailed description *</label>
-                  <textarea
-                    required
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Giới thiệu (cần khi công bố)</label>
+                  <CatalogField name="description" label="Giới thiệu tour"><textarea maxLength={50000}
+
                     rows={3}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                     value={editForm.description ?? ""}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  />
+                  /></CatalogField>
                 </div>
 
                 <div className="border-t pt-3 space-y-3">
@@ -959,7 +983,7 @@ export function EventsGuidesAdminPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">Difficulty</label>
-                      <select
+                      <CatalogField name="details.difficultyLevel" label="Độ khó"><select
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                         value={editForm.details?.difficultyLevel || "MODERATE"}
                         onChange={(e) =>
@@ -975,34 +999,34 @@ export function EventsGuidesAdminPage() {
                         <option value="EASY">Easy (beginners)</option>
                         <option value="MODERATE">Moderate (basic fitness)</option>
                         <option value="HARD">Challenging (experienced hikers)</option>
-                      </select>
+                      </select></CatalogField>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">
                         Estimated duration (minutes)
                       </label>
-                      <input
+                      <CatalogField name="details.durationMinutes" label="Thời lượng (phút)"><input max={2147483647} step="1"
                         type="number"
-                        min="60"
+                        min="1"
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
-                        value={editForm.details?.durationMinutes ?? 1440}
+                        value={editForm.details?.durationMinutes ?? ""}
                         onChange={(e) =>
                           setEditForm({
                             ...editForm,
                             details: {
                               ...editForm.details,
-                              durationMinutes: Number(e.target.value),
+                              durationMinutes: e.target.value === "" ? undefined : inputNumber(e.target.value),
                             },
                           })
                         }
-                      />
+                      /></CatalogField>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">
-                        Pickup & meeting point *
+                        Điểm tập trung (cần khi công bố)
                       </label>
-                      <input
-                        required
+                      <CatalogField name="details.meetingPoint" label="Điểm tập trung"><input maxLength={10000}
+
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                         placeholder="Example: Field operations station"
                         value={editForm.details?.meetingPoint ?? ""}
@@ -1015,14 +1039,14 @@ export function EventsGuidesAdminPage() {
                             },
                           })
                         }
-                      />
+                      /></CatalogField>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">
-                        Participation requirements *
+                        Yêu cầu tham gia (cần khi công bố)
                       </label>
-                      <input
-                        required
+                      <CatalogField name="details.requirements" label="Yêu cầu tham gia"><input maxLength={10000}
+
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                         placeholder="Example: Good fitness, suitable hiking shoes"
                         value={editForm.details?.requirements ?? ""}
@@ -1035,7 +1059,7 @@ export function EventsGuidesAdminPage() {
                             },
                           })
                         }
-                      />
+                      /></CatalogField>
                     </div>
                   </div>
                 </div>
@@ -1054,7 +1078,7 @@ export function EventsGuidesAdminPage() {
                     {busy ? "Saving..." : "Save changes"}
                   </button>
                 </div>
-              </form>
+              </CatalogForm>
             )}
           </div>
         </div>
@@ -1092,13 +1116,13 @@ export function EventsGuidesAdminPage() {
                   Upload another image
                 </h4>
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <input
+                  <CatalogField name="imageDescription" label="Mô tả ảnh"><input maxLength={1000}
                     type="text"
-                    className="border border-[#c7cfc9] bg-white p-2 text-sm rounded-xs"
+                    className="w-full border border-[#c7cfc9] bg-white p-2 text-sm rounded-xs"
                     placeholder="Image description (optional, e.g. Sunset campsite)"
                     value={imageDescription}
                     onChange={(e) => setImageDescription(e.target.value)}
-                  />
+                  /></CatalogField>
                   <label
                     className={`store-button text-sm py-2 px-4 cursor-pointer flex items-center justify-center gap-2 ${
                       uploadingImage ? "opacity-50 pointer-events-none" : ""
@@ -1111,10 +1135,11 @@ export function EventsGuidesAdminPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       disabled={uploadingImage}
-                      onChange={(e) => void handleUploadInsideModal(e.target.files?.[0])}
+                      onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void handleUploadInsideModal(file); }}
                     />
                   </label>
                 </div>
+                {imageError && <p role="alert" className="text-sm text-red-700">{imageError}</p>}
                 <small className="text-[11px] text-gray-500 block">
                   JPG, PNG, and WebP up to 5 MB are supported. The first image becomes the cover image.
                 </small>
