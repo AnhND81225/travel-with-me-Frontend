@@ -18,4 +18,4 @@ Nhánh `feature/tour-detail-redesign`, chỉnh trực tiếp `ExpeditionDetailPa
 - Preview local dùng backend thật với DB local riêng `tour_detail_ui_20261028`; nội dung tour Tà Năng được sao chép từ response API đã có để kiểm tra, lịch tương lai là fixture local. Không mock API trong source, không ghi Supabase, không gửi mail hay gọi thanh toán thật.
 - Kiểm tra trực quan lịch còn chỗ/đủ chỗ và liên kết đăng nhập; chưa xác minh đầy đủ lượt tạo vé qua browser.
 - Tablet/mobile chưa kiểm thử theo yêu cầu người dùng; CSS responsive cơ bản được giữ.
-- Chưa commit/push nhánh này.
+- 2026-10-28: lưu redesign trong commit d17ff60; fetch và merge origin/main mới nhất 2a47e35 qua merge commit 7d23dc8, không có conflict. Sau merge: TypeScript, 32 tests và production build PASS; chỉ còn cảnh báo bundle lớn hiện hữu. Nhánh giao nhận: feature/tour-detail-redesign; không merge vào main.
