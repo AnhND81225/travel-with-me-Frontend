@@ -78,7 +78,7 @@ export const refunds = {
     method: 'POST', body: JSON.stringify(body),
   }),
   mine: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds/me?page=${page}&size=20`),
-  pending: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20`),
+  list: (page = 0, status: 'PENDING' | 'SUCCEEDED' = 'PENDING') => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20&status=${status}`),
   confirm: (id: number) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST' }),
 };
 
