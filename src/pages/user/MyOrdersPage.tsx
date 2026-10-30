@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { catalogApi, Branch, Product, vnd } from "../../features/equipment/catalogApi";
+import { refunds } from "../../features/payment/paymentApi";
 import { cancelUnpaidOrder } from "../../features/payment/cancelUnpaidOrder";
 import type { Order, OrderStatus } from "../../features/orders/orderApi";
 import { AdminOrdersPage } from "../admin/AdminOrdersPage";
@@ -40,6 +41,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   }
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [refundOrderIds, setRefundOrderIds] = useState<Set<number>>(new Set());
+  const [refundsLoaded, setRefundsLoaded] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState("");
@@ -80,6 +83,29 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       setRefreshing(false);
     }
   }
+
+  useEffect(() => {
+    let active = true;
+    async function loadRefundOrders() {
+      setRefundsLoaded(false);
+      try {
+        const ids = new Set<number>();
+        for (let page = 0; active; page++) {
+          const rows = await refunds.mine(page);
+          for (const row of rows) if (row.orderId !== null) ids.add(row.orderId);
+          if (rows.length < 20) break;
+        }
+        if (active) { setRefundOrderIds(ids); setRefundsLoaded(true); }
+      } catch {
+        // Only show the link when the server confirms a request exists.
+        if (active) setRefundOrderIds(new Set());
+      }
+    }
+    void loadRefundOrders();
+    const refreshRefunds = () => { if (document.visibilityState === 'visible') void loadRefundOrders(); };
+    window.addEventListener('focus', refreshRefunds);
+    return () => { active = false; window.removeEventListener('focus', refreshRefunds); };
+  }, [orders]);
 
   useEffect(() => {
     let active = true;
@@ -766,6 +792,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {refundsLoaded && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Yêu cầu hoàn tiền</Link>}
+                    {refundOrderIds.has(order.id) && <Link to="/refunds" className="text-xs underline">Yêu cầu hoàn tiền của tôi</Link>}
                     {/* View Details Button */}
                     <Button
                       variant="secondary"

@@ -1304,6 +1304,7 @@ function TicketContent({
                   </Button>
                 )}
 
+                {['CANCELLED', 'EXPIRED'].includes(p.participantStatus) && <div className="space-y-2"><Link to={`/refunds?participantId=${p.id}`} className="block"><Button variant="secondary" className="w-full">Yêu cầu hoàn tiền</Button></Link><Link to="/refunds" className="text-xs underline">Yêu cầu hoàn tiền của tôi</Link></div>}
                 {['CANCELLED', 'EXPIRED'].includes(p.participantStatus) && s && bookable(s, now) && (
                   <Button
                     variant="accent"

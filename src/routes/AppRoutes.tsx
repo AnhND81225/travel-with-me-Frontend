@@ -1,4 +1,5 @@
 import React from 'react';
+import { RefundsPage } from '../features/payment/RefundPages';
 import { PaymentResultPage } from '../features/payment/PaymentPages';
 import { ScheduleGuard } from '../features/schedules/ui';
 import { AuthPage } from '../pages/auth/AuthPage';
@@ -106,9 +107,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
         <Route path="orders" element={<MyOrdersPage />} />
-        <Route path="payment/result" element={<PaymentResultPage />} />
-        <Route path="payment/pending" element={<PaymentResultPage />} />
-        <Route path="payment/success" element={<PaymentResultPage />} />
+        <Route path="refunds" element={<ProtectedRoute allowedRoles={['CUSTOMER']}><RefundsPage /></ProtectedRoute>} />
         <Route path="my-tours" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><MyToursPage /></ScheduleGuard>} />
         <Route path="my-tours/:participantId" element={<ScheduleGuard roles={['CUSTOMER', 'ADMIN', 'STAFF']}><TicketDetailPage /></ScheduleGuard>} />
         <Route path="payment" element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
@@ -152,6 +151,7 @@ export const AppRoutes: React.FC = () => {
         }
       >
         <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="refunds" element={<RefundsPage admin />} />
         <Route index element={<AdminDashboardPage />} />
         <Route path="inventory" element={<AdminInventoryPage />} />
         <Route path="catalog" element={<AdminCatalogPage />} />
