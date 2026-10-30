@@ -22,6 +22,7 @@ export const AdminLayout: React.FC = () => {
   const { setUserRole } = useAppStore();
 
   const adminNav = [
+    { path: '/admin/refunds', label: 'Manual Refunds', icon: <BarChart3 className="w-4 h-4" /> },
     { path: '/admin/orders', label: 'Equipment Orders', icon: <Package className="w-4 h-4" /> },
     { path: '/admin', label: 'Executive Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { path: '/admin/inventory', label: 'Multi-Branch Inventory', icon: <Package className="w-4 h-4" /> },

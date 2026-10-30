@@ -52,6 +52,7 @@ export type TransactionHistory = {
   paymentMethod: string;
   status: PaymentStatus;
   createdAt: string;
+  refundReason: string | null;
 };
 
 export const payments = {
@@ -69,3 +70,16 @@ export const payments = {
     content: TransactionHistory[]; page: number; size: number; totalElements: number; totalPages: number;
   }>(`/payments/transactions/history?page=${page}&size=${size}`),
 };
+
+export type RefundTarget = { orderId: number; participantId?: never } | { participantId: number; orderId?: never };
+export const refunds = {
+  preview: (target: RefundTarget) => paymentApi<RefundPreview>(`/payments/refunds/preview?${new URLSearchParams(Object.entries(target).map(([key, value]) => [key, String(value)]))}`),
+  request: (body: RefundTarget & { reason: string }) => paymentApi<TransactionHistory>('/payments/refunds', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  mine: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds/me?page=${page}&size=20`),
+  pending: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20`),
+  confirm: (id: number) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST' }),
+};
+
+export type RefundPreview = { orderId: number | null; participantId: number | null; receivedAmount: number; refundedAmount: number; refundableAmount: number };
