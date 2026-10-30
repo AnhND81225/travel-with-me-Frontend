@@ -53,6 +53,10 @@ export type TransactionHistory = {
   status: PaymentStatus;
   createdAt: string;
   refundReason: string | null;
+  succeededAt: string | null;
+  refundConfirmedBy: number | null;
+  refundTransferReference: string | null;
+  refundConfirmationNote: string | null;
 };
 
 export const payments = {
@@ -79,7 +83,7 @@ export const refunds = {
   }),
   mine: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds/me?page=${page}&size=20`),
   list: (page = 0, status: 'PENDING' | 'SUCCEEDED' = 'PENDING') => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20&status=${status}`),
-  confirm: (id: number) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST' }),
+  confirm: (id: number, body: { transferReference: string; note?: string }) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export type RefundPreview = { orderId: number | null; participantId: number | null; receivedAmount: number; refundedAmount: number; refundableAmount: number };

@@ -15,6 +15,8 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
   const participantId = positiveId(params.get('participantId'));
   const [rows, setRows] = useState<TransactionHistory[]>([]);
   const [reason, setReason] = useState('');
+  const [transferReference, setTransferReference] = useState('');
+  const [confirmationNote, setConfirmationNote] = useState('');
   const [preview, setPreview] = useState<RefundPreview | null>(null);
   const [previewError, setPreviewError] = useState('');
   const [submitted, setSubmitted] = useState<TransactionHistory | null>(null);
@@ -65,10 +67,11 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
 
   async function submit(id?: number) {
     if (inFlight.current) return;
+    if (admin && !transferReference.trim()) { setError('Vui lòng nhập mã tham chiếu chuyển tiền.'); return; }
     if (!admin && !reason.trim()) { setError('Vui lòng nhập lý do hoàn tiền.'); return; }
     inFlight.current = true; setBusy(true); setError(''); setNotice('');
     try {
-      const result = admin && id ? await refunds.confirm(id)
+      const result = admin && id ? await refunds.confirm(id, { transferReference: transferReference.trim(), note: confirmationNote.trim() })
         : orderId && !participantId ? await refunds.request({ orderId, reason: reason.trim() })
         : participantId && !orderId ? await refunds.request({ participantId, reason: reason.trim() })
         : null;
@@ -96,7 +99,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
           <p>Cho chúng tôi biết vì sao bạn muốn hoàn tiền để chi nhánh xử lý yêu cầu.</p>
           <textarea id="refund-reason" required maxLength={2000} rows={5} value={reason} onChange={e => setReason(e.target.value)} placeholder="Ví dụ: Tôi thay đổi lịch trình và không thể tham gia chuyến đi…" disabled={busy || targetRows.some(row => row.status === 'PENDING')}/>
           <small>{reason.length}/2000 ký tự</small>
-          <p className="rf-policy">Yêu cầu được kiểm tra trước khi hoàn tiền thủ công. Gửi yêu cầu không tự hủy đơn hoặc vé và chưa có nghĩa tiền đã được hoàn.</p>
+          <p className="rf-policy">Yêu cầu được kiểm tra trước khi hoàn tiền thủ công. Đơn hàng sẽ bị khóa duyệt và thanh toán khi chờ hoàn tiền; sau khi admin xác nhận hoàn toàn bộ, đơn tự chuyển sang đã hủy. Gửi yêu cầu chưa có nghĩa tiền đã được hoàn.</p>
           <button type="submit" className="pp-button" disabled={busy || loading || !preview || preview.refundableAmount <= 0 || !reason.trim() || targetRows.some(row => row.status === 'PENDING')}>{busy ? 'Đang gửi…' : targetRows.some(row => row.status === 'PENDING') ? 'Đã gửi yêu cầu hoàn tiền' : 'Gửi yêu cầu hoàn tiền'}</button>
         </form>
       </section>
@@ -106,7 +109,8 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       <div className="rf-confirm-body"><div className="rf-confirm-icon"><ReceiptText size={26}/></div><h2>Bạn đã hoàn tiền cho khách?</h2><p>Chỉ xác nhận khi đã chuyển tiền lại bên ngoài hệ thống.</p><strong className="rf-confirm-amount">{vnd(confirmation.amount)}</strong><span>{confirmation.orderId ? `Đơn hàng #${confirmation.orderId}` : `Vé tour #${confirmation.participantId}`}</span></div>
       <div className="rf-saved-reason"><strong>Lý do khách yêu cầu</strong><p>{confirmation.refundReason || 'Yêu cầu cũ chưa có lý do.'}</p></div>
       {error && <div className="pp-error" role="alert">{error}</div>}
-      <div className="rf-confirm-actions"><button type="button" className="pp-button secondary" disabled={busy} onClick={() => { setConfirmation(null); setError(''); }}>Quay lại</button><button type="button" className="pp-button" disabled={busy} onClick={() => void submit(confirmation.transactionId)}>{busy ? <RefreshCw size={16} className="pp-spin"/> : <CheckCircle2 size={16}/>} {busy ? 'Đang xác nhận…' : 'Xác nhận đã hoàn tiền'}</button></div>
+      <div className="rf-reason-form"><label htmlFor="refund-reference">Mã tham chiếu chuyển tiền *</label><input id="refund-reference" required maxLength={200} value={transferReference} onChange={e => setTransferReference(e.target.value)} disabled={busy}/><label htmlFor="refund-note">Ghi chú chuyển tiền</label><textarea id="refund-note" maxLength={2000} value={confirmationNote} onChange={e => setConfirmationNote(e.target.value)} disabled={busy}/></div>
+      <div className="rf-confirm-actions"><button type="button" className="pp-button secondary" disabled={busy} onClick={() => { setConfirmation(null); setError(''); }}>Quay lại</button><button type="button" className="pp-button" disabled={busy || !transferReference.trim()} onClick={() => void submit(confirmation.transactionId)}>{busy ? <RefreshCw size={16} className="pp-spin"/> : <CheckCircle2 size={16}/>} {busy ? 'Đang xác nhận…' : 'Xác nhận đã hoàn tiền'}</button></div>
     </Modal>}
     <section className="pp-card pp-body rf-history"><div className="rf-history-heading"><div><span className="tc-eyebrow">THEO DÕI HOÀN TIỀN</span><h2>{admin ? refundStatus === 'PENDING' ? 'Yêu cầu chờ xử lý' : 'Yêu cầu đã hoàn tiền' : 'Yêu cầu đã gửi & kết quả'}</h2></div><button type="button" className="rf-refresh" disabled={busy || loading} onClick={() => { setError(''); void load().catch(e => setError(e instanceof Error ? e.message : 'Không thể tải lại.')); }}><RefreshCw size={15} className={loading ? 'pp-spin' : ''}/>Tải lại</button></div>
       {admin && <div className="rf-filter-tabs" role="group" aria-label="Lọc trạng thái hoàn tiền">
@@ -115,8 +119,8 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       </div>}
       {loading ? <div className="rf-history-empty" role="status"><RefreshCw size={24} className="pp-spin"/><p>Đang tải yêu cầu hoàn tiền…</p></div> : rows.length === 0 ? <div className="rf-history-empty"><span className="rf-history-empty-icon"><ClipboardList size={27}/></span><h3>{error ? 'Chưa tải được danh sách' : admin ? refundStatus === 'PENDING' ? 'Không có yêu cầu chờ xử lý' : 'Chưa có phiếu đã hoàn tiền' : 'Bạn chưa gửi yêu cầu hoàn tiền'}</h3><p>{error ? 'Vui lòng tải lại để kiểm tra trạng thái yêu cầu.' : admin ? refundStatus === 'PENDING' ? 'Các yêu cầu mới của khách sẽ xuất hiện tại đây.' : 'Các phiếu được xác nhận hoàn tiền sẽ được lưu tại đây.' : 'Sau khi gửi thành công, bạn có thể theo dõi tiến trình và kết quả tại đây.'}</p></div> : <div className="rf-request-list">{rows.map(row => <article key={row.transactionId} className="rf-request-row">
         <div className="rf-request-info"><div className="rf-request-id"><span className="rf-receipt-icon"><ReceiptText size={20}/></span><div><span className="tc-eyebrow">PHIẾU HOÀN TIỀN</span><h3>Refund #{row.transactionId}</h3></div></div><strong className="rf-request-amount">{vnd(row.amount)}</strong><Link to={row.orderId ? (admin ? '/admin/orders' : '/orders') : (admin ? '/admin/schedule-payment-reviews' : `/my-tours/${row.participantId}`)}>{row.orderId ? `Đơn hàng #${row.orderId}` : `Vé tour #${row.participantId}`}</Link><p className="rf-request-date"><Clock3 size={13}/><time dateTime={row.createdAt}>{new Date(row.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</time></p></div>
-        <div className="rf-request-reason"><span className="rf-reason-heading"><MessageSquareText size={15}/>LÝ DO HOÀN TIỀN</span><p>{row.refundReason || 'Yêu cầu cũ chưa có lý do.'}</p></div>
-        <div className="rf-request-actions"><span className={`rf-status-badge ${row.status === 'SUCCEEDED' ? 'is-complete' : ''}`}><span className="rf-status-dot"/>{row.status === 'SUCCEEDED' ? 'Đã hoàn tiền' : row.status === 'PENDING' ? 'Chờ xử lý' : row.status}</span>{admin && row.status === 'PENDING' && <button className="pp-button" disabled={busy} onClick={() => { setError(''); setConfirmation(row); }}><CheckCircle2 size={15}/>Xác nhận đã hoàn tiền</button>}</div>
+        <div className="rf-request-reason"><span className="rf-reason-heading"><MessageSquareText size={15}/>LÝ DO HOÀN TIỀN</span><p>{row.refundReason || 'Yêu cầu cũ chưa có lý do.'}</p>{row.status === 'SUCCEEDED' && <p>Hoàn lúc: {row.succeededAt ? new Date(row.succeededAt).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}{row.refundTransferReference && <> · Mã chuyển tiền: {row.refundTransferReference}</>}{row.refundConfirmationNote && <> · {row.refundConfirmationNote}</>}</p>}</div>
+        <div className="rf-request-actions"><span className={`rf-status-badge ${row.status === 'SUCCEEDED' ? 'is-complete' : ''}`}><span className="rf-status-dot"/>{row.status === 'SUCCEEDED' ? 'Đã hoàn tiền' : row.status === 'PENDING' ? 'Chờ xử lý' : row.status}</span>{admin && row.status === 'PENDING' && <button className="pp-button" disabled={busy} onClick={() => { setError(''); setTransferReference(''); setConfirmationNote(''); setConfirmation(row); }}><CheckCircle2 size={15}/>Xác nhận đã hoàn tiền</button>}</div>
       </article>)}</div>}
       {!loading && (page > 0 || hasNext) && <nav className="rf-pagination" aria-label="Phân trang yêu cầu hoàn tiền"><span>Trang <strong>{page + 1}</strong></span><div><button type="button" disabled={page === 0 || busy} onClick={() => setPage(value => value - 1)}><ChevronLeft size={16}/>Trang trước</button><button type="button" disabled={!hasNext || busy} onClick={() => setPage(value => value + 1)}>Trang sau<ChevronRight size={16}/></button></div></nav>}
     </section>

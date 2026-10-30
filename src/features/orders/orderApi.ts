@@ -30,6 +30,7 @@ export type Order = {
   paidAmount: number;
   remainingAmount: number;
   canApprove: boolean;
+  refundPending: boolean;
   canCancel: boolean;
   customerReceivedAt: string | null;
   canConfirmReceipt: boolean;

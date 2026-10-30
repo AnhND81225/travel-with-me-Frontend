@@ -676,7 +676,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           {filteredOrders.map((order) => {
             const branch = branchMap.get(order.branchId);
             const isBusy = busy === order.id;
-            const needsPayment = order.status === "PENDING" && order.paymentStatus !== "PAID";
+            const needsPayment = order.status === "PENDING" && !order.refundPending && order.paymentStatus !== "PAID";
 
             return (
               <Card
@@ -792,8 +792,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {refundsLoaded && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Yêu cầu hoàn tiền</Link>}
-                    {refundOrderIds.has(order.id) && <Link to="/refunds" className="text-xs underline">Yêu cầu hoàn tiền của tôi</Link>}
+                    {refundsLoaded && !order.refundPending && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Yêu cầu hoàn tiền</Link>}
+                    {order.refundPending && <span role="status" className="text-xs font-bold text-[#994717]">Đang chờ hoàn tiền · Đã khóa duyệt và thanh toán</span>}
+                    {(order.refundPending || refundOrderIds.has(order.id)) && <Link to="/refunds" className="text-xs underline">Yêu cầu hoàn tiền của tôi</Link>}
                     {/* View Details Button */}
                     <Button
                       variant="secondary"
@@ -830,7 +831,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       <Button
                         variant="outlined"
                         size="sm"
-                        disabled={isBusy || !(order.canCancel || (order.paymentStatus === "UNPAID" && order.paidAmount === 0))}
+                        disabled={isBusy || !order.canCancel}
                         onClick={() => setOrderToCancel(order)}
                         icon={<X className="w-3.5 h-3.5" />}
                       >
@@ -973,7 +974,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     {busy === selectedOrder.id ? "Confirming…" : "Confirm receipt"}
                   </Button>
                 )}
-                {selectedOrder.status === "PENDING" && selectedOrder.paymentStatus !== "PAID" && (
+                {selectedOrder.status === "PENDING" && !selectedOrder.refundPending && selectedOrder.paymentStatus !== "PAID" && (
                   <Link to={`/payment/pending?orderId=${selectedOrder.id}`}>
                     <Button
                       variant="accent"
