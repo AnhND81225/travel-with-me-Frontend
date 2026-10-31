@@ -282,7 +282,7 @@ export const AdminUsersPage: React.FC = () => {
       </div>
 
       {/* Role Tabs */}
-      <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5] max-w-xl">
+      <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5] max-w-md">
         <button
           type="button"
           onClick={() => setRoleFilter('CUSTOMER')}
@@ -304,17 +304,6 @@ export const AdminUsersPage: React.FC = () => {
           }`}
         >
           All Accounts ({totalCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setRoleFilter('STAFF')}
-          className={`flex-1 py-1.5 px-3 text-xs font-bold uppercase tracking-wider rounded-xs transition cursor-pointer text-center ${
-            roleFilter === 'STAFF'
-              ? 'bg-[#152A20] text-[#F3EFE6] shadow-xs'
-              : 'text-[#5C665F] hover:text-[#111D16]'
-          }`}
-        >
-          Staff
         </button>
       </div>
 
