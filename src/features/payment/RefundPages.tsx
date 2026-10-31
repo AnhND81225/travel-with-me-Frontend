@@ -186,6 +186,14 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
     orderId ? row.orderId === orderId : row.participantId === participantId
   );
 
+  const isPendingRefund = targetRows.some((row) => row.status === 'PENDING');
+  const succeededRefund = targetRows.find((row) => row.status === 'SUCCEEDED');
+  const isAlreadyRefunded = Boolean(
+    succeededRefund || (preview && preview.refundableAmount <= 0 && preview.refundedAmount > 0)
+  );
+  const pendingRefundRow = targetRows.find((row) => row.status === 'PENDING');
+  const isUnpaid = Boolean(preview && preview.receivedAmount === 0 && preview.refundableAmount === 0);
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Top Breadcrumb Navigation */}
@@ -268,92 +276,264 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       {/* Interactive Refund Request Section (When orderId or participantId is selected) */}
       {!admin && (orderId || participantId) && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Target Item Inspection & Reason Input Form */}
+          {/* Left Column: Target Item Inspection & Status / Form */}
           <div className="lg:col-span-7 space-y-4">
             <RefundTargetDetails orderId={orderId} participantId={participantId} />
 
-            <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-4">
-              <div className="border-b border-[#D8D2C5] pb-2.5">
-                <h3 className="font-headline font-bold text-base text-[#111D16]">
-                  Refund Justification & Details
-                </h3>
-                <p className="text-xs text-[#5C665F] font-body mt-0.5">
-                  State the reason for cancellation or return so our outpost team can audit and approve your request.
-                </p>
-              </div>
+            {/* Condition 1: Already Fully Refunded */}
+            {isAlreadyRefunded ? (
+              <Card padding="md" className="bg-[#E0EFE6] border-2 border-[#10B981] rounded-xs space-y-4 font-label">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#152A20] text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="success" className="bg-[#152A20] text-emerald-400 font-bold">
+                        REFUND COMPLETED · 100% DISBURSED
+                      </Badge>
+                      <span className="text-[10px] text-[#065F46] font-mono-spec font-bold">
+                        ESCROW SETTLED
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-[#111D16] font-headline">
+                      This Order Has Already Been Fully Refunded
+                    </h3>
+                    <p className="text-xs text-[#065F46] font-body leading-relaxed">
+                      All eligible funds for this order have already been returned to your original payment method or bank account. You do not need to submit any further refund request.
+                    </p>
+                  </div>
+                </div>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void submit();
-                }}
-                className="space-y-4"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center text-xs">
-                    <label htmlFor="refund-reason" className="font-bold text-[#111D16] uppercase text-[10px]">
-                      Reason for Refund Request <span className="text-red-600">*</span>
-                    </label>
-                    <span className="text-[10px] text-[#737C75] font-mono-spec">
-                      {reason.length}/2000
+                {/* Refund Record Details */}
+                <div className="p-3.5 bg-white border border-[#ADCBBB] rounded-xs space-y-2 text-xs">
+                  <div className="flex justify-between items-center text-[#111D16]">
+                    <span className="text-[#5C665F]">Total refunded amount:</span>
+                    <span className="font-bold text-base text-[#D97845] font-headline">
+                      {vnd(preview?.refundedAmount || succeededRefund?.amount || preview?.receivedAmount || 0)}
                     </span>
                   </div>
 
-                  <textarea
-                    id="refund-reason"
-                    required
-                    maxLength={2000}
-                    rows={4}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="E.g. Travel schedule was modified due to weather, or unexpected personal conflict prevented equipment pickup..."
-                    disabled={busy || targetRows.some((row) => row.status === 'PENDING')}
-                    className="w-full p-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] leading-relaxed resize-y"
-                  />
+                  {succeededRefund?.refundTransferReference && (
+                    <div className="flex justify-between items-center text-[#5C665F] pt-1.5 border-t border-[#EBE6DC]">
+                      <span>Bank Transfer Reference:</span>
+                      <span className="font-mono-spec font-bold text-[#111D16]">
+                        {succeededRefund.refundTransferReference}
+                      </span>
+                    </div>
+                  )}
+
+                  {succeededRefund?.succeededAt && (
+                    <div className="flex justify-between items-center text-[#5C665F] pt-1.5 border-t border-[#EBE6DC]">
+                      <span>Completed at:</span>
+                      <span className="font-mono-spec text-[#111D16]">
+                        {new Date(succeededRefund.succeededAt).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                  )}
+
+                  {succeededRefund?.refundReason && (
+                    <div className="pt-2 border-t border-[#EBE6DC] space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-[#737C75]">
+                        Cancellation Reason:
+                      </span>
+                      <p className="text-[11px] text-[#424844] italic bg-[#F8F6F1] p-2 rounded-xs border border-[#EBE6DC]">
+                        "{succeededRefund.refundReason}"
+                      </p>
+                    </div>
+                  )}
+
+                  {succeededRefund?.refundConfirmationNote && (
+                    <div className="pt-1.5 text-[11px] text-[#065F46] flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Admin note: {succeededRefund.refundConfirmationNote}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[11px] text-[#5C665F] space-y-1 font-body">
-                  <div className="font-bold text-[#D97845] flex items-center gap-1.5 font-label uppercase text-[10px]">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    TerraPeak Escrow Terms
+                <div className="flex items-center gap-2 pt-1">
+                  <Link to="/orders">
+                    <Button variant="primary" size="sm" icon={<Package className="w-3.5 h-3.5" />}>
+                      Return to My Orders
+                    </Button>
+                  </Link>
+                  <Link to="/shop">
+                    <Button variant="secondary" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
+                      Browse Equipment
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ) : isPendingRefund ? (
+              /* Condition 2: Refund Request Pending Review */
+              <Card padding="md" className="bg-[#FFF7ED] border-2 border-[#FDBA74] rounded-xs space-y-4 font-label">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
+                    <Clock3 className="w-6 h-6 animate-pulse" />
                   </div>
-                  <p>
-                    Refund requests are audited by depot armory staff. Order progress and active handovers are paused while this request is pending.
+                  <div className="space-y-1">
+                    <Badge variant="warning" className="bg-[#EA580C] text-white font-bold">
+                      REFUND REQUEST UNDER REVIEW
+                    </Badge>
+                    <h3 className="text-base font-bold text-[#111D16] font-headline">
+                      Your Refund Request Is Being Audited
+                    </h3>
+                    <p className="text-xs text-[#9A3412] font-body leading-relaxed">
+                      You have already submitted a refund request for this order. Outpost administrators are currently inspecting your request against the return custody protocol.
+                    </p>
+                  </div>
+                </div>
+
+                {pendingRefundRow && (
+                  <div className="p-3.5 bg-white border border-[#FDBA74] rounded-xs space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-[#111D16]">
+                      <span className="text-[#737C75]">Requested refund amount:</span>
+                      <span className="font-bold text-base text-[#D97845] font-headline">
+                        {vnd(pendingRefundRow.amount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[#737C75] pt-1.5 border-t border-[#EBE6DC]">
+                      <span>Submitted at:</span>
+                      <span className="font-mono-spec text-[#111D16]">
+                        {new Date(pendingRefundRow.createdAt).toLocaleString('en-GB')}
+                      </span>
+                    </div>
+                    {pendingRefundRow.refundReason && (
+                      <div className="pt-2 border-t border-[#EBE6DC] space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-[#737C75]">
+                          Your Submitted Reason:
+                        </span>
+                        <p className="text-[11px] text-[#424844] italic bg-[#F8F6F1] p-2 rounded-xs border border-[#EBE6DC]">
+                          "{pendingRefundRow.refundReason}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-3 bg-white/70 border border-[#FDBA74]/50 rounded-xs text-[11px] text-[#737C75] flex items-start gap-2">
+                  <Info className="w-4 h-4 text-[#D97845] shrink-0 mt-0.5" />
+                  <span>
+                    Active handovers and branch approvals are paused during review. Once confirmed, funds will be transferred directly to your bank account.
+                  </span>
+                </div>
+
+                <div className="pt-1">
+                  <Link to="/orders">
+                    <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
+                      Back to My Orders
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ) : isUnpaid ? (
+              /* Condition 3: Unpaid Order */
+              <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-3 font-label text-center py-8">
+                <AlertTriangle className="w-10 h-10 text-[#D97845] mx-auto" />
+                <h3 className="text-base font-bold text-[#111D16] font-headline">
+                  No Completed Payment to Refund
+                </h3>
+                <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
+                  This order was not paid or has zero paid amount recorded. No escrow refund is applicable.
+                </p>
+                <div className="pt-2">
+                  <Link to="/orders">
+                    <Button variant="secondary" size="sm">Return to My Orders</Button>
+                  </Link>
+                </div>
+              </Card>
+            ) : (
+              /* Condition 4: Eligible to Request Refund (Show Form) */
+              <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-4 font-label">
+                <div className="border-b border-[#D8D2C5] pb-2.5">
+                  <h3 className="font-headline font-bold text-base text-[#111D16]">
+                    Refund Justification & Details
+                  </h3>
+                  <p className="text-xs text-[#5C665F] font-body mt-0.5">
+                    State the reason for cancellation or return so our outpost team can audit and approve your request.
                   </p>
                 </div>
 
-                <Button
-                  type="submit"
-                  variant="accent"
-                  size="md"
-                  fullWidth
-                  disabled={
-                    busy ||
-                    loading ||
-                    !preview ||
-                    preview.refundableAmount <= 0 ||
-                    !reason.trim() ||
-                    targetRows.some((row) => row.status === 'PENDING')
-                  }
-                  icon={<RotateCcw className="w-4 h-4" />}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void submit();
+                  }}
+                  className="space-y-4"
                 >
-                  {busy
-                    ? 'Submitting Request...'
-                    : targetRows.some((row) => row.status === 'PENDING')
-                    ? 'Refund Request Under Review'
-                    : 'Submit Refund Request'}
-                </Button>
-              </form>
-            </Card>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <label htmlFor="refund-reason" className="font-bold text-[#111D16] uppercase text-[10px]">
+                        Reason for Refund Request <span className="text-red-600">*</span>
+                      </label>
+                      <span className="text-[10px] text-[#737C75] font-mono-spec">
+                        {reason.length}/2000
+                      </span>
+                    </div>
+
+                    <textarea
+                      id="refund-reason"
+                      required
+                      maxLength={2000}
+                      rows={4}
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="E.g. Travel schedule was modified due to weather, or unexpected personal conflict prevented equipment pickup..."
+                      disabled={busy}
+                      className="w-full p-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] leading-relaxed resize-y"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[11px] text-[#5C665F] space-y-1 font-body">
+                    <div className="font-bold text-[#D97845] flex items-center gap-1.5 font-label uppercase text-[10px]">
+                      <Info className="w-3.5 h-3.5 shrink-0" />
+                      TerraPeak Escrow Terms
+                    </div>
+                    <p>
+                      Refund requests are audited by depot armory staff. Order progress and active handovers are paused while this request is pending.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="accent"
+                    size="md"
+                    fullWidth
+                    disabled={
+                      busy ||
+                      loading ||
+                      !preview ||
+                      preview.refundableAmount <= 0 ||
+                      !reason.trim()
+                    }
+                    icon={<RotateCcw className="w-4 h-4" />}
+                  >
+                    {busy ? 'Submitting Request...' : 'Submit Refund Request'}
+                  </Button>
+                </form>
+              </Card>
+            )}
           </div>
 
           {/* Right Column: Financial Breakdown Summary */}
           <div className="lg:col-span-5 sticky top-24 space-y-4">
             <Card padding="md" className="bg-white border-2 border-[#152A20] space-y-4 shadow-sm font-label">
               <div className="border-b border-[#D8D2C5] pb-3">
-                <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
-                  ESCROW SETTLEMENT AUDIT
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
+                    ESCROW SETTLEMENT AUDIT
+                  </span>
+                  {isAlreadyRefunded && (
+                    <Badge variant="success" className="text-[9px] py-0 px-1.5 font-bold">
+                      SETTLED
+                    </Badge>
+                  )}
+                  {isPendingRefund && (
+                    <Badge variant="warning" className="text-[9px] py-0 px-1.5 font-bold">
+                      UNDER AUDIT
+                    </Badge>
+                  )}
+                </div>
                 <h3 className="text-base font-bold text-[#111D16] font-headline mt-0.5">
                   Estimated Refund Valuation
                 </h3>
