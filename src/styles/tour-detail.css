@@ -71,6 +71,11 @@
 .td-booking-shell .m5-departures { max-height:330px; scrollbar-width:thin; scrollbar-color:#8fa68f #173d2c; }
 .td-booking-shell .m5-departures label.m5-departure { background:#214733; color:#faf5e9; border:1px solid #ffffff24; border-radius:13px; margin:8px 0; padding:13px; }
 .td-booking-shell .m5-departures label.m5-departure:has(input:checked) { background:#30573e; border-color:#d0dabc; }
+.td-booking-shell .m5-departure > span { min-width:0; }
+.td-booking-shell .m5-departure strong { color:#fffdf8; font-size:13px; line-height:1.5; }
+.td-booking-shell .m5-departure small { color:#e0e9df; font-size:12px; line-height:1.7; margin-top:3px; }
+.td-booking-shell .m5-departure .m5-badge { margin:7px 0 3px; }
+.td-booking-shell .m5-departures label.m5-departure:hover { border-color:#9fbaa5; }
 .td-booking-shell .m5-departures input { accent-color:#c5d9a7; }
 .td-booking-shell>.m5-booking>.m5-primary { border:0; border-radius:40px; padding:14px 18px; background:#bd673b; color:white; margin-top:18px; }
 .td-booking-shell>.m5-booking>.m5-primary:hover { background:#a9552c; }
