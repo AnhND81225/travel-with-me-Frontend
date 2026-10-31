@@ -98,12 +98,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   selectedStation: {
     id: "default-station",
-    name: "Trạm Trung Tâm TerraPeak",
+    name: "TerraPeak Central Outpost",
     code: "HQ-01",
     elevation: "1,600M",
     coordinates: "22.3364° N, 103.8438° E",
-    region: "Toàn quốc",
-    address: "Hệ thống trạm Outpost",
+    region: "Nationwide",
+    address: "Outpost network",
     phone: "1900-TERRAPEAK",
     operatingHours: "07:00 - 21:00",
     staffCount: 0,

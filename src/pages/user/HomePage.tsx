@@ -75,7 +75,7 @@ const difficultyLabel = (level?: string | null) =>
   level === "EASY" ? "Easy" : level === "HARD" ? "Hard" : "Moderate";
 
 const formatVnd = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", {
+  new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,

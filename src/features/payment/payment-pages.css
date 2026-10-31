@@ -1,6 +1,6 @@
 /* Match My Orders (font-label) and the shared storefront typography. */
 .payment-pages {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 .payment-pages :is(button, input, select, textarea) {
   font-family: inherit;

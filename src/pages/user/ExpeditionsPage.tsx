@@ -25,10 +25,10 @@ import {
 import { storefrontAssets as images } from "../../data/storefront";
 
 const errorText = (error: unknown) =>
-  error instanceof Error ? error.message : "Không thể tải danh sách chuyến đi.";
+  error instanceof Error ? error.message : "Unable to load tours.";
 
 const vnd = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", {
+  new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
@@ -105,13 +105,13 @@ export function ExpeditionsPage() {
             <div className="space-y-2 max-w-2xl">
               <span className="store-eyebrow">
                 <Compass className="inline-block w-3.5 h-3.5 mr-1 text-[#994717]" />
-                TRẢI NGHIỆM THỰC ĐỊA
+                OUTDOOR EXPERIENCES
               </span>
               <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-[#02150c] font-headline">
-                Chuyến đi & Sự kiện
+                Tours & Events
               </h1>
               <p className="text-sm text-[#424844]">
-                Các hành trình đi bộ dã ngoại và cắm trại được dẫn dắt bởi đội ngũ giàu kinh nghiệm, bảo hiểm cứu hộ và trang bị đầy đủ.
+                Trekking and camping adventures led by experienced guides, with rescue insurance and equipment provided.
               </p>
             </div>
 
@@ -119,15 +119,15 @@ export function ExpeditionsPage() {
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#152a20]">
               <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
                 <ShieldCheck className="w-4 h-4 text-[#994717]" />
-                Bảo hiểm cứu hộ
+                Rescue insurance
               </span>
               <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
                 <Award className="w-4 h-4 text-[#152a20]" />
-                Người dẫn đường chuẩn mực
+                Experienced guides
               </span>
               <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
                 <Footprints className="w-4 h-4 text-[#994717]" />
-                Trang bị thực địa đầy đủ
+                Outdoor equipment provided
               </span>
             </div>
           </div>
@@ -140,7 +140,7 @@ export function ExpeditionsPage() {
           {/* Thanh phân loại và tìm kiếm */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Tabs loại hình */}
-            <div className="store-product-tabs" aria-label="Lọc theo loại hình trải nghiệm">
+            <div className="store-product-tabs" aria-label="Filter by experience type">
               <button
                 type="button"
                 aria-pressed={eventType === ""}
@@ -149,7 +149,7 @@ export function ExpeditionsPage() {
                   setPage(0);
                 }}
               >
-                Tất cả {totalElements > 0 ? `(${totalElements})` : ""}
+                All {totalElements > 0 ? `(${totalElements})` : ""}
               </button>
               <button
                 type="button"
@@ -159,7 +159,7 @@ export function ExpeditionsPage() {
                   setPage(0);
                 }}
               >
-                Đi bộ dã ngoại
+                Trekking
               </button>
               <button
                 type="button"
@@ -169,7 +169,7 @@ export function ExpeditionsPage() {
                   setPage(0);
                 }}
               >
-                Cắm trại sinh tồn
+                Camping
               </button>
             </div>
 
@@ -182,7 +182,7 @@ export function ExpeditionsPage() {
                   className="bg-transparent border-0 outline-none text-xs w-full text-[#02150c] placeholder:text-gray-400 font-sans"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="Tìm kiếm chuyến đi..."
+                  placeholder="Search tours..."
                 />
                 {keyword && (
                   <button
@@ -192,7 +192,7 @@ export function ExpeditionsPage() {
                       setPage(0);
                     }}
                     className="text-gray-400 hover:text-gray-600"
-                    title="Xóa từ khóa"
+                    title="Clear search"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -207,10 +207,10 @@ export function ExpeditionsPage() {
                   setPage(0);
                 }}
               >
-                <option value="">Mọi cấp độ khó</option>
-                <option value="EASY">Nhẹ nhàng</option>
-                <option value="MODERATE">Trung bình</option>
-                <option value="HARD">Thử thách</option>
+                <option value="">All difficulty levels</option>
+                <option value="EASY">Easy</option>
+                <option value="MODERATE">Moderate</option>
+                <option value="HARD">Challenging</option>
               </select>
 
               <button
@@ -218,7 +218,7 @@ export function ExpeditionsPage() {
                 disabled={loading}
                 className="store-button text-xs py-1.5 px-4 flex items-center gap-1.5"
               >
-                {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Tìm kiếm"}
+                {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Search"}
               </button>
 
               {hasActiveFilters && (
@@ -227,7 +227,7 @@ export function ExpeditionsPage() {
                   onClick={clearFilters}
                   className="text-xs text-[#994717] hover:underline font-semibold px-1"
                 >
-                  Xóa bộ lọc
+                  Clear filters
                 </button>
               )}
             </form>
@@ -245,7 +245,7 @@ export function ExpeditionsPage() {
             <div className="py-20 text-center space-y-3">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#152a20]" />
               <p className="text-sm font-semibold text-[#424844]">
-                Đang tải danh sách chuyến đi...
+                Loading tours...
               </p>
             </div>
           ) : events.length > 0 ? (
@@ -256,10 +256,10 @@ export function ExpeditionsPage() {
                   const cover = tour.coverImageUrl || fallbackImages[index % fallbackImages.length];
                   const difficultyText =
                     tour.difficultyLevel === "EASY"
-                      ? "Nhẹ nhàng"
+                      ? "Easy"
                       : tour.difficultyLevel === "HARD"
-                      ? "Thử thách"
-                      : "Trung bình";
+                      ? "Challenging"
+                      : "Moderate";
 
                   return (
                     <article className="store-tour-card group flex flex-col justify-between" key={tour.eventId}>
@@ -271,14 +271,14 @@ export function ExpeditionsPage() {
                           className="transition-transform duration-500 group-hover:scale-105"
                         />
                         <span className="store-image-tag store-orange-tag">
-                          {tour.eventType === "TREKKING" ? "Đi bộ dã ngoại" : "Cắm trại sinh tồn"}
+                          {tour.eventType === "TREKKING" ? "Trekking" : "Camping"}
                         </span>
                         <span className="store-image-tag store-image-tag-right">
                           {difficultyText}
                         </span>
                         <span className="store-image-caption">
                           <MapPin size={12} />
-                          {tour.location || "Vùng núi Việt Nam"}
+                          {tour.location || "Vietnamese highlands"}
                         </span>
                       </Link>
 
@@ -293,15 +293,15 @@ export function ExpeditionsPage() {
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
                             <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-[#f7f3ea] text-[#152a20] px-2 py-0.5 rounded border border-[#e6e2d9]/60">
                               <Clock3 size={11} className="text-[#994717]" />
-                              Thực địa
+                              Outdoors
                             </span>
                             <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-[#f7f3ea] text-[#152a20] px-2 py-0.5 rounded border border-[#e6e2d9]/60">
                               <Users size={11} className="text-[#152a20]" />
-                              Theo lịch khởi hành
+                              Per departure
                             </span>
                             <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-[#f7f3ea] text-emerald-800 px-2 py-0.5 rounded border border-emerald-200/60">
                               <ShieldCheck size={11} className="text-emerald-700" />
-                              Bảo hiểm cứu hộ
+                              Rescue insurance
                             </span>
                           </div>
                         </div>
@@ -309,7 +309,7 @@ export function ExpeditionsPage() {
                         <div className="pt-3 border-t border-[#e6e2d9]/70 flex items-center justify-between">
                           <div>
                             <small className="text-[10px] text-gray-500 uppercase tracking-wider block font-mono">
-                              Giá cơ sở từ
+                              Starting from
                             </small>
                             <strong className="text-base font-bold text-[#02150c]">
                               {vnd(tour.basePrice)}
@@ -319,7 +319,7 @@ export function ExpeditionsPage() {
                             className="store-button text-xs py-1.5 px-3 flex items-center gap-1 shadow-2xs"
                             to={`/tours/${tour.eventId}`}
                           >
-                            Xem chi tiết
+                            View details
                             <ArrowRight size={13} />
                           </Link>
                         </div>
@@ -333,7 +333,7 @@ export function ExpeditionsPage() {
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#e6e2d9]">
                   <p className="text-xs text-gray-500">
-                    Hiển thị trang <b className="text-[#02150c]">{page + 1}</b> / <b>{totalPages}</b> (Tổng số <b>{totalElements}</b> chuyến đi)
+                    Page <b className="text-[#02150c]">{page + 1}</b> / <b>{totalPages}</b> (Total <b>{totalElements}</b> tours)
                   </p>
 
                   <div className="flex items-center gap-1.5">
@@ -347,7 +347,7 @@ export function ExpeditionsPage() {
                       className="px-3 py-1.5 text-xs font-bold uppercase rounded border border-[#e6e2d9] bg-white text-[#152a20] hover:bg-[#f7f3ea] disabled:opacity-40 disabled:pointer-events-none inline-flex items-center gap-1"
                     >
                       <ChevronLeft size={14} />
-                      Trước
+                      Previous
                     </button>
 
                     {Array.from({ length: totalPages }, (_, i) => (
@@ -388,9 +388,9 @@ export function ExpeditionsPage() {
             /* Khi không có chuyến đi nào */
             <div className="py-14 text-center border border-dashed border-[#e6e2d9] bg-white rounded-md p-8 space-y-3">
               <Compass className="w-10 h-10 text-gray-400 mx-auto" />
-              <h3 className="text-lg font-bold text-[#02150c]">Không tìm thấy chuyến đi phù hợp</h3>
+              <h3 className="text-lg font-bold text-[#02150c]">No matching tours found</h3>
               <p className="text-xs text-[#424844] max-w-sm mx-auto">
-                Hãy thử thay đổi tiêu chí tìm kiếm hoặc xóa bộ lọc để xem toàn bộ danh mục.
+                Try changing your search or clearing the filters to view all tours.
               </p>
               <button
                 type="button"
@@ -398,7 +398,7 @@ export function ExpeditionsPage() {
                 className="store-button text-xs py-1.5 px-3 inline-flex items-center gap-1.5"
               >
                 <RefreshCw size={13} />
-                Xem tất cả chuyến đi
+                View all tours
               </button>
             </div>
           )}
@@ -410,12 +410,12 @@ export function ExpeditionsPage() {
         <div className="store-container space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="store-eyebrow">◈ ĐỘI NGŨ NGƯỜI DẪN ĐOÀN</div>
-              <h2 className="text-2xl font-bold text-[#02150c] font-headline">Những người bạn đồng hành trên cung đường</h2>
+              <div className="store-eyebrow">◈ MEET OUR GUIDES</div>
+              <h2 className="text-2xl font-bold text-[#02150c] font-headline">Your companions on the trail</h2>
             </div>
             <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#424844] bg-white border border-[#e6e2d9] px-3 py-1 rounded-sm">
               <ShieldCheck size={14} className="text-[#994717]" />
-              100% đạt chứng chỉ an toàn thực địa
+              Certified for outdoor safety
             </span>
           </div>
 
@@ -433,7 +433,7 @@ export function ExpeditionsPage() {
                   />
                   <span
                     className="absolute -bottom-1 -right-1 bg-[#152a20] text-white p-0.5 rounded-full"
-                    title="Chứng chỉ dẫn đoàn thực địa"
+                    title="Outdoor guide certification"
                   >
                     <Award size={9} />
                   </span>
@@ -443,7 +443,7 @@ export function ExpeditionsPage() {
                     {guide.displayName}
                   </b>
                   <p className="text-[10px] font-semibold text-[#994717] truncate uppercase tracking-wider">
-                    {guide.specialization || "Dẫn đoàn thực địa"}
+                    {guide.specialization || "Outdoor guiding"}
                   </p>
                   {guide.languages?.length ? (
                     <p className="text-[10px] text-[#424844] truncate">{guide.languages.join(" · ")}</p>
@@ -452,10 +452,10 @@ export function ExpeditionsPage() {
                     <p className="text-[10px] text-[#424844] leading-relaxed line-clamp-2">{guide.bio}</p>
                   ) : null}
                   <div className="flex items-center justify-between text-[10px] text-[#424844] pt-0.5">
-                    <span>{guide.experienceYears ?? 0} năm kinh nghiệm</span>
+                    <span>{guide.experienceYears ?? 0} years of experience</span>
                     <span className="text-emerald-700 font-semibold flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Sẵn sàng
+                      Available
                     </span>
                   </div>
                 </div>
@@ -463,7 +463,7 @@ export function ExpeditionsPage() {
             ))}
             {!guides.length && (
               <p className="col-span-4 text-center text-gray-500 py-4 text-xs">
-                Danh sách người dẫn đoàn mùa này đang được cập nhật.
+                This season guide lineup is being updated.
               </p>
             )}
           </div>

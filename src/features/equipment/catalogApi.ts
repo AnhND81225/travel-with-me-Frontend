@@ -1,3 +1,4 @@
+import { englishApiMessage } from '../../utils/englishApiMessage';
 export type Product = {
   id: number;
   name: string;
@@ -66,7 +67,7 @@ export async function catalogApi<T>(
   if (!response.ok) {
     if (response.status === 401) saveToken(null);
     throw new ApiError(
-      payload?.message || `Unable to complete request (${response.status})`,
+      englishApiMessage(payload?.message || `Unable to complete request (${response.status})`, response.status),
       response.status,
     );
   }
@@ -87,7 +88,7 @@ export async function allProducts(admin: boolean) {
 export const vnd = (value: number | null) =>
   value === null
     ? "N/A"
-    : new Intl.NumberFormat("vi-VN", {
+    : new Intl.NumberFormat("en-GB", {
         style: "currency",
         currency: "VND",
         maximumFractionDigits: 0,

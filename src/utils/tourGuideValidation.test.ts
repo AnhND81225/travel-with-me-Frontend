@@ -1,3 +1,4 @@
+import { englishApiMessage } from './englishApiMessage';
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { EventGuideApiError, EventInput, GuideRegistrationInput, ItineraryDay } from "../services/eventGuideApi";
@@ -86,23 +87,23 @@ test("guide: họ tên/email/chuyên môn, năm nguyên không âm và danh sác
   assert.deepEqual(validateGuide({ experienceYears: 2, specialization: "Camping", languages: [] }), {});
 });
 
-test("lỗi BE được ánh xạ về input và thông báo tiếng Việt, không mất lỗi xác thực", () => {
+test("lỗi BE được ánh xạ về input và English messages, không mất lỗi xác thực", () => {
   assert.equal(catalogErrorPath("details.itinerary[0].highlights[1].<list element>"), "details.itinerary[0].highlights");
   assert.equal(catalogErrorPath("languages[1].<list element>"), "languages");
   assert.match(catalogFieldMessage("size must be between 0 and 300"), /300/);
-  assert.match(catalogFieldMessage("must not be blank"), /trống/);
-  assert.match(catalogErrorMessage(new EventGuideApiError("expired", 401)), /đăng nhập/);
-  assert.match(catalogErrorMessage(new EventGuideApiError("forbidden", 403)), /quyền/);
-  assert.match(catalogErrorMessage(new EventGuideApiError("Email already exists", 400)), /Email.*sử dụng/);
-  assert.match(catalogErrorMessage(Object.assign(new Error("Forbidden"), { status: 403 })), /quyền/);
-  assert.match(catalogErrorMessage(new TypeError("Failed to fetch")), /vẫn được giữ/);
+  assert.match(catalogFieldMessage("must not be blank"), /empty/);
+  assert.match(catalogErrorMessage(new EventGuideApiError("expired", 401)), /sign in/);
+  assert.match(catalogErrorMessage(new EventGuideApiError("forbidden", 403)), /permission/);
+  assert.match(catalogErrorMessage(new EventGuideApiError("Email already exists", 400)), /email.*in use/);
+  assert.match(catalogErrorMessage(Object.assign(new Error("Forbidden"), { status: 403 })), /permission/);
+  assert.match(catalogErrorMessage(new TypeError("Failed to fetch")), /preserved/);
 });
 
 test("upload ảnh: từ chối file rỗng, lớn, sai MIME/chữ ký và nhận PNG hợp lệ", async () => {
-  assert.match((await validateCatalogImage(new File([], "empty.png", { type: "image/png" })))!, /rỗng/);
+  assert.match((await validateCatalogImage(new File([], "empty.png", { type: "image/png" })))!, /empty/);
   assert.match((await validateCatalogImage(new File([new Uint8Array(5 * 1024 * 1024 + 1)], "big.png", { type: "image/png" })))!, /5 MiB/);
   assert.match((await validateCatalogImage(new File(["text"], "text.txt", { type: "text/plain" })))!, /JPEG/);
-  assert.match((await validateCatalogImage(new File(["not-a-png"], "fake.png", { type: "image/png" })))!, /không khớp/);
+  assert.match((await validateCatalogImage(new File(["not-a-png"], "fake.png", { type: "image/png" })))!, /does not match/);
   const png = new Uint8Array(24); png.set([137,80,78,71,13,10,26,10]);
   assert.equal(await validateCatalogImage(new File([png], "image.png", { type: "image/png" })), undefined);
 });
@@ -112,4 +113,12 @@ test("sửa guide trên trang nhân sự kiểm tra tài khoản trước khi g�
   assert.ok(validateGuideAccountUpdate({ experienceYears: 1, specialization: "Trekking", fullName: " " }).fullName);
   assert.ok(validateGuideAccountUpdate({ experienceYears: 1, specialization: "Trekking", fullName: "An", phone: "0".repeat(31) }).phone);
   assert.deepEqual(validateGuideAccountUpdate({ experienceYears: 0, specialization: "Trekking", fullName: "An" }), {});
+});
+
+test("API messages use English and preserve actionable payment and access guidance", () => {
+  assert.equal(englishApiMessage("Hết chỗ", 409), "This departure is fully booked. Please choose another departure.");
+  assert.match(englishApiMessage("Vé có giao dịch cũ", 409), /existing payment/);
+  assert.match(englishApiMessage("Không có quyền", 403), /permission/);
+  assert.equal(englishApiMessage("Please refresh the page.", 409), "Please refresh the page.");
+  assert.match(englishApiMessage("Dữ liệu không hợp lệ", 400), /Check the entered details/);
 });

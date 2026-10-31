@@ -59,21 +59,21 @@
   --radius-lg: 0.25rem;
   --radius-xl: 0.5rem;
   --radius-full: 0.75rem;
-  --font-headline-xl: "Space Grotesk", sans-serif;
-  --font-headline-lg-mobile: "Space Grotesk", sans-serif;
-  --font-display-lg: "Space Grotesk", sans-serif;
-  --font-headline-md: "Space Grotesk", sans-serif;
-  --font-body-sm: "Work Sans", sans-serif;
-  --font-body-lg: "Work Sans", sans-serif;
-  --font-headline-xl-mobile: "Space Grotesk", sans-serif;
-  --font-label-sm: "Space Grotesk", sans-serif;
-  --font-display-lg-mobile: "Space Grotesk", sans-serif;
-  --font-body-md: "Work Sans", sans-serif;
-  --font-label-lg: "Space Grotesk", sans-serif;
-  --font-headline-sm: "Space Grotesk", sans-serif;
-  --font-label-md: "Space Grotesk", sans-serif;
-  --font-body-xl: "Work Sans", sans-serif;
-  --font-headline-lg: "Space Grotesk", sans-serif;
+  --font-headline-xl: "Nunito", sans-serif;
+  --font-headline-lg-mobile: "Nunito", sans-serif;
+  --font-display-lg: "Nunito", sans-serif;
+  --font-headline-md: "Nunito", sans-serif;
+  --font-body-sm: "Nunito", sans-serif;
+  --font-body-lg: "Nunito", sans-serif;
+  --font-headline-xl-mobile: "Nunito", sans-serif;
+  --font-label-sm: "Nunito", sans-serif;
+  --font-display-lg-mobile: "Nunito", sans-serif;
+  --font-body-md: "Nunito", sans-serif;
+  --font-label-lg: "Nunito", sans-serif;
+  --font-headline-sm: "Nunito", sans-serif;
+  --font-label-md: "Nunito", sans-serif;
+  --font-body-xl: "Nunito", sans-serif;
+  --font-headline-lg: "Nunito", sans-serif;
   --text-headline-xl: 40px;
   --text-headline-xl--line-height: 48px;
   --text-headline-xl--letter-spacing: -0.02em;
@@ -129,7 +129,7 @@
   --text-headline-lg--font-weight: 600;
 }
 .stitch-reference {
-  font-family: "Work Sans", sans-serif;
+  font-family: "Nunito", sans-serif;
   font-size: 15px;
   line-height: 22px;
   background: #fdf9f0;

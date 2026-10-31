@@ -32,8 +32,8 @@ export function BookingPanel({ eventId, eventName, price }: { eventId: number; e
     try { const ticket = await scheduleApi.register(schedule.id, note); navigate(`/my-tours/${ticket.id}`); }
     catch (e) {
       const message = errorMessage(e);
-      setError(message.includes('Vé có giao dịch cũ')
-        ? 'Bạn đang đăng ký lại cùng lịch khởi hành. Vé cũ đã có giao dịch nên hệ thống hiện chưa hỗ trợ đặt lại vé này. Mở My Tours → vé cũ → Kiểm tra thanh toán để xem kết quả hoặc liên hệ chi nhánh đối soát. Bạn có thể chọn lịch khởi hành khác còn mở.'
+      setError(message.includes('This ticket has an existing payment')
+        ? 'This departure cannot be booked again because the previous ticket has an existing payment. Open My Tours → previous ticket → Check payment result, or contact the branch. You can also choose another open departure.'
         : `${message} Check My Tours before retrying if the connection was interrupted.`);
       list.refresh();
     }
