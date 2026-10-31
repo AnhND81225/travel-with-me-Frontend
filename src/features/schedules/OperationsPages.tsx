@@ -4,9 +4,9 @@ import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Compass, Fil
 import { eventGuideApi, type EventSummary, type PublicGuide } from '../../services/eventGuideApi';
 import type { Account, Branch } from '../equipment/catalogApi';
 import { useAuth } from '../../hooks/useAuth';
-import { participantApi, scheduleApi } from './api';
+import { PAGE_SIZE, participantApi, scheduleApi } from './api';
 import { errorMessage, managedBranches, useClock, usePages, useResource } from './hooks';
-import { attendance, cancellable, dateTime, editable, labels, money, toLocal, toOffset, transitions, validId, validateDates } from './rules';
+import { attendance, cancellable, dateTime, editable, guideConflicts, labels, money, toLocal, toOffset, transitions, validId, validateDates } from './rules';
 import { Dialog, Loading, Message, More, Page, Status, Timeline, TicketTimeline } from './ui';
 import { ScheduleSummary } from './BookingPanel';
 import type { Participant, Schedule, ScheduleStatus } from './types';
@@ -93,8 +93,23 @@ function ScheduleEditor({ context: c, schedule: s, assignedBranchId, onClose, on
   const [capacity, setCapacity] = useState(String(s?.maxParticipants || 16));
   const [start, setStart] = useState(s ? toLocal(s.startDatetime) : ''), [end, setEnd] = useState(s ? toLocal(s.endDatetime) : ''), [cutoff, setCutoff] = useState(s ? toLocal(s.registrationClosesAt) : '');
   const [busy, setBusy] = useState(false), [error, setError] = useState(''); const lock = useRef(false);
+  const availability = useResource(useCallback(async () => {
+    const schedules: Schedule[] = [];
+    for (let page = 0; ; page++) {
+      const rows = await scheduleApi.list({ page });
+      schedules.push(...rows);
+      if (rows.length < PAGE_SIZE) return schedules;
+    }
+  }, []));
+  const validWindow = !!start && !!end && Date.parse(toOffset(end)) > Date.parse(toOffset(start));
+  const conflicts = guideConflicts(availability.data || [], toOffset(start), toOffset(end), s?.id);
+  const selectedConflicts = conflicts.get(Number(guideId)) || [];
+  const guideUnavailable = !!guideId && (!validWindow || availability.loading || !!availability.error || selectedConflicts.length > 0);
+  const availableCount = c.guides.filter(g => !conflicts.has(g.guideId)).length;
+
   async function save(e: FormEvent) {
     e.preventDefault(); if (lock.current) return;
+    if (guideUnavailable) { setError('Choose an available guide after checking the departure dates.'); return; }
     if (!s && (!createBranchId || !c.branches.some(b => b.id === createBranchId))) { setError('No active branch assignment was found. Contact your administrator.'); return; }
     const invalid = !s ? validateDates(start, end, cutoff || start) : '';
     if (invalid) { setError(invalid); return; }
@@ -104,12 +119,14 @@ function ScheduleEditor({ context: c, schedule: s, assignedBranchId, onClose, on
       const fields = { guideId: guideId ? Number(guideId) : null, maxParticipants: Number(capacity) };
       const result = s ? await scheduleApi.update(s.id, fields) : await scheduleApi.create({ ...fields, eventId: Number(eventId), branchId: createBranchId!, startDatetime: toOffset(start), endDatetime: toOffset(end), registrationClosesAt: toOffset(cutoff || start) });
       onSaved(result);
-    } catch (e) { setError(`${errorMessage(e)} If the connection was interrupted, close and reload the list before retrying.`); }
+    } catch (e) { setError(e instanceof TypeError ? `${errorMessage(e)} If the connection was interrupted, close and reload the list before retrying.` : errorMessage(e)); }
     finally { lock.current = false; setBusy(false); }
   }
   return <Dialog title={s ? 'Edit Guide & Capacity' : 'Create Departure'} busy={busy} onClose={onClose}><form onSubmit={save}>
     {!s && <><label>Published tour<select required value={eventId} onChange={e => setEventId(e.target.value)}><option value="">Choose a tour</option>{c.events.map(e => <option key={e.eventId} value={e.eventId}>{e.eventName}</option>)}</select></label><label>Branch{c.account.role === 'STAFF' ? <><input readOnly value={staffBranch?.name || 'No assigned branch'} /><small>Automatically assigned to your branch.</small></> : <select required value={branchId} onChange={e => setBranchId(e.target.value)}><option value="">Choose a branch</option>{c.branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select>}</label><label>Departure · UTC+7<input type="datetime-local" required value={start} onChange={e => setStart(e.target.value)} /></label><label>End · UTC+7<input type="datetime-local" required value={end} onChange={e => setEnd(e.target.value)} /></label><label>Registration closes · UTC+7<input type="datetime-local" value={cutoff} onChange={e => setCutoff(e.target.value)} /><small>Leave blank to close registration at departure.</small></label></>}
-    <label>Guide<select value={guideId} onChange={e => setGuideId(e.target.value)}><option value="">Unassigned / remove assignment</option>{s?.guideId && !c.guides.some(g => g.guideId === s.guideId) && <option value={s.guideId}>Guide #{s.guideId} (current)</option>}{c.guides.map(g => <option key={g.guideId} value={g.guideId}>{g.displayName} · {g.specialization}</option>)}</select></label><label>Capacity<input type="number" required min={Math.max(1, s?.currentParticipants || 0)} step={1} value={capacity} onChange={e => setCapacity(e.target.value)} /></label><p className="m5-muted">The server checks guide availability and scheduling conflicts when saving.</p>{error && <Message error>{error}</Message>}<button className="m5-primary" disabled={busy || !c.branches.length}>{busy ? 'Saving…' : 'Save Departure'}</button>
+    <label>Guide<select value={guideId} disabled={!validWindow || availability.loading || !!availability.error} onChange={e => { setGuideId(e.target.value); setError(''); }}><option value="">Unassigned / remove assignment</option>{s?.guideId && !c.guides.some(g => g.guideId === s.guideId) && <option value={s.guideId}>Guide #{s.guideId} (current)</option>}{[...c.guides].sort((a, b) => Number(conflicts.has(a.guideId)) - Number(conflicts.has(b.guideId))).map(g => <option key={g.guideId} value={g.guideId} disabled={conflicts.has(g.guideId)}>{g.displayName} · {conflicts.has(g.guideId) ? 'Schedule conflict' : 'Available'} · {g.specialization}</option>)}</select></label>
+    {!validWindow ? <p className="m5-muted">Enter the departure and return times to see available guides.</p> : availability.loading ? <p className="m5-muted" role="status">Checking guide schedules…</p> : availability.error ? <><Message error>Unable to check guide availability. Please retry before selecting a guide.</Message><button type="button" onClick={availability.refresh}>Retry availability check</button></> : <div className="schedule-guide-availability"><div className="m5-row"><span><strong>{availableCount}</strong> available · <strong>{c.guides.length - availableCount}</strong> with conflicts</span><button type="button" onClick={availability.refresh}><RefreshCw size={13} /> Recheck</button></div>{selectedConflicts.length > 0 && <p role="alert">This guide is unavailable: {selectedConflicts.map(row => `${dateTime(row.startDatetime)} – ${dateTime(row.endDatetime)} (Departure #${row.id})`).join('; ')}. Choose another guide.</p>}</div>}
+    <label>Capacity<input type="number" required min={Math.max(1, s?.currentParticipants || 0)} step={1} value={capacity} onChange={e => setCapacity(e.target.value)} /></label><p className="m5-muted">Availability is based on the loaded schedules. The server checks again when saving to catch any new assignments.</p>{error && <Message error>{error}</Message>}<button className="m5-primary" disabled={busy || !c.branches.length || guideUnavailable}>{busy ? 'Saving…' : 'Save Departure'}</button>
   </form></Dialog>;
 }
 export function ScheduleDetailPage() {
@@ -141,7 +158,7 @@ function ScheduleDetail({ id }: { id: number }) {
 }
 function ScheduleHistory({ id }: { id: number }) {
   const list = usePages(useCallback((page: number) => scheduleApi.histories(id, page), [id]));
-  return <div className="m5-card"><h2>Departure History</h2><Timeline rows={list.items} /><More list={list} /></div>;
+  return <div className="m5-card"><h2>Departure History</h2><p className="m5-muted">Updates to the trip, guide assignment and booking availability.</p><Timeline rows={list.items} />{list.loading && <Loading />}{list.error && <><Message error>{list.error}</Message><button onClick={list.refresh}>Retry</button></>}{list.more && !list.loading && !list.error && <button onClick={list.loadMore}>Load more updates</button>}{!list.loading && !list.error && !list.items.length && <p>No updates yet.</p>}</div>;
 }
 function ScheduleAction({ schedule: s, action, onClose, onSaved }: { schedule: Schedule; action: ScheduleStatus | 'RESCHEDULE'; onClose: () => void; onSaved: () => void }) {
   const [start, setStart] = useState(toLocal(s.startDatetime)), [end, setEnd] = useState(toLocal(s.endDatetime)), [cutoff, setCutoff] = useState(toLocal(s.registrationClosesAt)), [reason, setReason] = useState('');

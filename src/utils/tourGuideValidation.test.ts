@@ -122,3 +122,8 @@ test("API messages use English and preserve actionable payment and access guidan
   assert.equal(englishApiMessage("Please refresh the page.", 409), "Please refresh the page.");
   assert.match(englishApiMessage("Dữ liệu không hợp lệ", 400), /Check the entered details/);
 });
+
+test("guide assignment conflicts show specific scheduling and account guidance", () => {
+  assert.match(englishApiMessage("Guide đã có lịch trùng", 409), /already assigned.*different guide/);
+  assert.match(englishApiMessage("Guide hoặc tài khoản không hoạt động", 409), /inactive/);
+});
