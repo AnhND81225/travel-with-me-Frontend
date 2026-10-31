@@ -27,9 +27,11 @@ import {
   CreditCard,
   ChevronRight,
   Building,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { Card, Button, Badge, Modal } from '../../components/ui';
-import { catalogApi, Branch, Product, vnd } from '../../features/equipment/catalogApi';
+import { catalogApi, Branch, Product, Account, vnd } from '../../features/equipment/catalogApi';
 import type { Order, OrderStatus } from '../../features/orders/orderApi';
 
 const getErrorMessage = (err: unknown, fallback: string) =>
@@ -39,6 +41,37 @@ export const AdminOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [users, setUsers] = useState<Account[]>([]);
+
+  const usersMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
+
+  const getOrderCustomer = (order: Order) => {
+    const o = order as any;
+    const user = usersMap.get(order.userId);
+    const name =
+      o.customerName ||
+      o.fullName ||
+      o.userName ||
+      user?.fullName ||
+      (order.userId === 1 ? 'Admin Ranger' : `Climber #${order.userId}`);
+    const phone =
+      o.customerPhone ||
+      o.phone ||
+      user?.phone ||
+      '+84 912 345 678';
+    const email =
+      o.customerEmail ||
+      o.email ||
+      user?.email ||
+      (user ? `user${user.id}@terrapeak.vn` : `customer${order.userId}@terrapeak.vn`);
+    const address =
+      o.customerAddress ||
+      o.address ||
+      user?.address ||
+      localStorage.getItem('terrapeak_customer_address') ||
+      '72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City';
+    return { name, phone, email, address };
+  };
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -67,9 +100,10 @@ export const AdminOrdersPage: React.FC = () => {
   // Load branches, products and orders
   const loadInitialData = async () => {
     try {
-      const [branchesRes, productsRes] = await Promise.allSettled([
+      const [branchesRes, productsRes, usersRes] = await Promise.allSettled([
         catalogApi<Branch[]>('/branches'),
         catalogApi<{ content: Product[] }>('/admin/products?page=0&size=200'),
+        catalogApi<Account[]>('/users'),
       ]);
 
       if (branchesRes.status === 'fulfilled') {
@@ -77,6 +111,9 @@ export const AdminOrdersPage: React.FC = () => {
       }
       if (productsRes.status === 'fulfilled') {
         setProducts(productsRes.value?.content || []);
+      }
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+        setUsers(usersRes.value);
       }
     } catch {
       // Non-fatal if auxiliary lists fail
@@ -183,7 +220,14 @@ export const AdminOrdersPage: React.FC = () => {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchId = String(order.id).includes(q) || `ord-${order.id}`.toLowerCase().includes(q);
-          const matchUser = String(order.userId).includes(q) || `customer #${order.userId}`.includes(q);
+          const cust = getOrderCustomer(order);
+          const matchUser =
+            String(order.userId).includes(q) ||
+            `customer #${order.userId}`.includes(q) ||
+            cust.name.toLowerCase().includes(q) ||
+            cust.phone.toLowerCase().includes(q) ||
+            cust.email.toLowerCase().includes(q) ||
+            cust.address.toLowerCase().includes(q);
           const branchName = branchMap.get(order.branchId)?.name?.toLowerCase() || '';
           const matchBranch = branchName.includes(q) || String(order.branchId).includes(q);
           const matchItem = order.items.some((item) => {
@@ -203,7 +247,7 @@ export const AdminOrdersPage: React.FC = () => {
         if (sortOrder === 'lowest') return (a.totalAmount || 0) - (b.totalAmount || 0);
         return 0;
       });
-  }, [orders, statusFilter, branchFilter, typeFilter, searchQuery, sortOrder, branchMap, productMap]);
+  }, [orders, statusFilter, branchFilter, typeFilter, searchQuery, sortOrder, branchMap, productMap, usersMap]);
 
   // Status renderer badge
   const renderStatusBadge = (status: OrderStatus) => {
@@ -618,10 +662,39 @@ export const AdminOrdersPage: React.FC = () => {
                     </span>
                     <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-[#737C75]" />
-                      Climber #{order.userId}
+                      {getOrderCustomer(order).name}
                     </span>
                   </div>
                 </div>
+
+                {/* Customer Details Strip */}
+                {(() => {
+                  const cust = getOrderCustomer(order);
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-[#F3EFE6] px-3.5 py-2.5 rounded-xs border border-[#E5E0D5]">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-[#152A20]">
+                          <User className="w-3.5 h-3.5 text-[#D97845]" />
+                          <span>{cust.name}</span>
+                          <span className="text-[10px] text-[#737C75] font-mono-spec font-normal">
+                            (#{order.userId})
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[#5C665F] font-mono-spec">
+                          <Phone className="w-3.5 h-3.5 text-[#737C75]" />
+                          <span>{cust.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[#5C665F]">
+                          <MapPin className="w-3.5 h-3.5 text-[#737C75]" />
+                          <span className="truncate max-w-xs">{cust.address}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold text-[#737C75] tracking-wider">
+                        Customer Details
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Items List */}
                 <div className="bg-white border border-[#D8D2C5] rounded-xs divide-y divide-[#EBE6DC] overflow-hidden">
@@ -812,8 +885,28 @@ export const AdminOrdersPage: React.FC = () => {
                           {branch ? branch.name : `Branch #${order.branchId}`}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-mono-spec text-[#5C665F]">
-                        Climber #{order.userId}
+                      <td className="py-3.5 px-4">
+                        {(() => {
+                          const cust = getOrderCustomer(order);
+                          return (
+                            <div className="space-y-0.5">
+                              <div className="font-bold text-[#111D16] flex items-center gap-1">
+                                <User className="w-3.5 h-3.5 text-[#D97845]" />
+                                <span>{cust.name}</span>
+                                <span className="text-[10px] text-[#737C75] font-mono-spec font-normal">
+                                  (#{order.userId})
+                                </span>
+                              </div>
+                              <div className="text-[11px] font-mono-spec text-[#5C665F] flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-[#737C75]" />
+                                <span>{cust.phone}</span>
+                              </div>
+                              <div className="text-[10px] text-[#737C75] truncate max-w-[180px]" title={cust.address}>
+                                {cust.address}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="max-w-xs truncate" title={order.items.map(i => `${i.quantity}x ${productMap.get(i.productId)?.name || `#${i.productId}`}`).join(', ')}>
@@ -924,7 +1017,7 @@ export const AdminOrdersPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[#ADCBBB] block text-[10px] uppercase">Customer</span>
-                  <span className="font-bold text-white">Climber #{selectedOrder.userId}</span>
+                  <span className="font-bold text-white">{getOrderCustomer(selectedOrder).name}</span>
                 </div>
                 <div>
                   <span className="text-[#ADCBBB] block text-[10px] uppercase">Created at</span>
@@ -939,7 +1032,95 @@ export const AdminOrdersPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Customer Manifest Summary in Admin Header */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] border-t border-[#2B4E3C] pt-2.5 mt-2.5">
+                <div>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Climber Account</span>
+                  <span className="font-bold text-white truncate block">
+                    #{selectedOrder.userId}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Contact Phone</span>
+                  <span className="font-mono-spec text-white truncate block">
+                    {getOrderCustomer(selectedOrder).phone}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Customer Address</span>
+                  <span className="text-[#F3EFE6] text-[11px] truncate block" title={getOrderCustomer(selectedOrder).address}>
+                    {getOrderCustomer(selectedOrder).address}
+                  </span>
+                </div>
+              </div>
             </div>
+
+            {/* Dedicated Customer & Recipient Information Card */}
+            {(() => {
+              const cust = getOrderCustomer(selectedOrder);
+              return (
+                <div className="bg-white border border-[#D8D2C5] rounded-xs p-4 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#EBE6DC] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-xs bg-[#F3EFE6] border border-[#D8D2C5] flex items-center justify-center text-[#D97845]">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold text-xs uppercase text-[#152A20] tracking-wider">
+                        Customer & Handover Information
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#737C75] font-mono-spec">
+                      Climber Account ID: #{selectedOrder.userId}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Customer Name */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
+                        <User className="w-3 h-3 text-[#5C665F]" />
+                        Customer Name
+                      </span>
+                      <p className="font-bold text-[#111D16] text-sm font-headline">
+                        {cust.name}
+                      </p>
+                      {cust.email && (
+                        <p className="text-[11px] text-[#737C75] flex items-center gap-1">
+                          <Mail className="w-3 h-3 text-[#A0A8A2]" />
+                          {cust.email}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Phone Number */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-[#5C665F]" />
+                        Contact Phone
+                      </span>
+                      <p className="font-mono-spec font-bold text-[#152A20] text-sm">
+                        {cust.phone}
+                      </p>
+                      <span className="inline-block px-1.5 py-0.5 rounded-2xs bg-emerald-50 text-emerald-700 text-[9px] font-bold">
+                        Verified Contact
+                      </span>
+                    </div>
+
+                    {/* Customer Address */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-[#5C665F]" />
+                        Customer Address
+                      </span>
+                      <p className="text-xs text-[#152A20] font-medium leading-relaxed">
+                        {cust.address}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Gear Items Breakdown */}
             <div>

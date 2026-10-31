@@ -37,6 +37,12 @@ export type Order = {
   canReturn: boolean;
   orderDate: string;
   items: OrderItem[];
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  address?: string;
+  phone?: string;
 };
 
 export const getMyOrders = () => catalogApi<Order[]>("/orders/me");

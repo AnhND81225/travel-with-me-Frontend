@@ -34,6 +34,7 @@ export type Account = {
   fullName: string;
   email?: string;
   phone?: string;
+  address?: string;
   role: string;
   status: string;
 };
