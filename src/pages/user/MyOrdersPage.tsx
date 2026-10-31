@@ -29,6 +29,7 @@ import {
   TrendingUp,
   SlidersHorizontal,
   Info,
+  RotateCcw,
 } from "lucide-react";
 
 const getErrorMessage = (err: unknown, fallback: string) =>
@@ -42,6 +43,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [refundOrderIds, setRefundOrderIds] = useState<Set<number>>(new Set());
+  const [refundsByOrderId, setRefundsByOrderId] = useState<Map<number, any>>(new Map());
   const [refundsLoaded, setRefundsLoaded] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -206,6 +208,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         // Status filter
         if (statusFilter === "UNPAID") {
           if (order.status !== "PENDING" || order.paymentStatus === "PAID") return false;
+        } else if (statusFilter === "REFUNDED") {
+          if (order.paymentStatus !== "REFUNDED" && !refundOrderIds.has(order.id)) return false;
         } else if (statusFilter !== "ALL" && order.status !== statusFilter) {
           return false;
         }
@@ -428,6 +432,20 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               Rent equipment
             </Button>
           </Link>
+          <Link to="/refunds">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RotateCcw className="w-3.5 h-3.5 text-[#D97845]" />}
+            >
+              <span>Refund Center</span>
+              {refundOrderIds.size > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-xs bg-[#D97845] text-white text-[10px] font-mono-spec">
+                  {refundOrderIds.size}
+                </span>
+              )}
+            </Button>
+          </Link>
           <Button
             variant="secondary"
             size="sm"
@@ -513,6 +531,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             { key: "CONFIRMED", label: "APPROVED", count: stats.confirmed },
             { key: "IN_PROGRESS", label: "RENTED", count: stats.inProgress },
             { key: "COMPLETED", label: "COMPLETED", count: stats.completed },
+            { key: "REFUNDED", label: "REFUNDED", count: orders.filter((o) => o.paymentStatus === "REFUNDED" || refundOrderIds.has(o.id)).length },
             { key: "CANCELLED", label: "CANCELLED", count: orders.filter((o) => o.status === "CANCELLED").length },
           ].map((tab) => {
             const isActive = statusFilter === tab.key;
@@ -792,9 +811,38 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {refundsLoaded && !order.refundPending && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Request refund</Link>}
-                    {order.refundPending && <span role="status" className="text-xs font-bold text-[#994717]">Refund pending · Payment and approval paused</span>}
-                    {(order.refundPending || refundOrderIds.has(order.id)) && <Link to="/refunds" className="text-xs underline">My refund requests</Link>}
+                    {/* Direct Refund Action Button / Shortcut */}
+                    {order.refundPending ? (
+                      <Link
+                        to={`/refunds?orderId=${order.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#FFF7ED] border border-[#FDBA74] text-[#C2410C] hover:bg-[#FFEDD5] text-xs font-bold transition shadow-2xs"
+                        title="Refund is currently under review"
+                      >
+                        <Clock className="w-3.5 h-3.5 animate-pulse text-[#EA580C]" />
+                        <span>Refund Pending</span>
+                        <ArrowRight className="w-3 h-3 text-[#EA580C]" />
+                      </Link>
+                    ) : (order.paymentStatus === 'REFUNDED' || refundOrderIds.has(order.id)) ? (
+                      <Link
+                        to={`/refunds?orderId=${order.id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xs bg-[#F3E8FF] border border-[#D8B4FE] text-[#6B21A8] hover:bg-[#E9D5FF] text-xs font-bold transition shadow-2xs cursor-pointer"
+                        title="View refund details and resolution record"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-[#7E22CE]" />
+                        <span>View Refund</span>
+                        <ArrowRight className="w-3 h-3 text-[#7E22CE]" />
+                      </Link>
+                    ) : (refundsLoaded && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status)) ? (
+                      <Link
+                        to={`/refunds?orderId=${order.id}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xs bg-[#FFF8F3] border border-[#D97845] text-[#D97845] hover:bg-[#D97845] hover:text-white text-xs font-bold transition shadow-2xs cursor-pointer"
+                        title="Request refund for this order"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Request Refund</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    ) : null}
                     {/* View Details Button */}
                     <Button
                       variant="secondary"
@@ -936,6 +984,36 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Refund & Escrow Resolution Status */}
+            <div className="p-3.5 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#111D16] uppercase text-[11px] flex items-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5 text-[#D97845]" />
+                  Refund & Escrow Settlement
+                </span>
+                {renderPaymentBadge(selectedOrder.paymentStatus)}
+              </div>
+              <div className="text-[11px] text-[#5C665F] font-body flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-[#EBE6DC]">
+                <span>
+                  {selectedOrder.paymentStatus === 'REFUNDED'
+                    ? "Payment for this order has been refunded via electronic bank transfer."
+                    : selectedOrder.refundPending
+                    ? "Refund request is currently pending administrative review."
+                    : selectedOrder.paidAmount > 0
+                    ? "Paid amount is protected under TerraPeak customer escrow guarantee."
+                    : "No refund requested for this order."}
+                </span>
+                <Link
+                  to={`/refunds?orderId=${selectedOrder.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#152A20] text-white rounded-xs text-xs font-bold hover:bg-[#1E3A2D] transition shrink-0 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3 text-emerald-400" />
+                  <span>Go to Refund Page</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
             </div>
 
