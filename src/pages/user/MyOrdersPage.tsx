@@ -792,9 +792,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {refundsLoaded && !order.refundPending && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Yêu cầu hoàn tiền</Link>}
-                    {order.refundPending && <span role="status" className="text-xs font-bold text-[#994717]">Đang chờ hoàn tiền · Đã khóa duyệt và thanh toán</span>}
-                    {(order.refundPending || refundOrderIds.has(order.id)) && <Link to="/refunds" className="text-xs underline">Yêu cầu hoàn tiền của tôi</Link>}
+                    {refundsLoaded && !order.refundPending && !refundOrderIds.has(order.id) && order.paidAmount > 0 && ['PENDING', 'CANCELLED'].includes(order.status) && <Link to={`/refunds?orderId=${order.id}`} className="inline-flex items-center gap-2 rounded px-4 py-2 border border-[#994717] text-[#994717] text-xs font-bold">Request refund</Link>}
+                    {order.refundPending && <span role="status" className="text-xs font-bold text-[#994717]">Refund pending · Payment and approval paused</span>}
+                    {(order.refundPending || refundOrderIds.has(order.id)) && <Link to="/refunds" className="text-xs underline">My refund requests</Link>}
                     {/* View Details Button */}
                     <Button
                       variant="secondary"

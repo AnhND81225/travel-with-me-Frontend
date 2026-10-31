@@ -10,8 +10,8 @@ export function moneyScale(values: number[]) {
   const min = ticks[0], max = ticks[ticks.length - 1];
   const magnitude = Math.max(Math.abs(min), Math.abs(max));
   const divisor = magnitude >= 1e9 ? 1e9 : magnitude >= 1e6 ? 1e6 : magnitude >= 1e3 ? 1e3 : 1;
-  const unit = divisor === 1e9 ? 'Tỷ đồng' : divisor === 1e6 ? 'Triệu đồng' : divisor === 1e3 ? 'Nghìn đồng' : 'Đồng';
+  const unit = divisor === 1e9 ? 'Billion VND' : divisor === 1e6 ? 'Million VND' : divisor === 1e3 ? 'Thousand VND' : 'VND';
   const digits = Math.min(6, Math.max(0, Math.ceil(-Math.log10(step / divisor))));
-  const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: digits });
+  const formatter = new Intl.NumberFormat('en-GB', { maximumFractionDigits: digits });
   return { min, max, step, ticks, unit, format: (value: number) => formatter.format(value / divisor) };
 }
