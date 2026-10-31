@@ -14,15 +14,15 @@ beforeEach(() => {
 after(() => { globalThis.fetch = originalFetch; if (originalStorage) Object.defineProperty(globalThis, 'sessionStorage', originalStorage); else Reflect.deleteProperty(globalThis, 'sessionStorage'); });
 test('registration sends only note and shared Bearer, never client price/user/count', async () => {
   await scheduleApi.register(11, 'Ăn chay');
-  assert.equal(calls[0].path, '/api/schedules/11/register');
+  assert.equal(calls[0].path, '/api/schedules/11/participants');
   assert.equal(calls[0].init.method, 'POST');
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), { note: 'Ăn chay' });
   assert.equal((calls[0].init.headers as Record<string, string>).Authorization, 'Bearer test-token');
 });
 test('manual confirmation includes current attempt UUID and payment reference', async () => {
   await participantApi.confirm(4, 'attempt-uuid', 'CASH-004');
-  assert.equal(calls[0].path, '/api/participants/4/confirm-payment');
-  assert.equal(calls[0].init.method, 'PATCH');
+  assert.equal(calls[0].path, '/api/participants/4/manual-payment-confirmations');
+  assert.equal(calls[0].init.method, 'POST');
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), { registrationReference: 'attempt-uuid', paymentReference: 'CASH-004' });
 });
 test('list preserves backend array response and page filters', async () => {
@@ -32,19 +32,27 @@ test('list preserves backend array response and page filters', async () => {
   assert.equal(url.searchParams.get('page'), '2'); assert.equal(url.searchParams.get('size'), '20');
   assert.equal(url.searchParams.get('branchId'), '3'); assert.equal(url.searchParams.get('eventId'), '9');
 });
-test('attendance endpoints do not invent request payloads', async () => {
+test('attendance sends only the allowed status through the canonical endpoint', async () => {
   await participantApi.checkIn(2); await participantApi.noShow(3);
-  assert.equal(calls[0].path, '/api/participants/2/check-in'); assert.equal(calls[0].init.body, undefined);
-  assert.equal(calls[1].path, '/api/participants/3/no-show');
+  assert.equal(calls[0].path, '/api/participants/2/attendance');
+  assert.equal(calls[0].init.method, 'PATCH');
+  assert.deepEqual(JSON.parse(String(calls[0].init.body)), { status: 'CHECKED_IN' });
+  assert.equal(calls[1].path, '/api/participants/3/attendance');
+  assert.equal(calls[1].init.method, 'PATCH');
+  assert.deepEqual(JSON.parse(String(calls[1].init.body)), { status: 'NO_SHOW' });
 });
 test('cancellation forwards manager reason, update can explicitly unassign guide', async () => {
   await participantApi.cancel(2, 'Khách yêu cầu'); await scheduleApi.update(8, { guideId: null, maxParticipants: 20 });
+  assert.equal(calls[0].path, '/api/participants/2/cancellations');
+  assert.equal(calls[0].init.method, 'POST');
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), { reason: 'Khách yêu cầu' });
+  assert.equal(calls[1].path, '/api/schedules/8');
+  assert.equal(calls[1].init.method, 'PATCH');
   assert.deepEqual(JSON.parse(String(calls[1].init.body)), { guideId: null, maxParticipants: 20 });
 });
 test('API conflicts remain errors and do not retry or fabricate a success', async () => {
   globalThis.fetch = async () => { calls.push({ path: '', init: {} }); return Response.json({ message: 'Hết chỗ' }, { status: 409 }); };
-  await assert.rejects(() => scheduleApi.register(1, ''), (e: any) => e.status === 409 && e.message === 'Hết chỗ');
+  await assert.rejects(() => scheduleApi.register(1, ''), (e: any) => e.status === 409 && e.message === 'This departure is fully booked. Please choose another departure.');
   assert.equal(calls.length, 1);
 });
 test('401 clears expired shared token', async () => {
@@ -64,14 +72,44 @@ test('staff context fails closed when assignment API fails', async () => {
 test('guide assignments use principal-scoped endpoints with pagination and status', async () => {
   await scheduleApi.assigned({ page: 1, status: 'CLOSED' });
   const url = new URL(calls[0].path, 'http://localhost');
-  assert.equal(url.pathname, '/api/schedules/my-assignments');
+  assert.equal(url.pathname, '/api/guide-assignments');
   assert.deepEqual([...url.searchParams.keys()].sort(), ['page', 'size', 'status']);
   assert.equal(url.searchParams.get('status'), 'CLOSED');
   assert.equal(url.searchParams.get('page'), '1');
   await scheduleApi.assignedDetail(42);
-  assert.equal(calls[1].path, '/api/schedules/my-assignments/42');
+  assert.equal(calls[1].path, '/api/guide-assignments/42');
 });
 test('revoked guide assignment remains a forbidden error', async () => {
   globalThis.fetch = async () => Response.json({ message: 'Không còn được phân công' }, { status: 403 });
   await assert.rejects(() => scheduleApi.assignedDetail(42), (e: any) => e.status === 403);
+});
+
+
+test('my tickets use the principal-scoped route with bounded pagination', async () => {
+  await participantApi.mine(2);
+  const url = new URL(calls[0].path, 'http://localhost');
+  assert.equal(url.pathname, '/api/participants');
+  assert.deepEqual([...url.searchParams.keys()].sort(), ['page', 'size']);
+  assert.equal(url.searchParams.get('page'), '2');
+  assert.equal(url.searchParams.get('size'), '20');
+});
+
+test('history and review requests use canonical resources and preserve filters', async () => {
+  await scheduleApi.histories(8, 1);
+  await participantApi.histories(4, 2);
+  await participantApi.reviews(3, 0);
+  const urls = calls.map(c => new URL(c.path, 'http://localhost'));
+  assert.deepEqual(urls.map(u => u.pathname), ['/api/schedules/8/history', '/api/participants/4/history', '/api/schedule-payment-reviews']);
+  assert.equal(urls[0].searchParams.get('page'), '1');
+  assert.equal(urls[1].searchParams.get('page'), '2');
+  assert.equal(urls[2].searchParams.get('branchId'), '3');
+});
+
+
+test('rescheduling creates a resource operation with the original request contract', async () => {
+  const body = { newStartDatetime: '2026-12-20T07:00:00+07:00', newEndDatetime: '2026-12-20T17:00:00+07:00', changeReason: 'Weather' };
+  await scheduleApi.reschedule(8, body);
+  assert.equal(calls[0].path, '/api/schedules/8/reschedulings');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.deepEqual(JSON.parse(String(calls[0].init.body)), body);
 });

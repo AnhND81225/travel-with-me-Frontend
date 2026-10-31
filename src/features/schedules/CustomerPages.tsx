@@ -22,7 +22,6 @@ import {
   ArrowUpDown,
   FileText,
   Sparkles,
-  Copy,
   Check,
   Printer,
   ExternalLink,
@@ -38,16 +37,19 @@ import {
 import { eventGuideApi, type EventResponse, type PublicGuide } from '../../services/eventGuideApi';
 import { participantApi, scheduleApi } from './api';
 import { errorMessage, useClock, usePages, useResource, useScheduleAccount } from './hooks';
-import { bookable, cancellable, dateTime, money, validId, auditLabels, labels } from './rules';
+import { bookable, cancellable, dateTime, money, validId, labels } from './rules';
+import { TicketTimeline } from './ui';
 import { Card, Badge, Button, Modal } from '../../components/ui';
-import { storefrontAssets as images } from '../../data/storefront';
 import type { Participant, Schedule, Audit, ParticipantStatus } from './types';
 
-// Fallback cover images
-const fallbackImages = [images.tanang, images.camp, images.forest, images.hike];
+function TourPhoto({ src, name, className }: { src?: string | null; name: string; className: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#EBE6DC] text-[#5C665F]"><Mountain size={30} /><span className="text-xs">No tour image available</span></div>;
+  return <img src={src} alt={name} className={className} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+}
 
 const vnd = (amount: number) =>
-  new Intl.NumberFormat('vi-VN', {
+  new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,
@@ -57,7 +59,7 @@ const formatVnDateTime = (dateStr?: string | null) => {
   if (!dateStr) return '—';
   try {
     const d = new Date(dateStr);
-    return new Intl.DateTimeFormat('vi-VN', {
+    return new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Asia/Ho_Chi_Minh',
       dateStyle: 'short',
       timeStyle: 'short',
@@ -76,42 +78,42 @@ const renderParticipantStatusBadge = (status: ParticipantStatus) => {
       return (
         <Badge variant="success" className="bg-[#ECFDF5] text-[#065F46] border border-[#6EE7B7] flex items-center gap-1 font-bold py-1 px-2">
           <CheckCircle2 className="w-3 h-3 text-[#059669]" />
-          <span>ĐÃ XÁC NHẬN</span>
+          <span>CONFIRMED</span>
         </Badge>
       );
     case 'PENDING':
       return (
         <Badge variant="warning" className="bg-[#FFF7ED] text-[#C2410C] border border-[#FDBA74] flex items-center gap-1 font-bold py-1 px-2">
           <Clock className="w-3 h-3 text-[#EA580C]" />
-          <span>CHỜ THANH TOÁN</span>
+          <span>AWAITING PAYMENT</span>
         </Badge>
       );
     case 'COMPLETED':
       return (
         <Badge variant="neutral" className="bg-[#F3F4F6] text-[#374151] border border-[#D1D5DB] flex items-center gap-1 font-bold py-1 px-2">
           <Check className="w-3 h-3 text-[#4B5563]" />
-          <span>HOÀN THÀNH</span>
+          <span>COMPLETED</span>
         </Badge>
       );
     case 'CANCELLED':
       return (
         <Badge variant="danger" className="bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5] flex items-center gap-1 font-bold py-1 px-2">
           <XCircle className="w-3 h-3 text-[#DC2626]" />
-          <span>ĐÃ HỦY VÉ</span>
+          <span>CANCELLED</span>
         </Badge>
       );
     case 'EXPIRED':
       return (
         <Badge variant="neutral" className="bg-[#F4F4F5] text-[#71717A] border border-[#E4E4E7] flex items-center gap-1 font-bold py-1 px-2">
           <AlertCircle className="w-3 h-3 text-[#A1A1AA]" />
-          <span>HẾT HẠN GIỮ CHỖ</span>
+          <span>RESERVATION EXPIRED</span>
         </Badge>
       );
     case 'NO_SHOW':
       return (
         <Badge variant="danger" className="bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5] flex items-center gap-1 font-bold py-1 px-2">
           <AlertTriangle className="w-3 h-3 text-[#DC2626]" />
-          <span>VẮNG MẶT (NO-SHOW)</span>
+          <span>NO-SHOW</span>
         </Badge>
       );
     default:
@@ -123,13 +125,13 @@ const renderCheckInBadge = (checkInStatus: 'NOT_CHECKED_IN' | 'CHECKED_IN') => {
   if (checkInStatus === 'CHECKED_IN') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[10px] font-bold bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]">
-        <Check className="w-2.5 h-2.5" /> ĐÃ CHECK-IN TẠI TRẠM
+        <Check className="w-2.5 h-2.5" /> CHECKED IN
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[10px] font-bold bg-[#F8F6F1] text-[#737C75] border border-[#D8D2C5]">
-      <Clock className="w-2.5 h-2.5" /> CHƯA CHECK-IN
+      <Clock className="w-2.5 h-2.5" /> NOT CHECKED IN
     </span>
   );
 };
@@ -145,7 +147,7 @@ export function MyToursPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-label">
         <div className="flex flex-col items-center justify-center space-y-4 py-20">
           <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
-          <p className="text-sm font-bold text-[#5C665F]">Đang tải hồ sơ vé tour dã ngoại...</p>
+          <p className="text-sm font-bold text-[#5C665F]">Loading your tour tickets...</p>
         </div>
       </main>
     );
@@ -156,13 +158,13 @@ export function MyToursPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-label">
         <Card padding="lg" className="text-center space-y-4 bg-[#F8F6F1]">
           <Compass className="w-12 h-12 text-[#D97845] mx-auto" />
-          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Vui lòng đăng nhập</h1>
+          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Please sign in</h1>
           <p className="text-sm text-[#5C665F]">
-            {auth.error || 'Bạn cần đăng nhập tài khoản khách hàng để xem lịch trình các chuyến đi và vé tour đã đặt.'}
+            {auth.error || 'Sign in to your customer account to view your trips and booked tickets.'}
           </p>
           <div className="pt-2">
             <Link to="/login?returnTo=/my-tours">
-              <Button variant="accent">Đăng nhập ngay</Button>
+              <Button variant="accent">Sign in now</Button>
             </Link>
           </div>
         </Card>
@@ -170,14 +172,14 @@ export function MyToursPage() {
     );
   }
 
-  return <MyTickets userId={auth.data.id} />;
+  return <MyTickets key={auth.data.id} />;
 }
 
 // ==========================================
 // MY TICKETS LIST
 // ==========================================
-function MyTickets({ userId }: { userId: number }) {
-  const loader = useCallback((page: number) => participantApi.mine(userId, page), [userId]);
+function MyTickets() {
+  const loader = useCallback((page: number) => participantApi.mine(page), []);
   const list = usePages(loader);
   const now = useClock(1000);
   const navigate = useNavigate();
@@ -295,13 +297,12 @@ function MyTickets({ userId }: { userId: number }) {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchId = String(ticket.id).includes(q) || `ticket-${ticket.id}`.includes(q);
-          const matchRef = (ticket.registrationReference || '').toLowerCase().includes(q);
           const schedule = schedulesMap.get(ticket.scheduleId);
           const event = schedule ? eventsMap.get(schedule.eventId) : null;
           const matchEventName = event?.eventName?.toLowerCase().includes(q) || false;
           const matchBranch = schedule ? (branchesMap.get(schedule.branchId) || '').toLowerCase().includes(q) : false;
 
-          if (!matchId && !matchRef && !matchEventName && !matchBranch) {
+          if (!matchId && !matchEventName && !matchBranch) {
             return false;
           }
         }
@@ -363,17 +364,17 @@ function MyTickets({ userId }: { userId: number }) {
             <span>CLIMBER PASSPORT // EXPEDITIONS & TOURS</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#152A20] font-headline tracking-tight">
-            Chuyến Đi Của Tôi
+            My Tours
           </h1>
           <p className="text-xs sm:text-sm text-[#5C665F] mt-1 max-w-2xl">
-            Theo dõi vé tour dã ngoại, lịch xuất phát thực địa, kiểm tra thông tin tập trung tại trạm Outpost và hoàn tất thanh toán giữ chỗ.
+            Track your tickets, departure times and meeting points, and complete your reservation payment.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <Link to="/tours">
             <Button variant="accent" size="sm" icon={<Compass className="w-3.5 h-3.5" />}>
-              Khám phá Tours
+              Explore tours
             </Button>
           </Link>
           <Button
@@ -382,12 +383,12 @@ function MyTickets({ userId }: { userId: number }) {
             onClick={() => {
               list.refresh();
               summaries.refresh();
-              showToast('Đang làm mới danh sách chuyến đi...');
+              showToast('Refreshing your trips...');
             }}
             disabled={list.loading}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${list.loading ? 'animate-spin text-[#D97845]' : ''}`} />}
           >
-            {list.loading ? 'Đang tải...' : 'Đồng bộ'}
+            {list.loading ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </div>
@@ -395,9 +396,9 @@ function MyTickets({ userId }: { userId: number }) {
       {/* Explorer KPI Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
-          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TỔNG VÉ ĐÃ ĐẶT</span>
+          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TOTAL TICKETS</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
-          <span className="text-[10px] text-[#5C665F]">Lịch sử tour đăng ký</span>
+          <span className="text-[10px] text-[#5C665F]">Your booking history</span>
         </Card>
 
         <Card
@@ -408,12 +409,12 @@ function MyTickets({ userId }: { userId: number }) {
           onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
         >
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">CHỜ THANH TOÁN</span>
+            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">AWAITING PAYMENT</span>
             {stats.pending > 0 && <span className="w-2 h-2 rounded-full bg-[#D97845] animate-ping" />}
           </div>
           <div className="text-xl sm:text-2xl font-bold text-[#D97845] font-headline">{stats.pending}</div>
           <span className="text-[10px] text-[#737C75]">
-            {stats.pending > 0 ? `${stats.pending} vé cần thanh toán giữ chỗ` : 'Không có vé chờ'}
+            {stats.pending > 0 ? `${stats.pending} tickets awaiting payment` : 'No pending tickets'}
           </span>
         </Card>
 
@@ -424,9 +425,9 @@ function MyTickets({ userId }: { userId: number }) {
           }`}
           onClick={() => setStatusFilter(statusFilter === 'CONFIRMED' ? 'ALL' : 'CONFIRMED')}
         >
-          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">ĐÃ XÁC NHẬN</span>
+          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">CONFIRMED</span>
           <div className="text-xl sm:text-2xl font-bold text-[#065F46] font-headline">{stats.confirmed}</div>
-          <span className="text-[10px] text-[#737C75]">Sẵn sàng khởi hành</span>
+          <span className="text-[10px] text-[#737C75]">Ready for departure</span>
         </Card>
 
         <Card
@@ -436,21 +437,21 @@ function MyTickets({ userId }: { userId: number }) {
           }`}
           onClick={() => setStatusFilter(statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
         >
-          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">HOÀN THÀNH</span>
+          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">COMPLETED</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.completed}</div>
-          <span className="text-[10px] text-[#737C75]">Chuyến đi trọn vẹn</span>
+          <span className="text-[10px] text-[#737C75]">Completed adventures</span>
         </Card>
 
         <Card
           padding="sm"
           className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#047857] hover:-translate-y-1 hover:shadow-md transition-all duration-200"
         >
-          <span className="text-[10px] text-[#047857] font-bold uppercase tracking-wider block">TỔNG CHI PHÍ TOURS</span>
+          <span className="text-[10px] text-[#047857] font-bold uppercase tracking-wider block">TOTAL TOUR VALUE</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline truncate" title={vnd(stats.totalSpent)}>
             {vnd(stats.totalSpent)}
           </div>
           <span className="text-[10px] text-[#059669] flex items-center gap-1 font-medium">
-            <TrendingUp className="w-3 h-3 text-[#059669]" /> Giá trị đã xác nhận
+            <TrendingUp className="w-3 h-3 text-[#059669]" /> Confirmed ticket value
           </span>
         </Card>
       </div>
@@ -460,11 +461,11 @@ function MyTickets({ userId }: { userId: number }) {
         {/* Status Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#D8D2C5]/60">
           {[
-            { key: 'ALL', label: 'TẤT CẢ', count: stats.total },
-            { key: 'PENDING', label: 'CHỜ THANH TOÁN', count: stats.pending, alert: stats.pending > 0 },
-            { key: 'CONFIRMED', label: 'ĐÃ XÁC NHẬN', count: stats.confirmed },
-            { key: 'COMPLETED', label: 'HOÀN THÀNH', count: stats.completed },
-            { key: 'CANCELLED', label: 'ĐÃ HỦY / HẾT HẠN', count: stats.cancelled },
+            { key: 'ALL', label: 'ALL', count: stats.total },
+            { key: 'PENDING', label: 'AWAITING PAYMENT', count: stats.pending, alert: stats.pending > 0 },
+            { key: 'CONFIRMED', label: 'CONFIRMED', count: stats.confirmed },
+            { key: 'COMPLETED', label: 'COMPLETED', count: stats.completed },
+            { key: 'CANCELLED', label: 'CANCELLED / EXPIRED', count: stats.cancelled },
           ].map((tab) => {
             const isActive = statusFilter === tab.key;
             return (
@@ -500,7 +501,7 @@ function MyTickets({ userId }: { userId: number }) {
             <Search className="w-4 h-4 text-[#737C75] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm theo mã vé (#12), tên tour, mã tham chiếu TRK-..., trạm Outpost..."
+              placeholder="Search by ticket number (#12), tour name or outpost..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs text-xs font-label text-[#111D16] focus:outline-none focus:border-[#152A20]"
@@ -518,17 +519,17 @@ function MyTickets({ userId }: { userId: number }) {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-xs text-[#5C665F] shrink-0 font-bold">
               <ArrowUpDown className="w-3.5 h-3.5 text-[#D97845]" />
-              <span className="hidden sm:inline">Sắp xếp:</span>
+              <span className="hidden sm:inline">Sort by:</span>
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-2.5 py-1.5 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs text-xs font-bold text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="newest">Mới đặt nhất</option>
-              <option value="departure">Khởi hành gần nhất</option>
-              <option value="highest">Giá cao nhất</option>
-              <option value="lowest">Giá thấp nhất</option>
+              <option value="newest">Newest bookings</option>
+              <option value="departure">Next departure</option>
+              <option value="highest">Highest price</option>
+              <option value="lowest">Lowest price</option>
             </select>
           </div>
         </div>
@@ -549,16 +550,16 @@ function MyTickets({ userId }: { userId: number }) {
         ) : filteredTickets.length === 0 ? (
           <Card padding="lg" className="text-center py-12 space-y-3 bg-[#F8F6F1]">
             <Compass className="w-12 h-12 text-[#D97845]/60 mx-auto" />
-            <h3 className="text-base font-bold text-[#152A20] font-headline">Không tìm thấy chuyến đi nào</h3>
+            <h3 className="text-base font-bold text-[#152A20] font-headline">No trips found</h3>
             <p className="text-xs text-[#5C665F] max-w-md mx-auto">
               {searchQuery || statusFilter !== 'ALL'
-                ? 'Không có vé nào phù hợp với bộ lọc hiện tại. Thử xóa tìm kiếm hoặc chuyển sang tab khác.'
-                : 'Bạn chưa đăng ký chuyến đi dã ngoại nào. Hãy khám phá ngay các cung đường leo núi & cắm trại kỳ thú!'}
+                ? 'No tickets match your filters. Clear your search or try another tab.'
+                : 'You have not booked a trip yet. Explore our trekking and camping adventures!'}
             </p>
             <div className="pt-2">
               <Link to="/tours">
                 <Button variant="accent" size="sm" icon={<Footprints className="w-3.5 h-3.5" />}>
-                  Khám phá danh sách Tours
+                  Explore tours
                 </Button>
               </Link>
             </div>
@@ -567,8 +568,8 @@ function MyTickets({ userId }: { userId: number }) {
           filteredTickets.map((ticket) => {
             const schedule = schedulesMap.get(ticket.scheduleId);
             const event = schedule ? eventsMap.get(schedule.eventId) : null;
-            const branchName = schedule ? branchesMap.get(schedule.branchId) || `Trạm Outpost #${schedule.branchId}` : 'Trạm Outpost';
-            const coverImg = event?.coverImageUrl || fallbackImages[ticket.id % fallbackImages.length];
+            const branchName = schedule ? branchesMap.get(schedule.branchId) || `Outpost #${schedule.branchId}` : 'Outpost';
+            const coverImg = event?.coverImageUrl || event?.images?.find(image => image.imageUrl)?.imageUrl;
 
             // Remaining seconds for PENDING tickets
             const remainingSec = ticket.expiresAt ? Math.max(0, Math.ceil((Date.parse(ticket.expiresAt) - now) / 1000)) : 0;
@@ -589,17 +590,17 @@ function MyTickets({ userId }: { userId: number }) {
                       <Clock className="w-4 h-4 text-[#EA580C] shrink-0 animate-pulse" />
                       <span>
                         {remainingSec > 0
-                          ? `Thời hạn giữ chỗ: Còn ${remainingMin} phút ${remainingSecRemainder} giây để thanh toán (Hạn chót: ${formatVnDateTime(
+                          ? `Reservation expires in ${remainingMin} minutes ${remainingSecRemainder} seconds to pay (Deadline: ${formatVnDateTime(
                               ticket.expiresAt
                             )})`
-                          : 'Hạn giữ chỗ đã kết thúc. Đang chờ hệ thống cập nhật giải phóng vé.'}
+                          : 'The reservation has expired. Waiting for the system to release the spot.'}
                       </span>
                     </div>
 
                     {canPayNow && (
                       <Link to={`/payment/pending?participantId=${ticket.id}`}>
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#D97845] hover:bg-[#B85D2E] text-white font-bold text-xs rounded-xs shadow-xs transition cursor-pointer">
-                          <CreditCard className="w-3.5 h-3.5" /> Thanh toán ngay
+                          <CreditCard className="w-3.5 h-3.5" /> Pay now
                         </span>
                       </Link>
                     )}
@@ -611,25 +612,13 @@ function MyTickets({ userId }: { userId: number }) {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D8D2C5]/70">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-base font-bold text-[#152A20] font-headline">
-                        VÉ TOUR #{ticket.id}
+                        TOUR TICKET #{ticket.id}
                       </span>
                       <span className="text-xs text-[#737C75]">·</span>
                       <span className="text-xs text-[#5C665F] font-bold">
-                        Đợt khởi hành #{ticket.scheduleId}
+                        Departure #{ticket.scheduleId}
                       </span>
-                      {ticket.registrationReference && (
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(ticket.registrationReference);
-                            showToast(`Đã sao chép mã ${ticket.registrationReference}!`);
-                          }}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-xs bg-[#EBE6DC] text-[#152A20] text-[11px] font-bold hover:bg-[#D8D2C5] transition cursor-pointer"
-                          title="Bấm để sao chép mã tham chiếu"
-                        >
-                          <code>{ticket.registrationReference}</code>
-                          <Copy className="w-3 h-3 text-[#737C75]" />
-                        </button>
-                      )}
+
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -642,9 +631,10 @@ function MyTickets({ userId }: { userId: number }) {
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
                     {/* Event Cover Image */}
                     <div className="md:col-span-4 relative rounded-xs overflow-hidden h-40 md:h-44 bg-[#EBE6DC] shadow-xs group">
-                      <img
+                      <TourPhoto
+                        key={coverImg || 'no-image'}
                         src={coverImg}
-                        alt={event?.eventName || 'Tour dã ngoại'}
+                        name={event?.eventName || 'Outdoor tour'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -664,7 +654,7 @@ function MyTickets({ userId }: { userId: number }) {
                       </div>
 
                       <div className="absolute bottom-2 left-2 right-2 text-white">
-                        <span className="text-[10px] opacity-80 uppercase tracking-wider block">Trạm xuất phát:</span>
+                        <span className="text-[10px] opacity-80 uppercase tracking-wider block">Departure outpost:</span>
                         <span className="text-xs font-bold truncate block">{branchName}</span>
                       </div>
                     </div>
@@ -676,7 +666,7 @@ function MyTickets({ userId }: { userId: number }) {
                           to={`/my-tours/${ticket.id}`}
                           className="text-lg sm:text-xl font-bold text-[#152A20] font-headline hover:text-[#D97845] transition-colors line-clamp-1"
                         >
-                          {event?.eventName || `Chuyến đi dã ngoại #${ticket.scheduleId}`}
+                          {event?.eventName || `Outdoor trip #${ticket.scheduleId}`}
                         </Link>
                         {event?.location && (
                           <div className="flex items-center gap-1.5 text-xs text-[#5C665F] mt-1">
@@ -691,13 +681,13 @@ function MyTickets({ userId }: { userId: number }) {
                         <div className="p-2.5 rounded-xs bg-[#F3EFE6] border border-[#D8D2C5]/60 flex items-start gap-2">
                           <CalendarDays className="w-4 h-4 text-[#152A20] shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-[10px] text-[#737C75] font-bold uppercase block">Lịch xuất phát:</span>
+                            <span className="text-[10px] text-[#737C75] font-bold uppercase block">Departure time:</span>
                             <span className="font-bold text-[#111D16]">
-                              {schedule ? formatVnDateTime(schedule.startDatetime) : 'Đang cập nhật'}
+                              {schedule ? formatVnDateTime(schedule.startDatetime) : 'To be confirmed'}
                             </span>
                             {schedule && (
                               <span className="text-[10px] text-[#5C665F] block">
-                                Đến: {formatVnDateTime(schedule.endDatetime)}
+                                Until: {formatVnDateTime(schedule.endDatetime)}
                               </span>
                             )}
                           </div>
@@ -706,10 +696,10 @@ function MyTickets({ userId }: { userId: number }) {
                         <div className="p-2.5 rounded-xs bg-[#F3EFE6] border border-[#D8D2C5]/60 flex items-start gap-2">
                           <Building className="w-4 h-4 text-[#D97845] shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-[10px] text-[#737C75] font-bold uppercase block">Điểm hẹn & Trạm Outpost:</span>
+                            <span className="text-[10px] text-[#737C75] font-bold uppercase block">Meeting point & outpost:</span>
                             <span className="font-bold text-[#111D16] truncate block">{branchName}</span>
                             <span className="text-[10px] text-[#5C665F] block">
-                              Ngày đăng ký: {formatVnDateTime(ticket.registrationDate)}
+                              Booked on: {formatVnDateTime(ticket.registrationDate)}
                             </span>
                           </div>
                         </div>
@@ -718,15 +708,15 @@ function MyTickets({ userId }: { userId: number }) {
                       {/* Price & Summary */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#D8D2C5]/50">
                         <div className="text-xs">
-                          <span className="text-[10px] text-[#737C75] font-bold uppercase block">Giá vé tham gia:</span>
+                          <span className="text-[10px] text-[#737C75] font-bold uppercase block">Ticket price:</span>
                           <span className="text-base sm:text-lg font-bold text-[#152A20] font-headline">
                             {vnd(ticket.registeredPrice)}
                           </span>
                         </div>
 
                         <div className="text-xs text-right">
-                          <span className="text-[10px] text-[#737C75] font-bold uppercase block">Số khách:</span>
-                          <span className="font-bold text-[#111D16]">1 Thành viên (Theo tài khoản)</span>
+                          <span className="text-[10px] text-[#737C75] font-bold uppercase block">Guests:</span>
+                          <span className="font-bold text-[#111D16]">1 guest (account holder)</span>
                         </div>
                       </div>
                     </div>
@@ -736,20 +726,20 @@ function MyTickets({ userId }: { userId: number }) {
                   <div className="pt-2 pb-1 border-t border-[#D8D2C5]/60">
                     <div className="flex items-center justify-between text-[11px] font-bold">
                       {[
-                        { key: 'REGISTERED', label: 'Đặt chỗ', done: true },
+                        { key: 'REGISTERED', label: 'Reserve', done: true },
                         {
                           key: 'CONFIRMED',
-                          label: 'Thanh toán',
+                          label: 'Payment',
                           done: ticket.participantStatus === 'CONFIRMED' || ticket.participantStatus === 'COMPLETED',
                         },
                         {
                           key: 'CHECKED_IN',
-                          label: 'Check-in tại trạm',
+                          label: 'Outpost check-in',
                           done: ticket.checkInStatus === 'CHECKED_IN' || ticket.participantStatus === 'COMPLETED',
                         },
                         {
                           key: 'COMPLETED',
-                          label: 'Hoàn thành',
+                          label: 'Completed',
                           done: ticket.participantStatus === 'COMPLETED',
                         },
                       ].map((st, idx, arr) => (
@@ -785,7 +775,7 @@ function MyTickets({ userId }: { userId: number }) {
                     <div className="flex items-center gap-2">
                       <Link to={`/my-tours/${ticket.id}`}>
                         <Button variant="secondary" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
-                          Chi tiết vé & Lịch trình
+                          Ticket details & itinerary
                         </Button>
                       </Link>
 
@@ -802,14 +792,14 @@ function MyTickets({ userId }: { userId: number }) {
                       {ticket.participantStatus === 'PENDING' && canPayNow && (
                         <Link to={`/payment/pending?participantId=${ticket.id}`}>
                           <Button variant="accent" size="sm" icon={<CreditCard className="w-3.5 h-3.5" />}>
-                            Thanh toán ngay
+                            Pay now
                           </Button>
                         </Link>
                       )}
 
                       {ticket.participantStatus === 'PENDING' && !canPayNow && remainingSec > 0 && (
                         <span className="text-xs text-[#C2410C] font-bold px-2 py-1 bg-[#FFF7ED] rounded-xs border border-[#FDBA74]">
-                          Cần ít nhất 5 phút để thanh toán
+                          At least 5 minutes are required to complete payment
                         </span>
                       )}
                     </div>
@@ -829,7 +819,7 @@ function MyTickets({ userId }: { userId: number }) {
             onClick={() => list.loadMore()}
             icon={<RefreshCw className="w-3.5 h-3.5" />}
           >
-            Tải thêm vé tour
+            Load more tickets
           </Button>
         </div>
       )}
@@ -848,10 +838,10 @@ export function TicketDetailPage() {
       <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
         <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
-          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Mã vé không hợp lệ</h1>
-          <p className="text-sm text-[#5C665F]">Không tìm thấy thông tin vé hoặc mã vé không đúng định dạng.</p>
+          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Invalid ticket number</h1>
+          <p className="text-sm text-[#5C665F]">The ticket was not found or its number is invalid.</p>
           <Link to="/my-tours">
-            <Button variant="secondary">Quay lại danh sách Tour</Button>
+            <Button variant="secondary">Back to My Tours</Button>
           </Link>
         </Card>
       </main>
@@ -898,7 +888,7 @@ function TicketDetail({ id }: { id: number }) {
       <main className="max-w-5xl mx-auto px-4 py-16 font-label">
         <div className="flex flex-col items-center justify-center space-y-3 py-20">
           <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
-          <p className="text-sm font-bold text-[#5C665F]">Đang tải thông tin vé tour #{id}...</p>
+          <p className="text-sm font-bold text-[#5C665F]">Loading ticket #{id}...</p>
         </div>
       </main>
     );
@@ -909,14 +899,14 @@ function TicketDetail({ id }: { id: number }) {
       <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
         <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
-          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Không thể tải thông tin vé</h1>
+          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Unable to load ticket details</h1>
           <p className="text-sm text-[#5C665F]">{resource.error}</p>
           <div className="flex justify-center gap-3">
             <Link to="/my-tours">
-              <Button variant="secondary">← Danh sách Tour</Button>
+              <Button variant="secondary">← My Tours</Button>
             </Link>
             <Button variant="accent" onClick={refresh}>
-              Thử lại
+              Try again
             </Button>
           </div>
         </Card>
@@ -930,15 +920,15 @@ function TicketDetail({ id }: { id: number }) {
       <div className="flex items-center justify-between pb-4 border-b border-[#D8D2C5]">
         <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
           <Link to="/my-tours" className="hover:text-[#D97845] transition">
-            Tour Của Tôi
+            My Tours
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#111D16]">Vé Tour #{id}</span>
+          <span className="text-[#111D16]">Tour ticket #{id}</span>
         </div>
 
         <Link to="/my-tours">
           <Button variant="outlined" size="sm" icon={<ArrowRight className="w-3.5 h-3.5 rotate-180" />}>
-            Quay lại danh sách
+            Back to list
           </Button>
         </Link>
       </div>
@@ -992,9 +982,9 @@ function TicketContent({
       await participantApi.cancel(p.id, reason);
       setCancelOpen(false);
       refresh();
-      showToast('Đã hủy đăng ký vé tour thành công.');
+      showToast('Your reservation has been cancelled.');
     } catch (e) {
-      setError(`${errorMessage(e)} Vui lòng kiểm tra lại trạng thái vé.`);
+      setError(`${errorMessage(e)} Please check your ticket for the latest update.`);
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -1004,9 +994,9 @@ function TicketContent({
   const remaining = Math.max(0, Math.ceil((Date.parse(p.expiresAt || '') - now) / 1000));
   const remainingMin = Math.floor(remaining / 60);
   const remainingSec = remaining % 60;
-  const branchName = s ? branches.data?.find((b) => b.id === s.branchId)?.name || `Trạm Outpost #${s.branchId}` : 'Trạm Outpost';
+  const branchName = s ? branches.data?.find((b) => b.id === s.branchId)?.name || `Outpost #${s.branchId}` : 'Outpost';
   const branchAddress = s ? branches.data?.find((b) => b.id === s.branchId)?.address : '';
-  const coverImg = event.data?.coverImageUrl || fallbackImages[p.id % fallbackImages.length];
+  const coverImg = event.data?.coverImageUrl || event.data?.images?.find(image => image.imageUrl)?.imageUrl;
 
   return (
     <div className="space-y-6">
@@ -1028,11 +1018,11 @@ function TicketContent({
               <div>
                 <span className="block">
                   {remaining > 0
-                    ? `Thời hạn giữ chỗ: Còn ${remainingMin} phút ${remainingSec} giây để thanh toán vé tour`
-                    : 'Đã hết thời gian giữ chỗ vé tour này.'}
+                    ? `Reservation expires in ${remainingMin} minutes ${remainingSec} seconds to pay for your ticket`
+                    : 'The reservation for this ticket has expired.'}
                 </span>
                 <span className="text-[11px] font-normal text-[#9A3412]">
-                  Hạn chót: {formatVnDateTime(p.expiresAt)} (Sau thời hạn này, vé sẽ bị hủy tự động để thành viên khác đăng ký)
+                  Deadline: {formatVnDateTime(p.expiresAt)} (After this deadline, your reservation will be released for other guests)
                 </span>
               </div>
             </div>
@@ -1040,7 +1030,7 @@ function TicketContent({
             {remaining >= 300 && (
               <Link to={`/payment/pending?participantId=${p.id}`}>
                 <Button variant="accent" size="sm" icon={<CreditCard className="w-3.5 h-3.5" />}>
-                  Thanh toán vé tour ngay
+                  Pay for your ticket
                 </Button>
               </Link>
             )}
@@ -1049,13 +1039,13 @@ function TicketContent({
 
         {/* Hero Section */}
         <div className="relative h-48 sm:h-64 overflow-hidden bg-[#152A20]">
-          <img src={coverImg} alt="" className="w-full h-full object-cover opacity-60" />
+          <TourPhoto key={coverImg || 'no-image'} src={coverImg} name={event.data?.eventName || 'Outdoor tour'} className="w-full h-full object-cover opacity-60" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#152A20] via-black/40 to-transparent" />
 
           <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 text-white space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-[#D97845] text-white uppercase tracking-wider">
-                VÉ EXPEDITION
+                EXPEDITION TICKET
               </span>
               {event.data?.eventType && (
                 <span className="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-white/20 text-white uppercase tracking-wider">
@@ -1064,13 +1054,13 @@ function TicketContent({
               )}
               {event.data?.details?.difficultyLevel && (
                 <span className="px-2 py-0.5 rounded-xs text-[10px] font-bold bg-white/20 text-white uppercase tracking-wider">
-                  ĐỘ KHÓ: {event.data.details.difficultyLevel}
+                  DIFFICULTY: {event.data.details.difficultyLevel}
                 </span>
               )}
             </div>
 
             <h1 className="text-xl sm:text-3xl font-bold font-headline leading-tight text-[#F3EFE6]">
-              {event.data?.eventName || `Chuyến đi dã ngoại #${p.scheduleId}`}
+              {event.data?.eventName || `Outdoor trip #${p.scheduleId}`}
             </h1>
 
             {event.data?.location && (
@@ -1085,20 +1075,8 @@ function TicketContent({
         {/* Header Badges Bar */}
         <div className="p-4 sm:p-6 border-b border-[#D8D2C5] flex flex-wrap items-center justify-between gap-3 bg-[#F3EFE6]">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-bold text-[#152A20]">Mã vé: #{p.id}</span>
-            <span className="text-xs text-[#737C75]">·</span>
-            <span className="text-xs text-[#5C665F]">
-              Mã tham chiếu:{' '}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(p.registrationReference);
-                  showToast(`Đã sao chép mã tham chiếu!`);
-                }}
-                className="font-bold underline hover:text-[#D97845] transition cursor-pointer"
-              >
-                <code>{p.registrationReference}</code>
-              </button>
-            </span>
+            <span className="text-sm font-bold text-[#152A20]">Ticket number: #{p.id}</span>
+
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -1109,20 +1087,20 @@ function TicketContent({
 
         {/* Stepper */}
         <div className="p-4 sm:p-6 border-b border-[#D8D2C5]/70 bg-[#F8F6F1]">
-          <div className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider mb-2">TIẾN TRÌNH THAM GIA HÀNH TRÌNH</div>
+          <div className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider mb-2">YOUR TRIP PROGRESS</div>
           <div className="flex items-center justify-between text-xs font-bold">
             {[
-              { label: 'Đã đặt giữ chỗ', done: true },
+              { label: 'Spot reserved', done: true },
               {
-                label: 'Thanh toán xác nhận',
+                label: 'Payment confirmed',
                 done: p.participantStatus === 'CONFIRMED' || p.participantStatus === 'COMPLETED',
               },
               {
-                label: 'Check-in tại trạm',
+                label: 'Outpost check-in',
                 done: p.checkInStatus === 'CHECKED_IN' || p.participantStatus === 'COMPLETED',
               },
               {
-                label: 'Hoàn thành hành trình',
+                label: 'Trip completed',
                 done: p.participantStatus === 'COMPLETED',
               },
             ].map((step, idx, arr) => (
@@ -1159,29 +1137,29 @@ function TicketContent({
           <div className="lg:col-span-7 space-y-5">
             <div className="space-y-3">
               <h2 className="text-sm font-bold text-[#152A20] font-headline uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-[#D97845]" /> Thông tin xuất phát & Hành trình
+                <Calendar className="w-4 h-4 text-[#D97845]" /> Departure & itinerary
               </h2>
 
               <div className="space-y-2.5 text-xs">
                 <div className="p-3 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs space-y-1">
-                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Lịch trình khởi hành:</span>
+                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Departure time:</span>
                   <div className="font-bold text-[#111D16] text-sm">
-                    {s ? formatVnDateTime(s.startDatetime) : 'Đang cập nhật'}
+                    {s ? formatVnDateTime(s.startDatetime) : 'To be confirmed'}
                   </div>
                   {s && (
                     <div className="text-[#5C665F]">
-                      Kết thúc: <span className="font-semibold text-[#111D16]">{formatVnDateTime(s.endDatetime)}</span>
+                      End: <span className="font-semibold text-[#111D16]">{formatVnDateTime(s.endDatetime)}</span>
                     </div>
                   )}
                   {s && (
                     <div className="text-[10px] text-[#737C75] pt-0.5">
-                      Hạn chót mở đăng ký đợt: {formatVnDateTime(s.registrationClosesAt)}
+                      Registration closes: {formatVnDateTime(s.registrationClosesAt)}
                     </div>
                   )}
                 </div>
 
                 <div className="p-3 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs space-y-1">
-                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Trạm Outpost tiếp nhận:</span>
+                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Receiving outpost:</span>
                   <div className="font-bold text-[#111D16] text-sm flex items-center gap-1.5">
                     <Building className="w-4 h-4 text-[#152A20]" />
                     <span>{branchName}</span>
@@ -1189,28 +1167,28 @@ function TicketContent({
                   {branchAddress && <div className="text-[#5C665F]">{branchAddress}</div>}
                   {event.data?.details?.meetingPoint && (
                     <div className="text-[#152A20] font-medium pt-1">
-                      Điểm tập trung cụ thể:{' '}
+                      Meeting point:{' '}
                       <span className="font-bold">{event.data.details.meetingPoint}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="p-3 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs space-y-1">
-                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Hướng dẫn viên dã ngoại:</span>
+                  <span className="text-[10px] text-[#737C75] font-bold uppercase block">Tour guide:</span>
                   <div className="font-bold text-[#111D16] flex items-center gap-1.5">
                     <User className="w-4 h-4 text-[#059669]" />
-                    <span>{guide.data?.displayName || (s?.guideId ? `HDV #${s.guideId}` : 'Đang bố trí điều phối viên')}</span>
+                    <span>{guide.data?.displayName || (s?.guideId ? `HDV #${s.guideId}` : 'Guide to be assigned')}</span>
                   </div>
                   {guide.data?.specialization && (
                     <div className="text-[11px] text-[#5C665F]">
-                      Chuyên môn: {guide.data.specialization} · Kinh nghiệm: {guide.data.experienceYears} năm
+                      Specialization: {guide.data.specialization} · Experience: {guide.data.experienceYears} years
                     </div>
                   )}
                 </div>
 
                 {p.note && (
                   <div className="p-3 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs space-y-1">
-                    <span className="text-[10px] text-[#737C75] font-bold uppercase block">Ghi chú từ khách hàng:</span>
+                    <span className="text-[10px] text-[#737C75] font-bold uppercase block">Guest notes:</span>
                     <p className="text-xs text-[#111D16] italic font-body">{p.note}</p>
                   </div>
                 )}
@@ -1221,10 +1199,10 @@ function TicketContent({
             <div className="p-3.5 bg-[#152A20]/5 border border-[#152A20]/20 rounded-xs space-y-1.5 text-xs">
               <div className="flex items-center gap-1.5 font-bold text-[#152A20]">
                 <ShieldCheck className="w-4 h-4 text-[#059669]" />
-                <span>Quy chuẩn an toàn dã ngoại TerraPeak</span>
+                <span>TerraPeak outdoor safety guidelines</span>
               </div>
               <p className="text-[#5C665F] text-[11px] leading-relaxed">
-                Quý khách vui lòng có mặt tại điểm hẹn ít nhất 15 phút trước giờ khởi hành để làm thủ tục điểm danh (Check-in) và nhận trang bị an toàn nếu có thuê tại trạm.
+                Please arrive at the meeting point at least 15 minutes before departure for check-in and equipment pickup, if applicable.
               </p>
             </div>
           </div>
@@ -1233,30 +1211,30 @@ function TicketContent({
           <div className="lg:col-span-5 space-y-4">
             <div className="p-4 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs space-y-3.5">
               <h2 className="text-xs font-bold text-[#152A20] font-headline uppercase tracking-wider">
-                Hóa đơn & Thanh toán
+                Billing & payment
               </h2>
 
               <div className="space-y-2 text-xs border-b border-[#D8D2C5] pb-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[#5C665F]">Mã đặt vé:</span>
+                  <span className="text-[#5C665F]">Booking number:</span>
                   <span className="font-bold text-[#111D16]">#{p.id}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#5C665F]">Thời gian đăng ký:</span>
+                  <span className="text-[#5C665F]">Booking time:</span>
                   <span className="font-bold text-[#111D16]">{formatVnDateTime(p.registrationDate)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#5C665F]">Số lượng khách:</span>
-                  <span className="font-bold text-[#111D16]">01 Khách</span>
+                  <span className="text-[#5C665F]">Number of guests:</span>
+                  <span className="font-bold text-[#111D16]">01 Guest</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#5C665F]">Trạng thái thanh toán:</span>
+                  <span className="text-[#5C665F]">Payment status:</span>
                   <span className="font-bold">{renderParticipantStatusBadge(p.participantStatus)}</span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center pt-1">
-                <span className="text-xs font-bold text-[#152A20] uppercase">TỔNG TIỀN VÉ</span>
+                <span className="text-xs font-bold text-[#152A20] uppercase">TICKET TOTAL</span>
                 <span className="text-xl font-bold text-[#152A20] font-headline">{vnd(p.registeredPrice)}</span>
               </div>
 
@@ -1267,18 +1245,18 @@ function TicketContent({
                     {remaining >= 300 ? (
                       <Link to={`/payment/pending?participantId=${p.id}`} className="block">
                         <Button variant="accent" className="w-full" icon={<CreditCard className="w-4 h-4" />}>
-                          Thanh toán trực tuyến ngay
+                          Pay online
                         </Button>
                       </Link>
                     ) : (
                       <Button variant="accent" className="w-full" disabled>
-                        {remaining <= 0 ? 'Đã hết hạn giữ chỗ' : 'Sắp hết hạn giữ chỗ'}
+                        {remaining <= 0 ? 'Reservation expired' : 'Reservation expiring soon'}
                       </Button>
                     )}
 
                     <Link to={`/payment/result?participantId=${p.id}`} className="block">
                       <Button variant="secondary" className="w-full" icon={<RefreshCw className="w-3.5 h-3.5" />}>
-                        Kiểm tra kết quả thanh toán
+                        Check payment result
                       </Button>
                     </Link>
                   </div>
@@ -1290,7 +1268,7 @@ function TicketContent({
                   onClick={() => window.print()}
                   icon={<Printer className="w-3.5 h-3.5" />}
                 >
-                  In phiếu xác nhận / Lưu PDF
+                  Print confirmation / Save PDF
                 </Button>
 
                 {s && cancellable(p, s, now) && (
@@ -1300,10 +1278,11 @@ function TicketContent({
                     onClick={() => setCancelOpen(true)}
                     icon={<XCircle className="w-3.5 h-3.5" />}
                   >
-                    Hủy đăng ký vé tour
+                    Cancel reservation
                   </Button>
                 )}
 
+                {['CANCELLED', 'EXPIRED'].includes(p.participantStatus) && <div className="space-y-2"><Link to={`/refunds?participantId=${p.id}`} className="block"><Button variant="secondary" className="w-full">Request refund</Button></Link><Link to="/refunds" className="text-xs underline">My refund requests</Link></div>}
                 {['CANCELLED', 'EXPIRED'].includes(p.participantStatus) && s && bookable(s, now) && (
                   <Button
                     variant="accent"
@@ -1311,7 +1290,7 @@ function TicketContent({
                     onClick={() => navigate(`/tours/${s.eventId}?schedule=${s.id}`)}
                     icon={<RefreshCw className="w-3.5 h-3.5" />}
                   >
-                    Đăng ký lại chuyến đi này
+                    Book this trip again
                   </Button>
                 )}
               </div>
@@ -1321,10 +1300,10 @@ function TicketContent({
             {['CANCELLED', 'EXPIRED'].includes(p.participantStatus) && (
               <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xs text-xs text-[#991B1B] space-y-1">
                 <div className="font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Vé này đã hủy hoặc hết hạn
+                  <AlertTriangle className="w-3.5 h-3.5" /> This ticket is cancelled or expired
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  Chỗ ngồi đã được giải phóng. Nếu bạn đã chuyển khoản hoặc có thắc mắc về hoàn tiền, vui lòng liên hệ chi nhánh phụ trách.
+                  Your spot has been released. If you have paid or have a refund question, please contact the responsible branch.
                 </p>
               </div>
             )}
@@ -1335,47 +1314,18 @@ function TicketContent({
       {/* Ticket History / Audit Log */}
       <Card padding="md" className="space-y-4 bg-[#F8F6F1]">
         <h2 className="text-sm font-bold text-[#152A20] font-headline uppercase tracking-wider flex items-center gap-1.5">
-          <History className="w-4 h-4 text-[#D97845]" /> Nhật ký vé & Thay đổi trạng thái
+          <History className="w-4 h-4 text-[#D97845]" /> Ticket history
         </h2>
 
         {histories.items.length === 0 ? (
-          <p className="text-xs text-[#5C665F]">Chưa có lịch sử thay đổi trạng thái nào cho vé này.</p>
+          <p className="text-xs text-[#5C665F]">No activity for this ticket yet.</p>
         ) : (
-          <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#D8D2C5]">
-            {histories.items.map((h) => (
-              <div key={h.id} className="relative text-xs space-y-1">
-                <div className="absolute -left-6 top-1 w-3 h-3 rounded-full bg-[#D97845] border-2 border-white" />
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-[#111D16]">
-                    {(h.action && auditLabels[h.action]) || h.action || 'Cập nhật vé'}
-                  </span>
-                  <span className="text-[11px] text-[#737C75]">· {formatVnDateTime(h.changedAt)}</span>
-                </div>
-
-                {h.oldStatus && (
-                  <div className="text-[11px] text-[#5C665F]">
-                    Trạng thái: <code>{labels[h.oldStatus] || h.oldStatus}</code> →{' '}
-                    <strong className="text-[#152A20]">{labels[h.newStatus] || h.newStatus}</strong>
-                  </div>
-                )}
-
-                {(h.reason || h.changeReason) && (
-                  <div className="text-[11px] text-[#111D16] italic bg-[#EBE6DC]/60 p-2 rounded-xs border border-[#D8D2C5]/50">
-                    Lý do: {h.reason || h.changeReason}
-                  </div>
-                )}
-
-                <div className="text-[10px] text-[#737C75]">
-                  Thực hiện bởi: {h.changedBy ? `Tài khoản #${h.changedBy}` : 'Hệ thống tự động'}
-                </div>
-              </div>
-            ))}
-          </div>
+          <TicketTimeline rows={histories.items} />
         )}
 
         {histories.more && !histories.loading && (
           <Button variant="outlined" size="sm" onClick={() => histories.loadMore()} className="text-xs">
-            Xem thêm lịch sử
+            Load more history
           </Button>
         )}
       </Card>
@@ -1385,23 +1335,23 @@ function TicketContent({
         <Modal
           isOpen={cancelOpen}
           onClose={() => !busy && setCancelOpen(false)}
-          title="Xác nhận hủy đăng ký vé tour"
+          title="Confirm reservation cancellation"
           maxWidth="md"
         >
           <form onSubmit={cancel} className="space-y-4 font-label">
             <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xs text-xs text-[#991B1B] space-y-1">
               <div className="font-bold flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-[#DC2626]" />
-                Lưu ý quan trọng khi hủy vé:
+                Before cancelling your ticket:
               </div>
               <p className="text-[11px] leading-relaxed">
-                Chỗ của bạn tại đợt khởi hành này sẽ được giải phóng ngay lập tức. Đối với vé đã xác nhận thanh toán, thủ tục đối soát và hoàn tiền sẽ tuân theo chính sách hoàn vé của trạm.
+                Your spot will be released immediately. For paid tickets, payment review and refunds follow the branch cancellation policy.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="cancel-tour-reason" className="text-xs font-bold text-[#111D16] block">
-                Lý do hủy vé (tùy chọn):
+                Cancellation reason (optional):
               </label>
               <textarea
                 id="cancel-tour-reason"
@@ -1409,7 +1359,7 @@ function TicketContent({
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Ví dụ: Bận việc đột xuất, đổi lịch trình cá nhân..."
+                placeholder="Example: A change of plans or an unexpected commitment..."
                 className="w-full p-2.5 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
               />
             </div>
@@ -1427,7 +1377,7 @@ function TicketContent({
                 disabled={busy}
                 onClick={() => setCancelOpen(false)}
               >
-                Đóng
+                Close
               </Button>
               <Button
                 type="submit"
@@ -1435,7 +1385,7 @@ function TicketContent({
                 disabled={busy}
                 className="bg-[#DC2626] hover:bg-[#B91C1C] text-white border-none"
               >
-                {busy ? 'Đang xử lý hủy...' : 'Xác nhận hủy vé'}
+                {busy ? 'Cancelling...' : 'Confirm cancellation'}
               </Button>
             </div>
           </form>

@@ -694,7 +694,7 @@ export const AdminOrdersPage: React.FC = () => {
                       {vnd(order.totalAmount)}
                     </span>
                       <span className="text-[10px] text-[#5C665F]">({order.items.length} equipment items)</span>
-                      <span className="text-xs font-bold">{order.paymentStatus === 'PAID' ? 'Paid' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Partially paid' : order.paymentStatus === 'REFUNDED' ? 'Refunded' : 'Unpaid'} · Amount due: {vnd(order.remainingAmount ?? order.totalAmount)}</span>
+                      <span className="text-xs font-bold">{order.refundPending ? 'Refund pending — approval blocked' : order.paymentStatus === 'PAID' ? 'Paid' : order.paymentStatus === 'PARTIALLY_PAID' ? 'Partially paid' : order.paymentStatus === 'REFUNDED' ? 'Refunded' : 'Unpaid'} · Amount due: {vnd(order.remainingAmount ?? order.totalAmount)}</span>
                   </div>
 
                   {/* Contextual Action Buttons */}

@@ -239,7 +239,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <button
                       onClick={() => handleRemoveLine(index)}
                       className="absolute top-2.5 right-2.5 text-[#7A857E] hover:text-[#B91C1C] transition cursor-pointer"
-                      title="Xóa món này"
+                      title="Remove item"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

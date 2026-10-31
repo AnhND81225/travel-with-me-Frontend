@@ -3,7 +3,7 @@ import { ApiError } from '../equipment/catalogApi';
 /** Payment returns must retain FE authentication; Swagger's bearer token is separate. */
 export async function paymentApi<T>(path: string, init: RequestInit = {}, allowEmpty = false): Promise<T> {
   const token = sessionStorage.getItem('treektour.catalog.token');
-  if (!token) throw new ApiError('Vui lòng đăng nhập tài khoản đã thanh toán để xác minh giao dịch.', 401);
+  if (!token) throw new ApiError('Sign in with the account that made the payment to verify the transaction.', 401);
   let response: Response;
   try {
     response = await fetch('/api' + path, {
@@ -13,15 +13,15 @@ export async function paymentApi<T>(path: string, init: RequestInit = {}, allowE
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers },
     });
   } catch {
-    throw new Error('Không kết nối được API xác minh. Kiểm tra backend đang chạy; nếu phiên đăng nhập hết hạn, đăng nhập lại rồi kiểm tra giao dịch.');
+    throw new Error('Unable to connect to the payment API. Check the backend connection or sign in again if your session has expired.');
   }
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
     throw new ApiError(response.status === 401 || response.status === 403
-      ? 'Phiên đăng nhập không hợp lệ hoặc tài khoản không sở hữu giao dịch. Hãy đăng nhập đúng tài khoản đã thanh toán.'
-      : payload?.message || `Không thể xác minh giao dịch (${response.status}).`, response.status);
+      ? 'Your session is invalid or this transaction belongs to another account. Sign in with the account that made the payment.'
+      : payload?.message || `Unable to verify transaction (${response.status}).`, response.status);
   }
-  if (!payload?.data && !allowEmpty) throw new Error('API chưa trả dữ liệu xác minh. Kiểm tra cấu hình proxy /api tới backend.');
+  if (!payload?.data && !allowEmpty) throw new Error('The API returned no payment data. Check the backend connection.');
   return payload.data as T;
 }
 
@@ -52,6 +52,11 @@ export type TransactionHistory = {
   paymentMethod: string;
   status: PaymentStatus;
   createdAt: string;
+  refundReason: string | null;
+  succeededAt: string | null;
+  refundConfirmedBy: number | null;
+  refundTransferReference: string | null;
+  refundConfirmationNote: string | null;
 };
 
 export const payments = {
@@ -69,3 +74,16 @@ export const payments = {
     content: TransactionHistory[]; page: number; size: number; totalElements: number; totalPages: number;
   }>(`/payments/transactions/history?page=${page}&size=${size}`),
 };
+
+export type RefundTarget = { orderId: number; participantId?: never } | { participantId: number; orderId?: never };
+export const refunds = {
+  preview: (target: RefundTarget) => paymentApi<RefundPreview>(`/payments/refunds/preview?${new URLSearchParams(Object.entries(target).map(([key, value]) => [key, String(value)]))}`),
+  request: (body: RefundTarget & { reason: string }) => paymentApi<TransactionHistory>('/payments/refunds', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  mine: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds/me?page=${page}&size=20`),
+  list: (page = 0, status: 'PENDING' | 'SUCCEEDED' = 'PENDING') => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20&status=${status}`),
+  confirm: (id: number, body: { transferReference: string; note?: string }) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST', body: JSON.stringify(body) }),
+};
+
+export type RefundPreview = { orderId: number | null; participantId: number | null; receivedAmount: number; refundedAmount: number; refundableAmount: number };

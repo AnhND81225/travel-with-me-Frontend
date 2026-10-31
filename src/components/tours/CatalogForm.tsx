@@ -61,7 +61,7 @@ export function CatalogForm({ children, className, validate, onSubmit, onInvalid
           fields[catalogErrorPath(name)] = catalogFieldMessage(message);
         });
         if (/email/i.test(error.message) && /exist|already|đã|trùng/i.test(error.message) && form.elements.namedItem("email")) {
-          fields.email = "Email này đã được sử dụng. Vui lòng chọn email khác.";
+          fields.email = "This email is already in use. Please use another email.";
         }
       }
       setServerErrors(fields);

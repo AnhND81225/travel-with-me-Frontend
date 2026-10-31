@@ -42,9 +42,9 @@ export function OrderCheckout({
     sale !== null ? "SALE" : "RENTAL"
   );
   const requestKey = [productId, branchId, selectedMode, selectedMode === "RENTAL" ? startDate : "", selectedMode === "RENTAL" ? endDate : "", retry].join("|");
-  const dateError = !startDate || !endDate ? "Chọn đủ ngày nhận và ngày trả."
-    : startDate < minDate ? "Ngày nhận phải từ hôm nay."
-    : endDate < startDate ? "Ngày trả phải bằng hoặc sau ngày nhận." : "";
+  const dateError = !startDate || !endDate ? "Please select both pickup and return dates."
+    : startDate < minDate ? "Pickup date must be today or later."
+    : endDate < startDate ? "Return date must be on or after the pickup date." : "";
   const [branches, setBranches] = useState<Branch[]>([]);
   const signInUrl = "/login?returnTo=" + encodeURIComponent("/gear/" + productId + "?" + new URLSearchParams({ branch: branchId, start: startDate, end: endDate, quantity }));
   const [message, setMessage] = useState("");
@@ -70,7 +70,7 @@ export function OrderCheckout({
     const endpoint = selectedMode === "RENTAL" ? "/inventory/availability" : "/inventory/sale-availability";
     catalogApi<{ quantityRentable: number; quantityAvailable: number }>(endpoint + "?" + params, { signal: controller.signal })
       .then((value) => { if (alive) setAvailability({ key: requestKey, count: selectedMode === "RENTAL" ? value.quantityRentable : value.quantityAvailable }); })
-      .catch((error) => { if (alive) setAvailability({ key: requestKey, error: error instanceof Error ? error.message : "Không tải được tồn kho." }); });
+      .catch((error) => { if (alive) setAvailability({ key: requestKey, error: error instanceof Error ? error.message : "Unable to load inventory." }); });
     return () => { alive = false; controller.abort(); };
   }, [productId, selectedMode, branchId, startDate, endDate, dateError, requestKey]);
   const current = availability?.key === requestKey ? availability : null;
@@ -83,10 +83,10 @@ export function OrderCheckout({
       <div className="border-b border-[#D8D2C5] pb-3">
         <Badge variant="primary" className="mb-1">EXPEDITION DISPATCH</Badge>
         <h3 className="text-base font-bold text-[#111D16] font-headline">
-          Đặt Mua & Thuê Tại Trạm Outpost
+          Buy & Rent at Outpost
         </h3>
         <p className="text-[11px] text-[#5C665F] font-body mt-0.5">
-          Giá và tình trạng trang bị được kiểm tra thực tế khi tạo đơn. Thời gian thuê tính từ ngày nhận đến ngày hoàn trả tại trạm.
+          Equipment prices and availability are verified in real time when placing your order. Rental duration is calculated from pickup date to return date at the outpost.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ export function OrderCheckout({
                 !line.rentalEndDate ||
                 String(line.rentalEndDate) < String(line.rentalStartDate))
             ) {
-              throw new Error("Vui lòng chọn ngày nhận và trả đồ hợp lệ.");
+              throw new Error("Please select valid pickup and return dates.");
             }
 
             if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cart") {
@@ -135,12 +135,12 @@ export function OrderCheckout({
 
               if (cart.length > 0 && cart.some((x) => x.branchId !== branchId)) {
                 throw new Error(
-                  "Mỗi giỏ hàng thuộc về một trạm Outpost. Vui lòng thanh toán hoặc xóa giỏ hàng hiện tại trước."
+                  "Each cart belongs to a single Outpost branch. Please complete checkout or clear your current cart first."
                 );
               }
               if (cart.some((x) => x.productId === productId)) {
                 throw new Error(
-                  "Sản phẩm này đã có trong giỏ hàng. Bạn hãy mở giỏ hàng để cập nhật số lượng."
+                  "This product is already in your cart. Open your cart to update the quantity."
                 );
               }
 
@@ -150,13 +150,13 @@ export function OrderCheckout({
               );
               window.dispatchEvent(new Event("cart_updated"));
               setIsSuccess(true);
-              setMessage("Đã thêm trang bị vào giỏ hàng thành công.");
+              setMessage("Equipment added to cart successfully.");
               setCartOpen(true);
               return;
             }
 
             if (!isAuthenticated || !sessionStorage.getItem("treektour.catalog.token")) {
-              setMessage("Vui lòng đăng nhập tài khoản để đặt hàng và thanh toán trực tuyến.");
+              setMessage("Please sign in to place an order and pay online.");
               return;
             }
 
@@ -171,7 +171,7 @@ export function OrderCheckout({
             setIsSuccess(true);
             setCreatedOrder(order);
             setMessage(
-              `Đã tạo đơn #${order.id} · ${vnd(order.totalAmount)} · Đang chuyển đến trang thanh toán...`
+              `Created Order #${order.id} · ${vnd(order.totalAmount)} · Redirecting to payment...`
             );
 
             // Navigate directly to the payment page as requested!
@@ -179,7 +179,7 @@ export function OrderCheckout({
           } catch (error) {
             setIsSuccess(false);
             setRetry((v) => v + 1);
-            setMessage(error instanceof Error ? error.message : "Không thể tạo đơn hàng.");
+            setMessage(error instanceof Error ? error.message : "Unable to create order.");
           } finally {
             setBusy(false);
           }
@@ -188,14 +188,14 @@ export function OrderCheckout({
         {/* Branch select */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Trạm nhận trang bị (Pickup branch) *
+            Pickup branch *
           </label>
           <select
             name="branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}
             required
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
           >
-            <option value="">-- Chọn trạm Outpost --</option>
+            <option value="">-- Select Outpost branch --</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -207,7 +207,7 @@ export function OrderCheckout({
         {/* Mode select */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Hình thức (Order type) *
+            Order type *
           </label>
           <select
             name="mode"
@@ -215,9 +215,9 @@ export function OrderCheckout({
             onChange={(e) => setSelectedMode(e.target.value as "SALE" | "RENTAL")}
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
           >
-            {sale !== null && <option value="SALE">Mua trang bị mới · {vnd(sale)}</option>}
+            {sale !== null && <option value="SALE">Buy new equipment · {vnd(sale)}</option>}
             {rental !== null && (
-              <option value="RENTAL">Thuê dã ngoại · {vnd(rental)} / ngày</option>
+              <option value="RENTAL">Rent equipment · {vnd(rental)} / day</option>
             )}
           </select>
         </div>
@@ -225,7 +225,7 @@ export function OrderCheckout({
         {/* Quantity */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Số lượng *
+            Quantity *
           </label>
           <input
             name="quantity"
@@ -243,7 +243,7 @@ export function OrderCheckout({
           <div className="grid grid-cols-2 gap-2.5 p-3 bg-white border border-[#D8D2C5] rounded-xs">
             <div className="space-y-1">
               <label className="font-bold text-[#D97845] uppercase text-[10px] block">
-                Ngày nhận đồ
+                Pickup date
               </label>
               <input
                 name="start" min={minDate} value={startDate} onInput={(e) => { const next = e.currentTarget.value; setStartDate(next); if (endDate < next) setEndDate(next); }}
@@ -254,7 +254,7 @@ export function OrderCheckout({
             </div>
             <div className="space-y-1">
               <label className="font-bold text-[#D97845] uppercase text-[10px] block">
-                Ngày hoàn trả
+                Return date
               </label>
               <input
                 name="end" min={startDate || minDate} value={endDate} onInput={(e) => setEndDate(e.currentTarget.value)}
@@ -267,13 +267,13 @@ export function OrderCheckout({
         )}
 
         <div role="status" aria-live="polite" className="p-3 bg-white border border-[#D8D2C5] rounded-xs">
-            {!branchId ? "Chọn chi nhánh nhận để xem số lượng có thể đặt."
-              : selectedMode === "RENTAL" && dateError ? dateError : !current ? "Đang tải số lượng còn lại…"
-              : current.error ? <>{current.error} <button type="button" onClick={() => setRetry((v) => v + 1)}>Thử lại</button></>
-              : current.count === 0 ? (selectedMode === "SALE" ? "Hết hàng tại chi nhánh này." : "Hết thiết bị có thể thuê trong khoảng ngày này.")
-              : <>{selectedMode === "SALE" ? "Còn lại có thể mua: " : "Có thể thuê: "}<strong>{current.count} thiết bị</strong>.
-                {!canOrder && <p>Chọn số lượng từ 1 đến {current.count}.</p>}</>}
-            <p className="mt-1 text-[11px]">Số lượng tự cập nhật theo chi nhánh và hình thức mua/thuê. Tra cứu chưa giữ chỗ.</p>
+            {!branchId ? "Select a pickup branch to view available quantity."
+              : selectedMode === "RENTAL" && dateError ? dateError : !current ? "Loading available quantity…"
+              : current.error ? <>{current.error} <button type="button" onClick={() => setRetry((v) => v + 1)}>Retry</button></>
+              : current.count === 0 ? (selectedMode === "SALE" ? "Out of stock at this branch." : "No equipment available for rent during these dates.")
+              : <>{selectedMode === "SALE" ? "Available to buy: " : "Available to rent: "}<strong>{current.count} units</strong>.
+                {!canOrder && <p>Select a quantity between 1 and {current.count}.</p>}</>}
+            <p className="mt-1 text-[11px]">Quantity updates automatically by branch and order type. Checking availability does not reserve stock.</p>
         </div>
         {/* Status Message */}
         {message && (
@@ -299,7 +299,7 @@ export function OrderCheckout({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xs bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold shrink-0 shadow-xs transition cursor-pointer"
                 >
                   <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Thanh toán ngay</span>
+                  <span>Pay now</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               ) : (
@@ -308,7 +308,7 @@ export function OrderCheckout({
                   onClick={() => setCartOpen(true)}
                   className="underline hover:text-black shrink-0 font-bold cursor-pointer"
                 >
-                  Mở giỏ hàng →
+                  Open cart →
                 </button>
               )
             )}
@@ -317,8 +317,8 @@ export function OrderCheckout({
 
         {!authLoading && !isAuthenticated && (
           <div role="status" className="p-3 border border-[#F1BA9B] bg-[#FFF8F3] text-[#9A4D22] rounded-xs space-y-1">
-            <p>Vui lòng đăng nhập để tạo đơn và thanh toán trực tuyến. Bạn vẫn có thể thêm đồ vào giỏ hàng.</p>
-            <Link to={signInUrl} className="font-bold underline block">Đăng nhập tài khoản →</Link>
+            <p>Please sign in to place an order and pay online. You can still add items to your cart.</p>
+            <Link to={signInUrl} className="font-bold underline block">Sign in →</Link>
           </div>
         )}
 
@@ -334,7 +334,7 @@ export function OrderCheckout({
             disabled={busy || stockBlocked}
             icon={<PlusCircle className="w-4 h-4 text-[#D97845]" />}
           >
-            Thêm vào giỏ hàng
+            Add to Cart
           </Button>
 
           <Button
@@ -350,7 +350,7 @@ export function OrderCheckout({
             style={{ backgroundColor: '#D97845', color: '#FFFFFF', borderColor: '#D97845' }}
             className="!bg-[#D97845] hover:!bg-[#C66735] !text-white font-bold shadow-xs cursor-pointer"
           >
-            {busy ? "Đang xử lý..." : authLoading ? "Đang kiểm tra..." : createdOrderId ? `Thanh toán đơn #${createdOrderId}` : "Đặt Ngay & Thanh Toán"}
+            {busy ? "Processing..." : authLoading ? "Checking..." : createdOrderId ? `Pay Order #${createdOrderId}` : "Order Now & Pay"}
           </Button>
         </div>
 
@@ -361,14 +361,14 @@ export function OrderCheckout({
             onClick={() => setCartOpen(true)}
             className="hover:text-[#111D16] font-bold underline cursor-pointer"
           >
-            Mở giỏ hàng
+            Open cart
           </button>
           <Link to="/orders" className="hover:text-[#111D16] font-bold underline">
-            Đơn của tôi
+            My orders
           </Link>
           {!isAuthenticated && (
             <Link to={signInUrl} className="hover:text-[#D97845]">
-              Đăng nhập
+              Sign in
             </Link>
           )}
         </div>

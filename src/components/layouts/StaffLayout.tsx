@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   Mountain, 
@@ -17,15 +17,41 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { managedBranches } from '../../features/schedules/hooks';
+import type { Branch } from '../../features/equipment/catalogApi';
 import { useAuth } from '../../hooks/useAuth';
 import { ForceChangePasswordModal } from '../auth/ForceChangePasswordModal';
 import { doesAccountRequirePasswordChange } from '../../utils/firstLoginUtils';
 
 export const StaffLayout: React.FC = () => {
   const location = useLocation();
-  const { selectedStation, setSelectedStation, outposts, setUserRole } = useAppStore();
+  const { selectedStation, setSelectedStation, setUserRole } = useAppStore();
   const { account, logout } = useAuth();
   const [stationDropdownOpen, setStationDropdownOpen] = useState(false);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchState, setBranchState] = useState({ accountId: 0, loading: true, error: '' });
+  useEffect(() => {
+    let cancelled = false;
+    setBranches([]);
+    setStationDropdownOpen(false);
+    if (!account) return () => { cancelled = true; };
+    setBranchState({ accountId: account.id, loading: true, error: '' });
+    managedBranches(account).then(items => {
+      if (cancelled) return;
+      setBranches(items);
+      if (items[0]) selectBranch(items[0]);
+      setBranchState({ accountId: account.id, loading: false, error: items.length ? '' : 'No active branch assignment. Contact your administrator.' });
+    }).catch(error => {
+      if (!cancelled) setBranchState({ accountId: account.id, loading: false, error: error instanceof Error ? error.message : 'Unable to load your branch.' });
+    });
+    return () => { cancelled = true; };
+  }, [account, setSelectedStation]);
+  function selectBranch(branch: Branch) {
+    const previous = useAppStore.getState().selectedStation;
+    setSelectedStation({ ...previous, id: String(branch.id), name: branch.name, code: `BR-${branch.id}`, address: branch.address || '—', phone: branch.phone || '—', elevation: '—', weather: { temp: '—', condition: '—', wind: '—', visibility: '—' } });
+    setStationDropdownOpen(false);
+  }
+  const branchReady = !!account && branchState.accountId === account.id && !branchState.loading && !branchState.error;
   const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
 
   const staffNav = [
@@ -41,7 +67,7 @@ export const StaffLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F3EFE6] text-[#111D16] flex flex-col md:flex-row font-body">
       {/* Dark Forest Green Sidebar (~240px) */}
-      <aside className="w-full md:w-60 lg:w-64 bg-[#152A20] text-[#F3EFE6] flex flex-col shrink-0 border-r border-[#1F3D2B] font-label">
+      <aside className="w-full md:fixed md:inset-y-0 md:left-0 md:z-30 md:h-dvh md:w-60 lg:w-64 bg-[#152A20] text-[#F3EFE6] flex flex-col shrink-0 border-r border-[#1F3D2B] font-label">
         {/* Brand Header */}
         <div className="p-4 border-b border-[#1F3D2B] flex items-center justify-between">
           <Link to="/staff" className="flex items-center gap-2.5">
@@ -107,19 +133,20 @@ export const StaffLayout: React.FC = () => {
       </aside>
 
       {/* Main Staff Container with Top Bar */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-60 lg:ml-64">
         {/* Top Bar: Current Branch, Search, Notifications, Staff Profile */}
         <header className="h-16 bg-[#EBE6DC] border-b border-[#D8D2C5] px-4 sm:px-8 flex items-center justify-between gap-4 font-label">
           <div className="flex items-center gap-4">
             {/* Branch Selector */}
             <div className="relative">
               <button
+                disabled={!branchReady || branches.length < 2}
                 onClick={() => setStationDropdownOpen(!stationDropdownOpen)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] text-xs text-[#152A20] font-bold"
               >
                 <MapPin className="w-3.5 h-3.5 text-[#152A20]" />
-                <span>BRANCH: {selectedStation.name}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#5C665F]" />
+                <span>BRANCH: {branchReady ? selectedStation.name : branchState.error ? 'Branch unavailable' : 'Loading branch…'}</span>
+                {branches.length > 1 && <ChevronDown className="w-3.5 h-3.5 text-[#5C665F]" />}
               </button>
 
               {stationDropdownOpen && (
@@ -127,19 +154,19 @@ export const StaffLayout: React.FC = () => {
                   <div className="px-3 py-1.5 text-[10px] text-[#7A857E] font-bold uppercase border-b border-[#EBE6DC]">
                     SWITCH BRANCH CONSOLE:
                   </div>
-                  {outposts.map((station) => (
+                  {branches.map((station) => (
                     <button
                       key={station.id}
                       onClick={() => {
-                        setSelectedStation(station);
+                        selectBranch(station);
                         setStationDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-[#EBE6DC] ${
-                        station.id === selectedStation.id ? 'bg-[#EBE6DC] text-[#152A20] font-bold' : 'text-[#4A524C]'
+                        String(station.id) === selectedStation.id ? 'bg-[#EBE6DC] text-[#152A20] font-bold' : 'text-[#4A524C]'
                       }`}
                     >
                       <span>{station.name}</span>
-                      <span className="text-[10px] text-[#7A857E]">{station.code}</span>
+                      <span className="text-[10px] text-[#7A857E]">{`BR-${station.id}`}</span>
                     </button>
                   ))}
                 </div>
@@ -161,10 +188,10 @@ export const StaffLayout: React.FC = () => {
             {/* Staff Profile Badge */}
             <div className="flex items-center gap-2 pl-3 border-l border-[#D8D2C5]">
               <div className="w-7 h-7 rounded-xs bg-[#152A20] flex items-center justify-center text-white font-bold text-xs">
-                R
+                {account?.fullName?.charAt(0).toUpperCase() || '?'}
               </div>
               <div className="hidden sm:block text-left text-xs">
-                <div className="font-bold text-[#152A20] leading-none">Ranger Tran</div>
+                <div className="font-bold text-[#152A20] leading-none">{account?.fullName || 'Staff'}</div>
                 <div className="text-[10px] text-[#7A857E] mt-0.5">Station Armorer</div>
               </div>
             </div>
@@ -173,7 +200,7 @@ export const StaffLayout: React.FC = () => {
 
         {/* Content Viewport */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto animate-fade-in" key={location.pathname}>
-          <Outlet />
+          {branchReady ? <Outlet /> : <p role={branchState.error ? 'alert' : 'status'}>{branchState.error || 'Loading your assigned branch…'}</p>}
         </main>
       </div>
 

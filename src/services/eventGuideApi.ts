@@ -1,3 +1,4 @@
+import { englishApiMessage } from '../utils/englishApiMessage';
 export type EventType = "TREKKING" | "CAMPING";
 export type DifficultyLevel = "EASY" | "MODERATE" | "HARD";
 export type EventStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
@@ -88,6 +89,9 @@ export interface EventImage {
   imageId: number;
   imageUrl: string;
   description: string | null;
+  sortOrder: number;
+  dayNumber: number | null;
+  cover: boolean;
 }
 
 export interface EventResponse extends EventSummary {
@@ -204,7 +208,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const message = detailMsg
       ? `${payload?.message || "Request failed"}: ${detailMsg}`
       : (payload?.message || `Request failed (${response.status})`);
-    throw new EventGuideApiError(message, response.status, errorData);
+    throw new EventGuideApiError(englishApiMessage(message, response.status), response.status, errorData);
   }
   return payload!.data;
 }
@@ -233,6 +237,8 @@ export const eventGuideApi = {
       { method: "POST", body },
     );
   },
+  saveEventImageLayout: (eventId: number, images: { imageId: number; dayNumber: number | null }[]) =>
+    request<EventImage[]>(`/admin/events/${eventId}/images/layout`, { method: "PUT", body: JSON.stringify({ images }) }),
   deleteEventImage: (eventId: number, imageId: number) =>
     request<void>(`/admin/events/${eventId}/images/${imageId}`, { method: "DELETE" }),
   updateEventImageDescription: (eventId: number, imageId: number, description: string) =>
