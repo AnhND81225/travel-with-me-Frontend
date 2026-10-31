@@ -171,6 +171,7 @@ export const AdminStaffPage: React.FC = () => {
       // 3. Map GUIDE rows (internal tour guides without a fixed branch assignment)
       const guideRows: PersonnelRow[] = guidePage.items.map((guide) => {
         const account = userMap.get(guide.userId);
+        const isActive = (account ? account.status === 'ACTIVE' : true) && guide.status === 'ACTIVE';
         return {
           id: guide.guideId,
           guideId: guide.guideId,
@@ -182,7 +183,7 @@ export const AdminStaffPage: React.FC = () => {
           branchId: null,
           branchName: 'System-wide (Expedition Tours)',
           position: guide.specialization || 'Tour Guide (Guide)',
-          status: guide.status,
+          status: isActive ? 'ACTIVE' : 'INACTIVE',
           avatarUrl: guide.avatarUrl,
           bio: guide.bio,
           languages: guide.languages,
@@ -372,11 +373,12 @@ export const AdminStaffPage: React.FC = () => {
     try {
       if (p.role === 'GUIDE' && p.guideId) {
         await eventGuideApi.setGuideStatus(p.guideId, next as 'ACTIVE' | 'INACTIVE');
+        try {
+          await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
+        } catch (_) {}
       }
       if (p.role === 'STAFF') {
         await catalogApi(`/staff/${p.id}/status?status=${next}`, { method: 'PUT' });
-      }
-      if (p.role === 'STAFF') {
         await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
       }
 
@@ -1100,17 +1102,17 @@ export const AdminStaffPage: React.FC = () => {
       <Modal
         isOpen={!!deletingPersonnel}
         onClose={() => setDeletingPersonnel(null)}
-        title={`Confirm Delete ${deletingPersonnel?.role === 'GUIDE' ? 'Tour Guide' : 'Staff Member'}`}
+        title={deletingPersonnel?.role === 'GUIDE' ? 'Deactivate guide' : 'Confirm Delete Staff Member'}
         maxWidth="md"
       >
         <div className="space-y-4 font-label">
           <p className="text-xs text-[#111D16]">
-            Are you sure you want to remove {deletingPersonnel?.role === 'GUIDE' ? 'tour guide' : 'staff member'}{' '}
+            {deletingPersonnel?.role === 'GUIDE' ? 'Deactivate guide' : 'Are you sure you want to remove staff member'}{' '}
             <strong>{deletingPersonnel?.userName}</strong>
             {deletingPersonnel?.role === 'STAFF' && ` from branch ${deletingPersonnel?.branchName}`}?
           </p>
           <div className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xs border border-amber-200 leading-relaxed">
-            ⚠️ <strong>Note:</strong> This action will remove the personnel account. If the personnel has previously processed equipment handovers or expedition tours, historical records will be safely preserved.
+            {deletingPersonnel?.role === 'GUIDE' ? 'The guide will be marked inactive. Their account and historical records will be preserved.' : <>⚠️ <strong>Note:</strong> This action will remove the personnel account. If the personnel has previously processed equipment handovers or expedition tours, historical records will be safely preserved.</>}
           </div>
           <div className="pt-3 border-t border-[#D8D2C5] flex justify-end gap-2">
             <Button
@@ -1130,7 +1132,7 @@ export const AdminStaffPage: React.FC = () => {
               icon={deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               onClick={handleDeletePersonnel}
             >
-              {deleting ? 'Deleting...' : 'Confirm Delete'}
+              {deletingPersonnel?.role === 'GUIDE' ? (deleting ? 'Deactivating...' : 'Confirm deactivation') : (deleting ? 'Deleting...' : 'Confirm Delete')}
             </Button>
           </div>
         </div>

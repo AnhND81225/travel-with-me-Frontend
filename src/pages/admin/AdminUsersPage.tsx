@@ -139,27 +139,19 @@ export const AdminUsersPage: React.FC = () => {
     if (!deletingUser) return;
     setDeleting(true);
     try {
-      await catalogApi(`/users/${deletingUser.id}`, { method: 'DELETE' });
-      notify('ok', `Deleted account "${deletingUser.fullName}".`);
+      const permanentlyDeleted = await catalogApi<boolean>(`/users/${deletingUser.id}`, { method: 'DELETE' });
+      if (permanentlyDeleted) {
+        notify('ok', `Account "${deletingUser.fullName}" has been permanently deleted.`);
+      } else {
+        notify(
+          'ok',
+          `Account "${deletingUser.fullName}" has linked order or booking history and has been moved to Locked (INACTIVE) to preserve audit records.`
+        );
+      }
       setDeletingUser(null);
       await loadUsers();
     } catch (err) {
-      // If hard delete fails (e.g. Foreign Key constraint on orders / event_participants),
-      // provide smart fallback to deactivate (INACTIVE) so admin can safely disable the customer.
-      const errMsg = err instanceof Error ? err.message : '';
-      console.warn('Hard delete failed, attempting soft deactivate fallback:', errMsg);
-
-      try {
-        await catalogApi(`/users/${deletingUser.id}/status?status=INACTIVE`, { method: 'PUT' });
-        notify(
-          'ok',
-          `Account "${deletingUser.fullName}" has linked orders/activity history. The system automatically switched its status to [LOCKED - INACTIVE] to preserve audit records!`
-        );
-        setDeletingUser(null);
-        await loadUsers();
-      } catch (fallbackErr) {
-        notify('err', fallbackErr instanceof Error ? fallbackErr.message : 'Unable to delete or lock this account.');
-      }
+      notify('err', err instanceof Error ? err.message : 'Unable to delete account.');
     } finally {
       setDeleting(false);
     }
@@ -290,7 +282,7 @@ export const AdminUsersPage: React.FC = () => {
       </div>
 
       {/* Role Tabs */}
-      <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5] max-w-xl">
+      <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5] max-w-md">
         <button
           type="button"
           onClick={() => setRoleFilter('CUSTOMER')}
@@ -312,17 +304,6 @@ export const AdminUsersPage: React.FC = () => {
           }`}
         >
           All Accounts ({totalCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setRoleFilter('STAFF')}
-          className={`flex-1 py-1.5 px-3 text-xs font-bold uppercase tracking-wider rounded-xs transition cursor-pointer text-center ${
-            roleFilter === 'STAFF'
-              ? 'bg-[#152A20] text-[#F3EFE6] shadow-xs'
-              : 'text-[#5C665F] hover:text-[#111D16]'
-          }`}
-        >
-          Staff
         </button>
       </div>
 
