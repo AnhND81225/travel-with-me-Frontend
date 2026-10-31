@@ -3,9 +3,8 @@ const aida = "https://lh3.googleusercontent.com/aida-public/";
 export const storefrontAssets = {
   logo: "/terrapeak-mark.svg",
 
-  hero:
-    aida +
-    "AB6AXuBf7kLvXK26x5hiXugEUovgggV5pR-hg5KCdNg_l-Yu_kSi-9gaccwgXlbnbbBuRwP-uPcJHzWDuMI0D0gGOHu5NiskuzlDThXZMRXAB6n1PWwgrwrszK0-mCoC0cPnhK5nTLgs_kzdyBoUUWmwCfvBviNh39oSaXUFVv8FjfmY1uOHimkruwZohsMNN58YtAXhmkpBQ5uoZ48up1UJt12N_ldCQgwYGY0P5x4vhOi5xbSzwsITzAhN",
+  // Photo by Valentin (@omikron): https://unsplash.com/photos/MIfIDLi_PIE
+  hero: "https://images.unsplash.com/photo-1757348772955-e7e61b415ba4?auto=format&fit=crop&w=2400&q=85",
   buy:
     aida +
     "AB6AXuBqWf3XsSzd_a1evVPP4L_xIwZfn3ThQgs5NzHzsSHmQ-Uw5jJQ3G4ccRWxBRuWV5WK4u7C8EQLJI2i0V22nrHsqfgA06xx0_b73VqDGVHaZhpIyGrApmRVq2wXLnAZEg7iAHl4Gjb9d1EONIoriq3BtKb8BWYc2clmbpa72W3AhcnwT8hFLOf6jfNImpFj5KudF_60Fne8I1sDx5NkMWsc84DCr3hVaorRDGRKbOfdcyPPhEZH9Vhs",

@@ -234,23 +234,19 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  opacity: 0.4;
-  mix-blend-mode: luminosity;
+  opacity: 1;
 }
 .store-hero-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    #02150c 0%,
-    #02150c99 48%,
-    transparent 100%
-  );
+  background:
+    linear-gradient(90deg, #08241bd9 0%, #08241ba6 35%, #08241b26 72%, #08241b0d 100%),
+    linear-gradient(0deg, #08241b99 0%, transparent 55%);
 }
 .store-hero-inner {
   position: relative;
   padding-top: 78px;
-  padding-bottom: 110px;
+  padding-bottom: 36px;
 }
 .store-season {
   display: flex;
@@ -258,7 +254,7 @@
   gap: 12px;
   font: 600 10px/14px "Nunito";
   margin-bottom: 20px;
-  color: #7b9285;
+  color: #d7e5d9;
 }
 .store-season span:first-child {
   background: #0c2b1a;
@@ -358,12 +354,14 @@
   color: #fe9660;
 }
 .store-dispatch {
-  background: white;
+  background: transparent;
+  border: 1px solid #ffffff40;
+  backdrop-filter: blur(8px);
   padding: 24px;
   border-radius: 8px;
   margin-top: 40px;
-  color: #1c1c16;
-  box-shadow: 0 15px 25px #00000012;
+  color: #fdf9f0;
+  box-shadow: none;
 }
 .store-dispatch-heading {
   display: flex;
@@ -380,11 +378,11 @@
   text-transform: uppercase;
 }
 .store-dispatch-heading svg {
-  color: #994717;
+  color: #f0b38b;
 }
 .store-dispatch-heading > span {
   font-size: 10px;
-  color: #424844;
+  color: #e0e9df;
 }
 .store-dispatch-grid {
   display: grid;
@@ -396,7 +394,7 @@
   font: 600 10px/13px "Nunito";
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: #424844;
+  color: #fdf9f0;
   min-width: 0;
 }
 .store-field {
@@ -1514,3 +1512,8 @@
     gap: 8px;
   }
 }
+
+.store-dispatch .store-field { background:#08241b40; border:1px solid #ffffff60; color:#fffdf8; }
+.store-dispatch .store-field :is(select,input) { color:#fffdf8; color-scheme:dark; }
+.store-dispatch .store-field option { background:#f7f3ea; color:#152a20; }
+@media(max-width:600px) { .store-hero-inner { padding-bottom:24px; } }

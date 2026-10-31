@@ -161,7 +161,7 @@ export function HomePage() {
         <img
           className="store-hero-image"
           src={images.hero}
-          alt="Morning mist across the forested mountain ridges of Vietnam"
+          alt="A winding trail through a lush green mountain valley"
           fetchPriority="high"
         />
         <div className="store-hero-shade" />
@@ -171,9 +171,9 @@ export function HomePage() {
             <span>• High Altitude Fleet Ready</span>
           </div>
           <h1 id="hero-title">
-            GEAR UP.
+            GEAR UP
             <br />
-            EXPLORE MORE.
+            EXPLORE MORE
           </h1>
           <p className="store-hero-description">
             Buy field-tested gear, rent expedition-grade equipment,
