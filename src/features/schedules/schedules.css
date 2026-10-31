@@ -232,3 +232,16 @@
 .guide-console :focus-visible { outline:3px solid #d97845; outline-offset:3px; }
 @media(min-width:768px) and (max-width:1023px) { .guide-sidebar { width:240px; } .guide-main { margin-left:240px; } }
 @media(max-width:767px) { .guide-sidebar { position:static; width:100%; } .guide-main { margin:0; } .guide-sidebar-caption { display:none; } .guide-brand { padding:16px 20px; } .guide-sidebar nav { flex-direction:row; flex-wrap:wrap; } .guide-sidebar nav a { padding:10px; font-size:10px; } .guide-sidebar-footer { flex-direction:row; justify-content:space-between; padding:14px 20px; } .guide-topbar { padding:14px 20px; flex-wrap:wrap; } .guide-main > main { padding:0; } .guide-empty { padding:34px 18px; } }
+.schedule-guide-availability { border:1px solid #cbd7c8; border-radius:7px; padding:12px; background:#edf3e9; font-size:12px; margin-bottom:16px; color:#254535; }
+.schedule-guide-availability button { padding:5px 8px; font-size:11px; }
+.schedule-guide-availability p { color:#994717; margin:10px 0 0; }
+.departure-history-list { list-style:none; padding:0; margin:24px 0 0; display:grid; gap:14px; }
+.departure-history-entry { display:flex; gap:16px; padding:20px; border:1px solid #d8d2c5; background:#f8f6f1; border-radius:10px; }
+.departure-history-icon { display:flex; align-items:center; justify-content:center; width:38px; height:38px; flex:0 0 38px; border-radius:50%; color:#43624d; background:#e1e9dd; }
+.departure-history-entry > div { min-width:0; }
+.departure-history-entry strong { display:block; font-size:15px; color:#152a20; }
+.departure-history-entry time { display:block; color:#5c665f; font-size:11px; margin-top:5px; }
+.m5 .departure-history-entry p { font-size:13px; color:#424844; margin:10px 0 0; }
+.departure-history-dates { display:flex; gap:20px; flex-wrap:wrap; margin-top:14px; font-size:11px; color:#5c665f; }
+.departure-history-dates b { display:block; color:#152a20; margin-top:4px; }
+@media(max-width:600px) { .departure-history-entry { padding:15px; gap:11px; } }

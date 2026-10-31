@@ -2,6 +2,8 @@
 export function englishApiMessage(message: string, status?: number): string {
   if (!/[\u00c0-\u1ef9]/i.test(message)) return message;
   const known: [RegExp, string][] = [
+    [/guide đã có lịch trùng/i, 'This guide is already assigned to another departure during this time. Choose a different guide or reschedule this departure.'],
+    [/guide hoặc tài khoản không hoạt động/i, 'This guide or their account is inactive. Choose an active guide.'],
     [/Vé có giao dịch cũ/i, 'This ticket has an existing payment. Check the previous ticket payment result or contact the branch before booking again.'],
     [/hết chỗ|đủ chỗ|đã đầy/i, 'This departure is fully booked. Please choose another departure.'],
     [/email.*(đã|trùng|tồn tại)/i, 'This email is already in use. Please use another email.'],
