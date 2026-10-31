@@ -127,7 +127,12 @@ export function catalogErrorMessage(error: unknown): string {
     if (/email/i.test(error.message) && /exist|already|đã|trùng/i.test(error.message)) return "Email này đã được sử dụng. Vui lòng chọn email khác.";
     if (status === 413) return "Ảnh vượt quá 5 MiB. Vui lòng chọn ảnh nhỏ hơn.";
     if (status >= 500) return "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.";
-    if (status === 409) return "Dữ liệu bị trùng, trạng thái đã thay đổi hoặc thao tác chưa đủ điều kiện. Vui lòng tải lại và kiểm tra thông tin.";
+    if (status === 409) {
+      if (error instanceof Error && error.message && !/^Request failed/i.test(error.message)) {
+        return error.message;
+      }
+      return "Dữ liệu bị trùng, trạng thái đã thay đổi hoặc thao tác chưa đủ điều kiện. Vui lòng tải lại và kiểm tra thông tin.";
+    }
     return "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại các trường nhập.";
   }
   return "Không thể kết nối máy chủ. Vui lòng thử lại; dữ liệu bạn nhập vẫn được giữ.";
