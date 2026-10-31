@@ -34,6 +34,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState(() => localStorage.getItem('terrapeak_customer_address') || (account as any)?.address || '72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [updateError, setUpdateError] = useState('');
@@ -125,6 +126,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
         }),
       });
 
+      if (address.trim()) {
+        localStorage.setItem('terrapeak_customer_address', address.trim());
+      }
       await checkAuth();
       setUpdateSuccess('Account profile updated successfully!');
       setTimeout(() => setUpdateSuccess(''), 4000);
@@ -413,6 +417,25 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                       className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                    Customer Address
+                  </label>
+                  <div className="relative flex items-center">
+                    <MapPin className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="e.g. 72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City"
+                      className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
+                    />
+                  </div>
+                  <span className="text-[10px] text-[#7A857E] mt-1 block">
+                    * Used as default recipient address on order handover manifests and receipts.
+                  </span>
                 </div>
 
                 <div className="pt-3">
