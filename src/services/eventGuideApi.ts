@@ -89,6 +89,9 @@ export interface EventImage {
   imageId: number;
   imageUrl: string;
   description: string | null;
+  sortOrder: number;
+  dayNumber: number | null;
+  cover: boolean;
 }
 
 export interface EventResponse extends EventSummary {
@@ -234,6 +237,8 @@ export const eventGuideApi = {
       { method: "POST", body },
     );
   },
+  saveEventImageLayout: (eventId: number, images: { imageId: number; dayNumber: number | null }[]) =>
+    request<EventImage[]>(`/admin/events/${eventId}/images/layout`, { method: "PUT", body: JSON.stringify({ images }) }),
   deleteEventImage: (eventId: number, imageId: number) =>
     request<void>(`/admin/events/${eventId}/images/${imageId}`, { method: "DELETE" }),
   updateEventImageDescription: (eventId: number, imageId: number, description: string) =>

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   eventGuideApi,
   AdminGuide,
@@ -25,6 +25,8 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
+
+import { TourImagePicker } from "../../components/tours/TourImagePicker";
 
 import { TourContentEditor } from "../../components/tours/TourContentEditor";
 
@@ -106,6 +108,13 @@ export function EventsGuidesAdminPage() {
   const [event, setEvent] = useState<EventInput>(eventBlank);
   const [showDetailsForm, setShowDetailsForm] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createPhotoDays, setCreatePhotoDays] = useState<Map<File, number | null>>(new Map());
+  const [createdPlacements, setCreatedPlacements] = useState<{ imageId: number; dayNumber: number | null }[]>([]);
+  const [createPhotos, setCreatePhotos] = useState<File[]>([]);
+  const [createdDraftId, setCreatedDraftId] = useState<number | null>(null);
+  const [uploadedPhotoCount, setUploadedPhotoCount] = useState(0);
+  const [checkingCreatePhotos, setCheckingCreatePhotos] = useState(false);
+  const [createPhotoError, setCreatePhotoError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -130,6 +139,10 @@ export function EventsGuidesAdminPage() {
   // Modal quản lý ảnh
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [selectedEventTitle, setSelectedEventTitle] = useState("");
+  const imageRequest = useRef(0);
+  const [imageDays, setImageDays] = useState<number[]>([]);
+  const [imageLayoutDirty, setImageLayoutDirty] = useState(false);
+  const [layoutSaving, setLayoutSaving] = useState(false);
   const [eventImages, setEventImages] = useState<EventImage[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -147,6 +160,7 @@ export function EventsGuidesAdminPage() {
     bio: guideBio || undefined, languages: parseLanguages(guideLanguages),
   };
   const guideEditInput: GuideUpdateInput = { ...guideEditForm, languages: parseLanguages(guideEditLanguages) };
+  const imageReadOnly = events.find(item => item.eventId === selectedEventId)?.status === "ARCHIVED";
   const editingPublished = events.find(item => item.eventId === editingEventId)?.status === "PUBLISHED";
 
   const load = async () => {
@@ -170,18 +184,45 @@ export function EventsGuidesAdminPage() {
     void load();
   }, []);
 
+  // Lưu nháp một lần rồi upload tuần tự để giữ đúng ảnh bìa/thứ tự theo ID.
+  // Nếu upload lỗi, giữ draft ID và tệp còn lại để tiếp tục mà không tạo tour trùng.
   const createEvent = async (e: FormEvent) => {
     e.preventDefault();
+    if (checkingCreatePhotos) return;
     setBusy(true);
+    setCreatePhotoError("");
+    let draftId = createdDraftId;
     try {
-      await eventGuideApi.createEvent(event);
+      if (draftId) await eventGuideApi.updateEvent(draftId, event);
+      else {
+        const created = await eventGuideApi.createEvent(event);
+        draftId = created.eventId;
+        setCreatedDraftId(draftId);
+      }
+      const placements = [...createdPlacements];
+      for (const file of createPhotos) {
+        const uploaded = await eventGuideApi.uploadEventImage(draftId, file);
+        const dayNumber = createPhotoDays.get(file) ?? null;
+        placements.push({ imageId: uploaded.imageId, dayNumber });
+        setCreatedPlacements([...placements]);
+        setCreatePhotos(previous => previous.slice(1));
+        setUploadedPhotoCount(count => count + 1);
+      }
+      const days = new Set((event.details?.itinerary ?? []).map(day => day.day));
+      await eventGuideApi.saveEventImageLayout(draftId, placements.map(image => ({ ...image, dayNumber: image.dayNumber && days.has(image.dayNumber) ? image.dayNumber : null })));
       setEvent(eventBlank);
+      setCreatedPlacements([]);
+      setCreatePhotoDays(new Map());
+      setCreatedDraftId(null);
+      setUploadedPhotoCount(0);
       setCreateModalOpen(false);
       await load();
-      setNotice("Draft created. Add tour content and images before publishing.");
+      setNotice("Draft and photos saved. Review the content before publishing.");
     } catch (error) {
+      if (draftId) setCreatePhotoError(`Draft #${draftId} is saved. ${messageOf(error)} Submit again to continue with the remaining photos; no new tour will be created.`);
+      else throw error;
+    } finally {
       setBusy(false);
-      throw error;
     }
   };
 
@@ -214,7 +255,7 @@ export function EventsGuidesAdminPage() {
         const errors = validateEvent(full, true);
         if (!full.images.length) errors.images = "Add at least one image before publishing.";
         if (Object.keys(errors).length) {
-          setNotice(`Unable to publish: ${Object.values(errors).join(" ")}`);
+          setNotice(`Cannot publish yet: ${Object.values(errors).join(" ")}`);
           return;
         }
       }
@@ -315,31 +356,63 @@ export function EventsGuidesAdminPage() {
   };
 
   // Mở modal thư viện ảnh
+  // Bỏ qua response thư viện cũ khi đã đóng hoặc chuyển sang tour khác.
   const openImageManager = async (item: EventSummary) => {
+    const request = ++imageRequest.current;
     setSelectedEventId(item.eventId);
     setSelectedEventTitle(item.eventName);
     setModalLoading(true);
+    setEventImages([]);
+    setImageDays([]);
+    setImageLayoutDirty(false);
     setImageDescription("");
     setImageError("");
     try {
       const full = await eventGuideApi.getAdminEvent(item.eventId);
+      if (request !== imageRequest.current) return;
       setEventImages(full.images || []);
+      setImageDays((full.details?.itinerary ?? []).map(day => day.day));
     } catch (error) {
-      setNotice(messageOf(error));
+      if (request === imageRequest.current) setImageError(messageOf(error));
     } finally {
-      setModalLoading(false);
+      if (request === imageRequest.current) setModalLoading(false);
     }
   };
 
   const closeImageManager = () => {
+    if (layoutSaving || uploadingImage || busy) return;
+    imageRequest.current++;
     setSelectedEventId(null);
     setSelectedEventTitle("");
     setEventImages([]);
   };
 
+  // Đổi thứ tự trong bản xem trước; chỉ lưu qua endpoint bố cục khi người dùng chọn Save.
+  const moveImage = (index: number, target: number) => {
+    const next = [...eventImages];
+    const [image] = next.splice(index, 1);
+    next.splice(target, 0, image);
+    setEventImages(next);
+    setImageLayoutDirty(true);
+  };
+
+  // Gửi toàn bộ thư viện để BE kiểm ảnh thuộc tour, thứ tự và ngày trong cùng transaction.
+  const saveImageLayout = async () => {
+    if (!selectedEventId || layoutSaving || imageReadOnly) return;
+    setLayoutSaving(true);
+    setImageError("");
+    try {
+      setEventImages(await eventGuideApi.saveEventImageLayout(selectedEventId, eventImages.map(image => ({ imageId: image.imageId, dayNumber: image.dayNumber ?? null }))));
+      setImageLayoutDirty(false);
+      await load();
+      setNotice("Cover, gallery order and itinerary photos saved.");
+    } catch (error) { setImageError(messageOf(error)); }
+    finally { setLayoutSaving(false); }
+  };
+
   // Xóa ảnh trong modal
   const handleDeleteImage = async (imageId: number) => {
-    if (!selectedEventId) return;
+    if (!selectedEventId || imageLayoutDirty || layoutSaving || uploadingImage || imageReadOnly) return;
     if (!confirm("Are you sure you want to delete this image?")) return;
     setBusy(true);
     try {
@@ -356,7 +429,7 @@ export function EventsGuidesAdminPage() {
 
   // Tải ảnh lên từ trong modal
   const handleUploadInsideModal = async (file?: File) => {
-    if (!file || !selectedEventId) return;
+    if (!file || !selectedEventId || imageLayoutDirty || layoutSaving || uploadingImage || busy || imageReadOnly) return;
     const imageValidation = await validateCatalogImage(file);
     if (imageValidation) { setNotice(imageValidation); setImageError(imageValidation); return; }
     if (imageDescription.length > 1000) { setImageError("Image descriptions must not exceed 1,000 characters."); return; }
@@ -481,11 +554,11 @@ export function EventsGuidesAdminPage() {
             <div className="md:col-span-2 flex items-center justify-between border-b border-[#D8D2C5] pb-3">
               <div>
                 <p className="text-[10px] font-bold text-[#7A857E] uppercase tracking-wider">Trip catalogue</p>
-                <h2 className="font-bold text-lg text-[#111D16]">Create a new trip</h2>
+                <h2 className="font-bold text-lg text-[#111D16]">{createdDraftId ? `Continue draft #${createdDraftId}` : "Create a new trip"}</h2>
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => setShowDetailsForm(!showDetailsForm)} className="text-xs text-[#D97845] hover:underline font-bold">{showDetailsForm ? "- Hide details" : "+ Show trip details"}</button>
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="p-1 text-[#5C665F] hover:bg-[#EBE6DC]" aria-label="Close"><X className="w-5 h-5" /></button>
+                <button type="button" disabled={busy} onClick={() => setCreateModalOpen(false)} className="p-1 text-[#5C665F] hover:bg-[#EBE6DC]" aria-label="Close"><X className="w-5 h-5" /></button>
               </div>
             </div>
 
@@ -528,14 +601,14 @@ export function EventsGuidesAdminPage() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">Province / city (required to publish)</label>
-              <CatalogField name="location" label="Province / city"><select
+              <label className="text-xs font-bold text-gray-700 block mb-1">Province/city (required to publish)</label>
+              <CatalogField name="location" label="Province/city"><select
 
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 value={event.location ?? ""}
                 onChange={(e) => setEvent({ ...event, location: e.target.value })}
               >
-                <option value="">Select a province / city</option>
+                <option value="">Select a province/city</option>
                 {TOUR_LOCATIONS.map((location) => (
                   <option key={location} value={location}>{location}</option>
                 ))}
@@ -543,8 +616,8 @@ export function EventsGuidesAdminPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 block mb-1">Description (required to publish)</label>
-              <CatalogField name="description" label="Tour description"><textarea maxLength={50000}
+              <label className="text-xs font-bold text-gray-700 block mb-1">Introduction (required to publish)</label>
+              <CatalogField name="description" label="Tour introduction"><textarea maxLength={50000}
 
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 placeholder="Describe scenery, route, and trip experience..."
@@ -647,13 +720,15 @@ export function EventsGuidesAdminPage() {
             )}
 
             <div className="md:col-span-2">
+              <TourImagePicker files={createPhotos} onChange={setCreatePhotos} disabled={busy} onCheckingChange={setCheckingCreatePhotos} uploadedCount={uploadedPhotoCount} days={(event.details?.itinerary ?? []).map(day => day.day)} dayNumbers={createPhotoDays} onDayChange={(file, day) => setCreatePhotoDays(previous => new Map(previous).set(file, day))} />
+              {createPhotoError && <p role="alert" className="my-3 text-sm text-red-700">{createPhotoError}</p>}
               <TourContentEditor value={event.details ?? {}} onChange={details => setEvent({ ...event, details })} />
             </div>
 
             <div className="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]">
-              <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2.5 border border-[#D8D2C5] bg-white text-xs font-bold uppercase tracking-wider hover:bg-[#EBE6DC]">Cancel</button>
-            <button className="bg-[#152A20] text-[#F3EFE6] px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-[#264334] disabled:opacity-60" disabled={busy}>
-              {busy ? "Processing..." : "Create trip"}
+              <button type="button" disabled={busy} onClick={() => setCreateModalOpen(false)} className="px-4 py-2.5 border border-[#D8D2C5] bg-white text-xs font-bold uppercase tracking-wider hover:bg-[#EBE6DC]">Cancel</button>
+            <button className="bg-[#152A20] text-[#F3EFE6] px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-[#264334] disabled:opacity-60" disabled={busy || checkingCreatePhotos}>
+              {busy ? "Saving trip and photos..." : createdDraftId ? "Continue saving draft" : "Create trip"}
             </button>
             </div>
           </CatalogForm>
@@ -947,14 +1022,14 @@ export function EventsGuidesAdminPage() {
                     /></CatalogField>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">Province / city (required to publish)</label>
-                    <CatalogField name="location" label="Province / city"><select
+                    <label className="text-xs font-bold text-gray-700 block mb-1">Province/city (required to publish)</label>
+                    <CatalogField name="location" label="Province/city"><select
 
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                       value={editForm.location ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                     >
-                      <option value="">Select a province / city</option>
+                      <option value="">Select a province/city</option>
                       {editForm.location && !TOUR_LOCATIONS.includes(editForm.location) && (
                         <option value={editForm.location}>{editForm.location}</option>
                       )}
@@ -966,8 +1041,8 @@ export function EventsGuidesAdminPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Description (required to publish)</label>
-                  <CatalogField name="description" label="Tour description"><textarea maxLength={50000}
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Introduction (required to publish)</label>
+                  <CatalogField name="description" label="Tour introduction"><textarea maxLength={50000}
 
                     rows={3}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
@@ -1134,14 +1209,15 @@ export function EventsGuidesAdminPage() {
                       className="hidden"
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
-                      disabled={uploadingImage}
+                      disabled={imageReadOnly || uploadingImage || imageLayoutDirty || layoutSaving || busy}
                       onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void handleUploadInsideModal(file); }}
                     />
                   </label>
                 </div>
+                {imageReadOnly && <p className="text-sm text-amber-700">This archived tour is read-only.</p>}
                 {imageError && <p role="alert" className="text-sm text-red-700">{imageError}</p>}
                 <small className="text-[11px] text-gray-500 block">
-                  JPG, PNG, and WebP up to 5 MB are supported. The first image becomes the cover image.
+                  JPG, PNG, and WebP up to 5 MB are supported. Choose a cover, arrange the gallery and assign photos to itinerary days below. Save layout changes before uploading or deleting more photos.
                 </small>
               </div>
 
@@ -1154,7 +1230,7 @@ export function EventsGuidesAdminPage() {
               ) : eventImages.length > 0 ? (
                 <div>
                   <h4 className="font-bold text-sm text-[#111D16] mb-3">
-                    Current images ({eventImages.length})
+                    Current images ({eventImages.length}) {imageLayoutDirty && <span className="text-xs text-amber-700">· Unsaved layout</span>}
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {eventImages.map((img, index) => (
@@ -1183,6 +1259,14 @@ export function EventsGuidesAdminPage() {
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
+                        <div className="p-2 space-y-2 bg-white text-xs">
+                          <div className="flex flex-wrap gap-2">
+                            {index > 0 && <button type="button" disabled={imageReadOnly || layoutSaving || uploadingImage || busy} className="text-[#173D2C] font-bold" onClick={() => moveImage(index, 0)}>Set as cover</button>}
+                            <button type="button" disabled={imageReadOnly || layoutSaving || uploadingImage || busy || index === 0} onClick={() => moveImage(index, index - 1)} aria-label={`Move image ${index + 1} earlier`}>↑ Earlier</button>
+                            <button type="button" disabled={imageReadOnly || layoutSaving || uploadingImage || busy || index === eventImages.length - 1} onClick={() => moveImage(index, index + 1)} aria-label={`Move image ${index + 1} later`}>↓ Later</button>
+                          </div>
+                          <label className="block">Itinerary photo<select aria-label={`Itinerary day for image ${index + 1}`} className="block w-full p-1 mt-1 border border-[#D8D2C5]" disabled={imageReadOnly || layoutSaving || uploadingImage || busy} value={img.dayNumber ?? ""} onChange={e => { const dayNumber = e.target.value ? Number(e.target.value) : null; setEventImages(previous => previous.map(image => image.imageId === img.imageId ? { ...image, dayNumber } : image)); setImageLayoutDirty(true); }}><option value="">Gallery only</option>{imageDays.map(day => <option key={day} value={day}>Day {day}</option>)}</select></label>
+                        </div>
                         <div className="p-2 flex items-center justify-between text-xs bg-white">
                           <span
                             className="truncate text-gray-600 max-w-[140px]"
@@ -1192,6 +1276,7 @@ export function EventsGuidesAdminPage() {
                           </span>
                           <button
                             type="button"
+                            disabled={imageReadOnly || imageLayoutDirty || layoutSaving || uploadingImage || busy}
                             onClick={() => void handleDeleteImage(img.imageId)}
                             className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                             title="Delete this image"
@@ -1214,6 +1299,7 @@ export function EventsGuidesAdminPage() {
               )}
             </div>
 
+            <div className="px-5 pb-3 flex flex-wrap items-center justify-between gap-3"><p className="flex-1 min-w-48 text-xs text-[#5C665F]">First image = cover. Next two = gallery preview. Day assignments are saved separately from gallery order.</p><button type="button" disabled={layoutSaving || uploadingImage || busy || modalLoading} onClick={() => { const item = events.find(event => event.eventId === selectedEventId); if (item) void openImageManager(item); }} className="shrink-0 whitespace-nowrap text-xs underline">{imageLayoutDirty ? "Discard & reload photos" : "Reload photos"}</button><button type="button" disabled={imageReadOnly || !imageLayoutDirty || layoutSaving || uploadingImage || busy} onClick={() => void saveImageLayout()} className="shrink-0 whitespace-nowrap px-4 py-2 bg-[#173D2C] text-white text-xs rounded disabled:opacity-50">{layoutSaving ? "Saving..." : "Save photo layout"}</button></div>
             {/* Chân modal */}
             <div className="p-3 border-t border-[#d8d2c5] bg-gray-50 flex justify-end">
               <button
