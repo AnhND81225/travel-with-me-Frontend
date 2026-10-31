@@ -164,6 +164,12 @@ export function Header() {
                   >
                     My Profile
                   </Link>
+                  <Link
+                    to="/refunds"
+                    className="block px-3.5 py-1.5 text-[#5C665F] hover:bg-[#EBE6DC]"
+                  >
+                    Refunds & Escrow
+                  </Link>
                   {privateLinks.map(([to, label]) => (
                     <Link key={to} to={to} className="block px-3.5 py-1.5 text-[#152A20] hover:bg-[#EBE6DC] font-bold">
                       {label}
@@ -223,6 +229,7 @@ export function Header() {
               <div className="pt-2 border-t border-[#D8D2C5] my-1 flex flex-col gap-1">
               {isAuthenticated ? <>
                 <NavLink to="/passport" onClick={() => setMenuOpen(false)}>My Profile</NavLink>
+                <NavLink to="/refunds" onClick={() => setMenuOpen(false)}>Refunds & Escrow</NavLink>
                 <button type="button" onClick={logout} className="text-left font-bold text-red-600">Sign Out</button>
               </> : <>
                 <NavLink to="/login" onClick={() => setMenuOpen(false)}>Sign In</NavLink>
