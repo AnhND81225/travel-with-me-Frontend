@@ -40,7 +40,7 @@ export function TourPaymentPage({ id }: { id: number }) {
           if (tourResult.status === 'fulfilled') setEvent(tourResult.value);
           if (branchesResult.status === 'fulfilled') setBranch(branchesResult.value.find(item => item.id === schedule.branchId) || null);
         }
-      } catch (e) { if (active) setError(e instanceof Error ? e.message : 'Không tải được vé.'); }
+      } catch (e) { if (active) setError(e instanceof Error ? e.message : 'Unable to load ticket.'); }
     };
     void load();
     const timer = window.setInterval(() => { setNow(Date.now()); if (document.visibilityState === 'visible') void load(); }, 5000);
@@ -56,24 +56,24 @@ export function TourPaymentPage({ id }: { id: number }) {
       setPayment(result);
       if (result.status === 'SUCCEEDED') { await check(); return; }
       const url = result.zalopay_response?.order_url;
-      if (!url || result.status !== 'PENDING') throw new Error(result.zalopay_response?.return_message || 'Không tạo được thanh toán.');
+      if (!url || result.status !== 'PENDING') throw new Error(result.zalopay_response?.return_message || 'Unable to create payment.');
       const destination = new URL(url);
-      if (!['https:', 'http:'].includes(destination.protocol)) throw new Error('Đường dẫn thanh toán không hợp lệ.');
+      if (!['https:', 'http:'].includes(destination.protocol)) throw new Error('Invalid payment URL.');
       window.location.assign(destination.toString());
-    } catch (e) { setError(e instanceof Error ? e.message : 'Không thể xử lý thanh toán.'); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to process payment.'); }
     finally { setBusy(false); }
   }
   const remaining = ticket?.expiresAt ? Math.floor((Date.parse(ticket.expiresAt) - now) / 1000) : 0;
   const received = payment?.status === 'SUCCEEDED';
   const confirmed = ticket && ['CONFIRMED', 'COMPLETED', 'NO_SHOW'].includes(ticket.participantStatus);
   const canPay = ticket?.participantStatus === 'PENDING' && remaining >= 300 && !received;
-  const formatTime = (value: string | null | undefined) => value ? new Date(value).toLocaleString('vi-VN', {
+  const formatTime = (value: string | null | undefined) => value ? new Date(value).toLocaleString('en-GB', {
     timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
-  }) : 'Đang cập nhật';
-  const name = event?.eventName || 'Thông tin chuyến đi';
+  }) : 'Updating';
+  const name = event?.eventName || 'Trip details';
   const cover = event?.coverImageUrl || event?.images[0]?.imageUrl;
   const expired = ticket && (['CANCELLED', 'EXPIRED'].includes(ticket.participantStatus) || remaining <= 0);
-  const statusText = confirmed ? 'Vé đã xác nhận' : received ? 'Đã nhận thanh toán · Chờ đối soát vé' : expired ? 'Vé đã hủy hoặc hết hạn' : 'Chờ thanh toán';
+  const statusText = confirmed ? 'Ticket confirmed' : received ? 'Payment received · Ticket under review' : expired ? 'Ticket cancelled or expired' : 'Awaiting payment';
   const price = ticket?.registeredPrice;
   const displayText = (value?: string | null) => {
     const text = value?.trim();
@@ -85,47 +85,47 @@ export function TourPaymentPage({ id }: { id: number }) {
   const phoneTarget = branchPhone?.replace(/[^+\d]/g, '');
   const callablePhone = phoneTarget && /^\+?\d{8,15}$/.test(phoneTarget) ? phoneTarget : null;
   return <main className="payment-pages tour-checkout">
-    <nav className="pp-breadcrumb" aria-label="Đường dẫn"><Link to="/my-tours">Tour của tôi</Link><span>/</span><span>Thanh toán vé #{id}</span></nav>
-    <header className="tc-heading"><div><span className="tc-eyebrow">CHUẨN BỊ CHO HÀNH TRÌNH</span><h1>Chuyến đi tiếp theo của bạn</h1><p>Kiểm tra thông tin chuyến đi và hoàn tất thanh toán vé tour.</p></div><span className="tc-security"><LockKeyhole size={15}/> Thanh toán qua ZaloPay</span></header>
+    <nav className="pp-breadcrumb" aria-label="Breadcrumb"><Link to="/my-tours">My Tours</Link><span>/</span><span>Ticket checkout #{id}</span></nav>
+    <header className="tc-heading"><div><span className="tc-eyebrow">YOUR NEXT ADVENTURE</span><h1>Your next adventure</h1><p>Review your trip details and complete your ticket payment.</p></div><span className="tc-security"><LockKeyhole size={15}/> Pay with ZaloPay</span></header>
     {error && <div className="pp-error" role="alert">{error}</div>}
     <div className="pp-grid tc-layout">
       <div className="pp-main">
         <section className="pp-card tc-trip">
           <div className="tc-cover">{cover ? <img src={cover} alt={name} onError={e => { e.currentTarget.style.display = 'none'; }}/> : <Mountain size={90} strokeWidth={1}/>}
-            <span className="tc-cover-tag"><Compass size={14}/>{event?.eventType === 'CAMPING' ? 'CẮM TRẠI' : 'TREKKING & KHÁM PHÁ'}</span>
+            <span className="tc-cover-tag"><Compass size={14}/>{event?.eventType === 'CAMPING' ? 'CAMPING' : 'TREKKING & EXPLORATION'}</span>
           </div>
-          <div className="pp-body tc-trip-body"><div className="tc-trip-title"><div><span className="tc-eyebrow">CHUYẾN ĐI CỦA BẠN</span><h2>{name}</h2>{event?.location && <p className="tc-location"><MapPin size={15}/>{event.location}</p>}</div><span className={'tc-status' + (confirmed ? ' is-confirmed' : '')}>{confirmed ? <CheckCircle2 size={14}/> : <Ticket size={14}/>} {statusText}</span></div>
+          <div className="pp-body tc-trip-body"><div className="tc-trip-title"><div><span className="tc-eyebrow">YOUR TRIP</span><h2>{name}</h2>{event?.location && <p className="tc-location"><MapPin size={15}/>{event.location}</p>}</div><span className={'tc-status' + (confirmed ? ' is-confirmed' : '')}>{confirmed ? <CheckCircle2 size={14}/> : <Ticket size={14}/>} {statusText}</span></div>
             <div className="tc-details">
-              <div><CalendarDays size={19}/><div><span>Khởi hành</span><strong>{formatTime(schedule?.startDatetime)}</strong></div></div>
-              <div><Clock3 size={19}/><div><span>Kết thúc dự kiến</span><strong>{formatTime(schedule?.endDatetime)}</strong></div></div>
-              <div><MapPin size={19}/><div><span>Điểm tập trung</span><strong>{event?.details?.meetingPoint || 'Xem chi tiết vé hoặc liên hệ chi nhánh'}</strong></div></div>
-              <div><Users size={19}/><div><span>Người tham gia</span><strong>01 khách · Vé cá nhân</strong></div></div>
+              <div><CalendarDays size={19}/><div><span>Departure</span><strong>{formatTime(schedule?.startDatetime)}</strong></div></div>
+              <div><Clock3 size={19}/><div><span>Estimated end</span><strong>{formatTime(schedule?.endDatetime)}</strong></div></div>
+              <div><MapPin size={19}/><div><span>Meeting point</span><strong>{event?.details?.meetingPoint || 'See your ticket details or contact the branch'}</strong></div></div>
+              <div><Users size={19}/><div><span>Participants</span><strong>01 guest · Individual ticket</strong></div></div>
             </div>
-            <div className="tc-reference"><span>Vé tour <strong>#{id}</strong></span><span>Lịch khởi hành <strong>{ticket ? `#${ticket.scheduleId}` : '—'}</strong></span>{event && <Link to={`/tours/${event.eventId}`}>Xem chuyến đi <ArrowRight size={14}/></Link>}</div>
+            <div className="tc-reference"><span>Tour ticket <strong>#{id}</strong></span><span>Departure schedule <strong>{ticket ? `#${ticket.scheduleId}` : '—'}</strong></span>{event && <Link to={`/tours/${event.eventId}`}>View trip <ArrowRight size={14}/></Link>}</div>
           </div>
         </section>
-        <section className="pp-card"><div className="pp-card-title"><MapPin size={18}/><h2>ĐƠN VỊ TỔ CHỨC & HỖ TRỢ</h2></div>
+        <section className="pp-card"><div className="pp-card-title"><MapPin size={18}/><h2>ORGANIZER & SUPPORT</h2></div>
           <div className="pp-body tc-participation">
-            <div className="tc-organizer"><span className="tc-organizer-icon"><Compass size={24}/></span><div><span className="tc-eyebrow">CHI NHÁNH PHỤ TRÁCH</span><h3>{branchName || 'Thông tin chi nhánh đang được cập nhật'}</h3><p>Hỗ trợ thông tin chuyến đi, lịch khởi hành và vé của bạn.</p></div></div>
-            <dl className="tc-contact-details"><div><dt><MapPin size={16}/>Địa chỉ chi nhánh</dt><dd>{branchAddress || 'Chưa cập nhật địa chỉ'}</dd></div><div><dt><Phone size={16}/>Điện thoại hỗ trợ</dt><dd>{callablePhone ? <a href={`tel:${callablePhone}`}>{branchPhone}</a> : 'Chưa cập nhật số điện thoại'}</dd></div></dl>
-            {ticket?.note && <div className="tc-customer-note"><span className="tc-eyebrow">GHI CHÚ CỦA BẠN</span><p>{ticket.note}</p></div>}
-            <p className="tc-attendance-note"><ShieldCheck size={17}/>Địa chỉ chi nhánh là nơi liên hệ hỗ trợ. Khi tham gia, vui lòng đến điểm tập trung được ghi trong thông tin chuyến đi phía trên.</p>
+            <div className="tc-organizer"><span className="tc-organizer-icon"><Compass size={24}/></span><div><span className="tc-eyebrow">ORGANIZING BRANCH</span><h3>{branchName || 'Branch information is being updated'}</h3><p>Support for your trip, departure schedule and ticket.</p></div></div>
+            <dl className="tc-contact-details"><div><dt><MapPin size={16}/>Branch address</dt><dd>{branchAddress || 'Address not available'}</dd></div><div><dt><Phone size={16}/>Support phone</dt><dd>{callablePhone ? <a href={`tel:${callablePhone}`}>{branchPhone}</a> : 'Phone number not available'}</dd></div></dl>
+            {ticket?.note && <div className="tc-customer-note"><span className="tc-eyebrow">YOUR NOTES</span><p>{ticket.note}</p></div>}
+            <p className="tc-attendance-note"><ShieldCheck size={17}/>The branch address is for support. For your trip, go to the meeting point shown in the trip details above.</p>
           </div>
         </section>
       </div>
       <aside className="pp-side">
-        <section className="pp-card pp-summary tc-summary"><div className="pp-summary-heading"><Ticket size={20}/><h2>Chi tiết thanh toán</h2></div><p className="tc-summary-name">{name}</p><dl><div><dt>Đơn giá vé</dt><dd>{price !== undefined ? vnd(price) : '—'}</dd></div><div><dt>Số lượng</dt><dd>01 khách</dd></div><div><dt>Mã vé</dt><dd>#{id}</dd></div>{payment && <div><dt>Mã giao dịch</dt><dd>#{payment.transaction_id}</dd></div>}</dl><div className="pp-total"><span>{received || confirmed ? 'GIÁ TRỊ VÉ TOUR' : 'TỔNG THANH TOÁN'}</span><strong>{price !== undefined ? vnd(price) : '—'}</strong><small>Giá vé được giữ tại thời điểm đăng ký.</small></div>
+        <section className="pp-card pp-summary tc-summary"><div className="pp-summary-heading"><Ticket size={20}/><h2>Payment summary</h2></div><p className="tc-summary-name">{name}</p><dl><div><dt>Ticket price</dt><dd>{price !== undefined ? vnd(price) : '—'}</dd></div><div><dt>Quantity</dt><dd>01 guest</dd></div><div><dt>Ticket ID</dt><dd>#{id}</dd></div>{payment && <div><dt>Transaction ID</dt><dd>#{payment.transaction_id}</dd></div>}</dl><div className="pp-total"><span>{received || confirmed ? 'TICKET VALUE' : 'TOTAL DUE'}</span><strong>{price !== undefined ? vnd(price) : '—'}</strong><small>Price locked at the time of registration.</small></div>
           <div className="tc-payment-state"><span className="tc-status">{statusText}</span></div>
-          {ticket?.participantStatus === 'PENDING' && !received && <div className="tc-deadline"><Clock3 size={18}/><div><strong>{remaining > 0 ? 'Thời hạn giữ chỗ' : 'Đã hết hạn giữ chỗ'}</strong><p>{formatTime(ticket.expiresAt)}</p><small>Thanh toán trong hạn để xác nhận vé.</small></div></div>}
-          {received && !confirmed && <p className="tc-review" role="status">Đã nhận tiền nhưng vé chưa được xác nhận. Kiểm tra lại hoặc liên hệ chi nhánh để đối soát.</p>}
-          {ticket?.participantStatus === 'PENDING' && remaining < 300 && !received && <p className="tc-review">Không thể mở lượt thanh toán mới khi còn dưới 5 phút giữ chỗ. Nếu đã trả tiền, hãy kiểm tra kết quả.</p>}
-          {!received && !confirmed && <><div className="tc-provider"><span className="pp-zalo">Z</span><div><strong>ZaloPay</strong><small>Chọn phương thức tại cổng thanh toán</small></div></div><button className="pp-button tc-pay" disabled={busy || !canPay} onClick={() => void act('pay')}><CreditCard size={17}/>{busy ? 'Đang xử lý…' : 'Thanh toán vé tour'}<ArrowRight size={16}/></button></>}
-          <button className="pp-button secondary tc-secondary" disabled={busy} onClick={() => void act('check')}><RefreshCw size={16}/>Kiểm tra kết quả</button>
-          {payment?.status === 'PENDING' && <button className="tc-cancel" disabled={busy} onClick={() => void act('cancel')}>Hủy lượt thanh toán</button>}
-          <p className="pp-secure"><ShieldCheck size={14}/>Kết quả được xác minh với cổng thanh toán</p>
-          <Link className="tc-ticket-link" to={`/my-tours/${id}`}>Xem chi tiết vé tour <ArrowRight size={14}/></Link>
+          {ticket?.participantStatus === 'PENDING' && !received && <div className="tc-deadline"><Clock3 size={18}/><div><strong>{remaining > 0 ? 'Reservation deadline' : 'Reservation expired'}</strong><p>{formatTime(ticket.expiresAt)}</p><small>Pay before the deadline to confirm your ticket.</small></div></div>}
+          {received && !confirmed && <p className="tc-review" role="status">Payment received, but your ticket is not confirmed. Check again or contact the branch for assistance.</p>}
+          {ticket?.participantStatus === 'PENDING' && remaining < 300 && !received && <p className="tc-review">New payment attempts require at least 5 minutes of reservation time. If you have already paid, check the result.</p>}
+          {!received && !confirmed && <><div className="tc-provider"><span className="pp-zalo">Z</span><div><strong>ZaloPay</strong><small>Choose a payment method at checkout</small></div></div><button className="pp-button tc-pay" disabled={busy || !canPay} onClick={() => void act('pay')}><CreditCard size={17}/>{busy ? 'Processing…' : 'Pay for tour ticket'}<ArrowRight size={16}/></button></>}
+          <button className="pp-button secondary tc-secondary" disabled={busy} onClick={() => void act('check')}><RefreshCw size={16}/>Check payment status</button>
+          {payment?.status === 'PENDING' && <button className="tc-cancel" disabled={busy} onClick={() => void act('cancel')}>Cancel payment attempt</button>}
+          <p className="pp-secure"><ShieldCheck size={14}/>Verified with the payment provider</p>
+          <Link className="tc-ticket-link" to={`/my-tours/${id}`}>View tour ticket details <ArrowRight size={14}/></Link>
         </section>
-        <Link className="tc-back" to="/my-tours"><ArrowLeft size={15}/>Quay lại tour của tôi</Link>
+        <Link className="tc-back" to="/my-tours"><ArrowLeft size={15}/>Back to My Tours</Link>
       </aside>
     </div>
   </main>;

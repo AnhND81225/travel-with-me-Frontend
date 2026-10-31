@@ -44,7 +44,7 @@ test('report fetch uses shared bearer, respects abort and errors instead of mock
     globalThis.fetch = (async () => new Response(JSON.stringify({ message: 'Denied' }), { status: 403 })) as typeof fetch;
     await assert.rejects(reportApi.overview(filters), /ADMIN/);
     globalThis.fetch = (async () => new Response(JSON.stringify({ data: null }), { status: 200 })) as typeof fetch;
-    await assert.rejects(reportApi.overview(filters), /không trả dữ liệu/);
+    await assert.rejects(reportApi.overview(filters), /returned no report data/);
   } finally {
     globalThis.fetch = oldFetch;
     if (oldStorage) Object.defineProperty(globalThis, 'sessionStorage', oldStorage);

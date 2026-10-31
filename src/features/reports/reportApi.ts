@@ -30,28 +30,28 @@ export function reportQuery(filters: Filters, tab: ReportTab) {
   return params;
 }
 export function validateFilters(f: Filters) {
-  if (!f.from || !f.to) return 'Vui lòng chọn từ ngày và đến ngày.';
+  if (!f.from || !f.to) return 'Please select a start and end date.';
   const days = (Date.parse(f.to) - Date.parse(f.from)) / 86400000;
-  if (!Number.isFinite(days) || days < 0 || days > 365) return 'Khoảng ngày phải hợp lệ và không quá 366 ngày.';
+  if (!Number.isFinite(days) || days < 0 || days > 365) return 'Select a valid date range of no more than 366 days.';
   for (const key of ['branchId', 'productId', 'tourId', 'scheduleId'] as const) {
-    if (f[key] && (!/^\d+$/.test(f[key]) || !Number.isSafeInteger(Number(f[key])) || Number(f[key]) <= 0)) return 'ID bộ lọc phải là số nguyên dương.';
+    if (f[key] && (!/^\d+$/.test(f[key]) || !Number.isSafeInteger(Number(f[key])) || Number(f[key]) <= 0)) return 'Filter IDs must be positive integers.';
   }
   return '';
 }
 async function response(path: string, signal?: AbortSignal) {
   const token = sessionStorage.getItem('treektour.catalog.token');
-  if (!token) throw new Error('Vui lòng đăng nhập tài khoản ADMIN để xem báo cáo.');
+  if (!token) throw new Error('Sign in with an ADMIN account to view reports.');
   const result = await fetch('/api/reports/revenue' + path, { headers: { Authorization: `Bearer ${token}` }, signal, redirect: 'error' });
   if (!result.ok) {
     const body = await result.json().catch(() => null);
-    throw new Error(result.status === 401 || result.status === 403 ? 'Phiên đăng nhập không hợp lệ hoặc bạn không có quyền ADMIN.' : body?.message || `Không tải được báo cáo (${result.status}).`);
+    throw new Error(result.status === 401 || result.status === 403 ? 'Your session is invalid or you do not have ADMIN access.' : body?.message || `Unable to load report (${result.status}).`);
   }
   return result;
 }
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   const result = await response(path, signal);
   const envelope = await result.json();
-  if (envelope.data == null) throw new Error('Backend không trả dữ liệu báo cáo.');
+  if (envelope.data == null) throw new Error('The backend returned no report data.');
   return envelope.data;
 }
 export const reportApi = {
