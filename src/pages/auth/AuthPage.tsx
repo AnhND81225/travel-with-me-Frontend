@@ -51,6 +51,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const initialMode = (searchParams.get("mode") as "login" | "register") || defaultMode;
   const [mode, setMode] = useState<"login" | "register">(initialMode);
 
+  React.useEffect(() => {
+    const urlMode = searchParams.get("mode") as "login" | "register" | null;
+    setMode(urlMode || defaultMode);
+    setError("");
+    setSuccessMessage("");
+  }, [defaultMode, searchParams]);
+
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -61,6 +68,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   // Status state
   const [busy, setBusy] = useState(false);
@@ -74,10 +83,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const explicitReturnTo = returnTo;
 
   const proceedRedirect = React.useCallback((account: Account, targetUrl?: string) => {
-    setSuccessMessage(`Đăng nhập thành công! Chào mừng ${account.fullName}.`);
+    setSuccessMessage(`Signed in successfully! Welcome, ${account.fullName}.`);
     const finalTarget = targetUrl || explicitReturnTo;
     setTimeout(() => {
-      if (finalTarget && finalTarget !== "/login" && finalTarget !== "/oauth2/callback") {
+      if (finalTarget && finalTarget !== "/login" && finalTarget !== "/register" && finalTarget !== "/oauth2/callback") {
         navigate(finalTarget, { replace: true });
       } else if (account.role === "ADMIN") {
         navigate("/admin", { replace: true });
@@ -107,7 +116,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
     if (tokenParam) {
       setBusy(true);
       setError("");
-      setSuccessMessage("Đang xác thực thông tin tài khoản...");
+      setSuccessMessage("Authenticating account credentials...");
       saveToken(tokenParam);
 
       let cleanTarget = explicitReturnTo;
@@ -129,7 +138,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         })
         .catch(() => {
           saveToken(null);
-          setError("Không thể xác thực danh tính. Vui lòng thử đăng nhập lại.");
+          setError("Unable to verify your identity. Please try signing in again.");
         })
         .finally(() => {
           setBusy(false);
@@ -139,7 +148,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
   const handleGoogleOAuthRedirect = () => {
     setBusy(true);
-    setSuccessMessage("Đang chuyển hướng sang Google...");
+    setSuccessMessage("Redirecting to Google...");
     window.location.href = "http://localhost:8080/oauth2/authorization/google";
   };
 
@@ -150,17 +159,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
     setSuccessMessage("");
 
     try {
-      const result = await catalogApi<{ token: string }>("/auth/login", {
+      const result = await catalogApi<{ token: string; user?: Account }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
       });
 
       saveToken(result.token);
 
-      const account = await catalogApi<Account>("/users/me");
+      const account = result.user ?? (await catalogApi<Account>("/users/me"));
       if (account.status !== "ACTIVE") {
         saveToken(null);
-        throw new Error("Tài khoản hiện đang bị tạm khóa hoặc chưa được kích hoạt.");
+        throw new Error("Your account is currently locked or inactive.");
       }
 
       if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
@@ -172,11 +181,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
       proceedRedirect(account);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
-        setError("Email hoặc mật khẩu không chính xác.");
+        setError("Invalid email or password.");
       } else if (err instanceof Error) {
-        setError(err.message || "Không thể kết nối đến máy chủ xác thực.");
+        setError(err.message || "Unable to connect to the authentication server.");
       } else {
-        setError("Lỗi không xác định khi đăng nhập.");
+        setError("An unexpected error occurred while signing in.");
       }
     } finally {
       setBusy(false);
@@ -189,20 +198,36 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
     setError("");
     setSuccessMessage("");
 
+    const trimmedName = regFullName.trim();
+    const trimmedEmail = regEmail.trim();
+    const trimmedPhone = regPhone.trim();
+
+    if (!trimmedName) {
+      setError("Full name is required.");
+      setBusy(false);
+      return;
+    }
+
     if (regPassword.length < 6) {
-      setError("Mật khẩu phải có độ dài tối thiểu 6 ký tự.");
+      setError("Password must be at least 6 characters.");
+      setBusy(false);
+      return;
+    }
+
+    if (regConfirmPassword && regPassword !== regConfirmPassword) {
+      setError("Password confirmation does not match.");
       setBusy(false);
       return;
     }
 
     try {
       const payload: { fullName: string; email: string; password: string; phone?: string } = {
-        fullName: regFullName,
-        email: regEmail,
+        fullName: trimmedName,
+        email: trimmedEmail,
         password: regPassword,
       };
-      if (regPhone.trim()) {
-        payload.phone = regPhone.trim();
+      if (trimmedPhone) {
+        payload.phone = trimmedPhone;
       }
 
       const res = await catalogApi<{ token?: string; user?: Account }>("/auth/register", {
@@ -212,20 +237,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
       if (res?.token) {
         saveToken(res.token);
-        setSuccessMessage(`Đăng ký thành công! Chào mừng ${regFullName}.`);
+        const account = res.user ?? (await catalogApi<Account>("/users/me"));
+        setSuccessMessage(`Registration successful! Welcome, ${account.fullName || trimmedName}.`);
         setTimeout(() => {
-          navigate(returnTo && returnTo !== "/login" ? returnTo : "/shop", { replace: true });
-        }, 800);
+          if (returnTo && returnTo !== "/login" && returnTo !== "/register" && returnTo !== "/oauth2/callback") {
+            navigate(returnTo, { replace: true });
+          } else {
+            navigate("/passport", { replace: true });
+          }
+        }, 600);
       } else {
-        setSuccessMessage(`Đăng ký tài khoản thành công! Vui lòng đăng nhập.`);
-        setLoginEmail(regEmail);
+        setSuccessMessage("Account registered successfully! Please sign in.");
+        setLoginEmail(trimmedEmail);
         setLoginPassword(regPassword);
         setTimeout(() => {
           setMode("login");
         }, 800);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Đăng ký không thành công.");
+      setError(err instanceof Error ? err.message : "Registration failed.");
     } finally {
       setBusy(false);
     }
@@ -253,14 +283,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
           to="/shop"
           className="text-xs font-label text-[#5C665F] hover:text-[#152A20] font-bold uppercase transition"
         >
-          ← Quay lại Storefront
+          ← Back to Storefront
         </Link>
       </header>
 
       {/* Main: Clean Centered Compact Auth Card */}
       <main className="flex-1 flex items-center justify-center px-4 py-6 sm:py-8">
         <div className="w-full max-w-md bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs shadow-md p-6 sm:p-8 font-label">
-          {/* Header Tabs: Đăng Nhập / Đăng Ký */}
+          {/* Header Tabs: Sign In / Sign Up */}
           <div className="flex bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5] mb-5">
             <button
               type="button"
@@ -275,7 +305,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   : "text-[#5C665F] hover:text-[#111D16]"
               }`}
             >
-              Đăng Nhập
+              Sign In
             </button>
             <button
               type="button"
@@ -290,7 +320,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   : "text-[#5C665F] hover:text-[#111D16]"
               }`}
             >
-              Đăng Ký
+              Sign Up
             </button>
           </div>
 
@@ -317,13 +347,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
             className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs text-xs font-bold text-[#111D16] shadow-xs hover:shadow-sm transition cursor-pointer font-label uppercase tracking-wider group"
           >
             <GoogleIcon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-            <span>{mode === "login" ? "Đăng nhập bằng Google" : "Đăng ký bằng Google"}</span>
+            <span>{mode === "login" ? "Sign in with Google" : "Sign up with Google"}</span>
           </button>
 
           <div className="relative flex items-center my-4">
             <div className="flex-grow border-t border-[#D8D2C5]"></div>
             <span className="shrink-0 px-3 text-[10px] text-[#7A857E] font-bold uppercase tracking-wider bg-[#F8F6F1]">
-              Hoặc dùng Email
+              Or continue with Email
             </span>
             <div className="flex-grow border-t border-[#D8D2C5]"></div>
           </div>
@@ -350,7 +380,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                  Mật khẩu
+                  Password
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -382,12 +412,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   disabled={busy}
                   icon={busy ? undefined : <ArrowRight className="w-4 h-4" />}
                 >
-                  {busy ? "Đang xử lý..." : "Đăng Nhập"}
+                  {busy ? "Processing..." : "Sign In"}
                 </Button>
               </div>
 
               <div className="text-center pt-2 text-xs text-[#5C665F]">
-                Chưa có tài khoản?{" "}
+                Don't have an account?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -396,7 +426,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   }}
                   className="font-bold text-[#D97845] hover:underline cursor-pointer"
                 >
-                  Đăng ký ngay
+                  Sign up now
                 </button>
               </div>
             </form>
@@ -407,16 +437,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
             <form onSubmit={handleRegisterSubmit} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                  Họ và tên
+                  Full Name *
                 </label>
                 <div className="relative flex items-center">
                   <User className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                   <input
                     type="text"
                     required
+                    maxLength={150}
                     value={regFullName}
                     onChange={(e) => setRegFullName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
+                    placeholder="John Doe"
                     className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-3 text-xs text-[#111D16] placeholder-[#7A857E] focus:outline-none focus:border-[#152A20] transition font-body"
                   />
                 </div>
@@ -424,13 +455,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                  Email
+                  Email *
                 </label>
                 <div className="relative flex items-center">
                   <Mail className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                   <input
                     type="email"
                     required
+                    maxLength={255}
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="email@example.com"
@@ -441,15 +473,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                  Số điện thoại
+                  Phone Number
                 </label>
                 <div className="relative flex items-center">
                   <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                   <input
                     type="tel"
+                    maxLength={30}
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="0912 345 678 (tùy chọn)"
+                    placeholder="0912 345 678 (optional)"
                     className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-3 text-xs text-[#111D16] placeholder-[#7A857E] focus:outline-none focus:border-[#152A20] transition font-body"
                   />
                 </div>
@@ -457,16 +490,45 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                  Mật khẩu
+                  Password *
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                   <input
-                    type="password"
+                    type={showRegPassword ? "text" : "password"}
                     required
+                    minLength={6}
+                    maxLength={100}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Tối thiểu 6 ký tự"
+                    placeholder="At least 6 characters"
+                    className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-10 text-xs text-[#111D16] placeholder-[#7A857E] focus:outline-none focus:border-[#152A20] transition font-body"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-3 text-[#7A857E] hover:text-[#152A20] cursor-pointer"
+                    aria-label="Toggle register password visibility"
+                  >
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
+                  Confirm Password *
+                </label>
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
+                  <input
+                    type={showRegPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    maxLength={100}
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    placeholder="Re-enter password"
                     className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-3 text-xs text-[#111D16] placeholder-[#7A857E] focus:outline-none focus:border-[#152A20] transition font-body"
                   />
                 </div>
@@ -480,12 +542,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   fullWidth
                   disabled={busy}
                 >
-                  {busy ? "Đang xử lý..." : "Đăng Ký Tài Khoản"}
+                  {busy ? "Processing..." : "Create Account"}
                 </Button>
               </div>
 
               <div className="text-center pt-2 text-xs text-[#5C665F]">
-                Đã có tài khoản?{" "}
+                Already have an account?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -494,7 +556,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
                   }}
                   className="font-bold text-[#152A20] hover:underline cursor-pointer"
                 >
-                  Đăng nhập tại đây
+                  Sign in here
                 </button>
               </div>
             </form>

@@ -41,22 +41,22 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
     setSuccess('');
 
     if (!currentPassword) {
-      setError('Vui lòng nhập mật khẩu tạm hiện tại.');
+      setError('Please enter your current temporary password.');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+      setError('New password must be at least 6 characters.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Xác nhận mật khẩu mới không trùng khớp.');
+      setError('New password confirmation does not match.');
       return;
     }
 
     if (newPassword === currentPassword) {
-      setError('Mật khẩu mới không được trùng với mật khẩu tạm được cấp.');
+      setError('New password must be different from the temporary password.');
       return;
     }
 
@@ -73,13 +73,13 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
 
       // Clear the first-login requirement
       clearAccountPasswordChangeRequirement(userEmail);
-      setSuccess('Đổi mật khẩu thành công! Đang chuyển hướng vào hệ thống...');
+      setSuccess('Password changed successfully! Redirecting to the system...');
 
       setTimeout(() => {
         onSuccess();
       }, 1000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.');
+      setError(err instanceof Error ? err.message : 'Unable to change password. Please verify your current password.');
     } finally {
       setLoading(false);
     }
@@ -89,18 +89,18 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
     <Modal
       isOpen={isOpen}
       onClose={onCancel ? onCancel : () => {}}
-      title="Bảo Mật: Yêu Cầu Đổi Mật Khẩu Khởi Tạo"
-      badge="BẮT BUỘC ĐỔI LẦN ĐẦU"
+      title="Security: Initial Password Change Required"
+      badge="REQUIRED ON FIRST LOGIN"
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 font-label">
         <div className="p-3 bg-amber-50 border border-amber-300 rounded-xs text-xs text-amber-900 flex items-start gap-2.5 leading-relaxed">
           <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <strong className="block font-bold mb-0.5">Tài khoản nội bộ được cấp mật khẩu tạm:</strong>
+            <strong className="block font-bold mb-0.5">Internal account issued with a temporary password:</strong>
             <span>
-              Tài khoản của bạn ({userEmail}) vừa được Quản trị viên cấp với mật khẩu tạm qua Email.
-              Để đảm bảo an toàn thông tin vận hành trạm và tour, bạn <strong>bắt buộc phải thiết lập mật khẩu riêng</strong> trước khi tiếp tục.
+              Your account ({userEmail}) was issued with a temporary password via Email by an Administrator.
+              To ensure operational security for branches and tours, you <strong>must set your own password</strong> before continuing.
             </span>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
         {/* Current Password Field */}
         <div>
           <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-            Mật khẩu tạm hiện tại *
+            Current Temporary Password *
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -132,7 +132,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
               disabled={loading}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Nhập chuỗi mật khẩu được gửi qua email..."
+              placeholder="Enter the temporary password sent via email..."
               className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-10 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             />
             <button
@@ -145,7 +145,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
           </div>
           {initialCurrentPassword && (
             <span className="text-[10px] text-emerald-700 mt-1 block">
-              ✓ Đã tự động điền mật khẩu bạn vừa đăng nhập
+              ✓ Auto-filled from the password you just signed in with
             </span>
           )}
         </div>
@@ -153,7 +153,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
         {/* New Password Field */}
         <div>
           <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-            Mật khẩu mới (Tối thiểu 6 ký tự) *
+            New Password (At least 6 characters) *
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -179,7 +179,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
         {/* Confirm New Password Field */}
         <div>
           <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-            Xác nhận mật khẩu mới *
+            Confirm New Password *
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -198,7 +198,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
         <div className="pt-3 border-t border-[#D8D2C5] flex justify-end gap-2">
           {onCancel && (
             <Button type="button" variant="secondary" size="md" disabled={loading} onClick={onCancel}>
-              Đăng xuất
+              Sign Out
             </Button>
           )}
           <Button
@@ -208,7 +208,7 @@ export const ForceChangePasswordModal: React.FC<ForceChangePasswordModalProps> =
             disabled={loading}
             icon={loading ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
           >
-            {loading ? 'Đang cập nhật...' : 'Xác Nhận & Tiếp Tục Vào Hệ Thống'}
+            {loading ? 'Updating...' : 'Confirm & Continue to System'}
           </Button>
         </div>
       </form>

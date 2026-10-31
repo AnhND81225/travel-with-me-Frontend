@@ -16,7 +16,6 @@ import {
   Mail,
   Loader2,
   RefreshCw,
-  ShoppingBag,
 } from 'lucide-react';
 import { catalogApi, Account } from '../../features/equipment/catalogApi';
 
@@ -58,7 +57,7 @@ export const AdminUsersPage: React.FC = () => {
       const data = await catalogApi<Account[]>('/users');
       setUsers(data || []);
     } catch (err) {
-      notify('err', err instanceof Error ? err.message : 'Không thể tải danh sách tài khoản.');
+      notify('err', err instanceof Error ? err.message : 'Unable to load user accounts.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +88,7 @@ export const AdminUsersPage: React.FC = () => {
     e.preventDefault();
     if (!editingUser) return;
     if (!editForm.fullName.trim()) {
-      setEditError('Họ và tên không được để trống.');
+      setEditError('Full name is required.');
       return;
     }
 
@@ -106,11 +105,11 @@ export const AdminUsersPage: React.FC = () => {
         }),
       });
 
-      notify('ok', `Cập nhật thông tin khách hàng "${editForm.fullName}" thành công.`);
+      notify('ok', `Updated account "${editForm.fullName}" successfully.`);
       closeEdit();
       await loadUsers();
     } catch (err) {
-      setEditError(err instanceof Error ? err.message : 'Không thể cập nhật tài khoản.');
+      setEditError(err instanceof Error ? err.message : 'Unable to update user account.');
     } finally {
       setSaving(false);
     }
@@ -118,21 +117,21 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleToggleStatus = async (user: Account) => {
     const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const actionText = nextStatus === 'ACTIVE' ? 'mở khóa' : 'khóa';
+    const actionText = nextStatus === 'ACTIVE' ? 'unlock' : 'lock';
 
     if (
       nextStatus === 'INACTIVE' &&
-      !window.confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản "${user.fullName}" (${user.email})?`)
+      !window.confirm(`Are you sure you want to ${actionText} account "${user.fullName}" (${user.email})?`)
     ) {
       return;
     }
 
     try {
       await catalogApi(`/users/${user.id}/status?status=${nextStatus}`, { method: 'PUT' });
-      notify('ok', `Đã ${actionText} tài khoản khách hàng "${user.fullName}".`);
+      notify('ok', `Account "${user.fullName}" has been ${nextStatus === 'ACTIVE' ? 'unlocked' : 'locked'}.`);
       await loadUsers();
     } catch (err) {
-      notify('err', err instanceof Error ? err.message : `Không thể ${actionText} tài khoản.`);
+      notify('err', err instanceof Error ? err.message : `Unable to ${actionText} account.`);
     }
   };
 
@@ -141,7 +140,7 @@ export const AdminUsersPage: React.FC = () => {
     setDeleting(true);
     try {
       await catalogApi(`/users/${deletingUser.id}`, { method: 'DELETE' });
-      notify('ok', `Đã xóa tài khoản "${deletingUser.fullName}".`);
+      notify('ok', `Deleted account "${deletingUser.fullName}".`);
       setDeletingUser(null);
       await loadUsers();
     } catch (err) {
@@ -154,12 +153,12 @@ export const AdminUsersPage: React.FC = () => {
         await catalogApi(`/users/${deletingUser.id}/status?status=INACTIVE`, { method: 'PUT' });
         notify(
           'ok',
-          `Tài khoản "${deletingUser.fullName}" đã có lịch sử đơn hàng/hoạt động liên kết. Hệ thống đã tự động chuyển sang trạng thái [ĐÃ KHÓA - INACTIVE] để bảo toàn dữ liệu đối soát!`
+          `Account "${deletingUser.fullName}" has linked orders/activity history. The system automatically switched its status to [LOCKED - INACTIVE] to preserve audit records!`
         );
         setDeletingUser(null);
         await loadUsers();
       } catch (fallbackErr) {
-        notify('err', fallbackErr instanceof Error ? fallbackErr.message : 'Không thể xóa hoặc khóa tài khoản này.');
+        notify('err', fallbackErr instanceof Error ? fallbackErr.message : 'Unable to delete or lock this account.');
       }
     } finally {
       setDeleting(false);
@@ -189,13 +188,13 @@ export const AdminUsersPage: React.FC = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'ADMIN':
-        return <Badge variant="secondary">Quản trị viên (Admin)</Badge>;
+        return <Badge variant="secondary">Administrator (Admin)</Badge>;
       case 'STAFF':
-        return <Badge variant="primary">Cán bộ trạm (Staff)</Badge>;
+        return <Badge variant="primary">Branch Staff (Staff)</Badge>;
       case 'GUIDE':
-        return <Badge variant="warning">Hướng dẫn viên (Guide)</Badge>;
+        return <Badge variant="warning">Tour Guide (Guide)</Badge>;
       default:
-        return <Badge variant="neutral">Khách hàng (Customer)</Badge>;
+        return <Badge variant="neutral">Customer</Badge>;
     }
   };
 
@@ -205,14 +204,14 @@ export const AdminUsersPage: React.FC = () => {
       <div className="border-b border-[#D8D2C5] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="primary">{customerCount} KHÁCH HÀNG (CUSTOMERS)</Badge>
-            <Badge variant="neutral">{totalCount} TỔNG TÀI KHOẢN</Badge>
+            <Badge variant="primary">{customerCount} CUSTOMERS</Badge>
+            <Badge variant="neutral">{totalCount} TOTAL ACCOUNTS</Badge>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-            Quản Lý Khách Hàng (Customer Accounts)
+            User & Customer Account Management
           </h1>
           <p className="text-xs text-[#5C665F]">
-            Theo dõi danh sách khách hàng, lịch sử thông tin liên lạc, phân quyền và khóa/mở quyền đăng nhập tài khoản.
+            Monitor customer profiles, contact details, role permissions, and lock/unlock account access.
           </p>
         </div>
         <Button
@@ -222,7 +221,7 @@ export const AdminUsersPage: React.FC = () => {
           onClick={loadUsers}
           disabled={loading}
         >
-          Làm mới
+          Refresh
         </Button>
       </div>
 
@@ -258,7 +257,7 @@ export const AdminUsersPage: React.FC = () => {
         <div className="p-4 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] shadow-xs">
           <div className="text-[10px] font-bold text-[#5C665F] uppercase flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-[#152A20]" />
-            <span>Tổng khách hàng</span>
+            <span>Total Customers</span>
           </div>
           <div className="text-2xl font-bold text-[#111D16] mt-1 font-headline">{customerCount}</div>
         </div>
@@ -266,7 +265,7 @@ export const AdminUsersPage: React.FC = () => {
         <div className="p-4 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] shadow-xs">
           <div className="text-[10px] font-bold text-emerald-800 uppercase flex items-center gap-1.5">
             <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Khách đang hoạt động</span>
+            <span>Active Customers</span>
           </div>
           <div className="text-2xl font-bold text-emerald-800 mt-1 font-headline">{activeCustomerCount}</div>
         </div>
@@ -274,7 +273,7 @@ export const AdminUsersPage: React.FC = () => {
         <div className="p-4 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] shadow-xs">
           <div className="text-[10px] font-bold text-red-800 uppercase flex items-center gap-1.5">
             <UserX className="w-3.5 h-3.5 text-red-600" />
-            <span>Khách hàng bị khóa</span>
+            <span>Locked Customers</span>
           </div>
           <div className="text-2xl font-bold text-red-800 mt-1 font-headline">{inactiveCustomerCount}</div>
         </div>
@@ -282,10 +281,10 @@ export const AdminUsersPage: React.FC = () => {
         <div className="p-4 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] shadow-xs">
           <div className="text-[10px] font-bold text-[#D97845] uppercase flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#D97845]" />
-            <span>Nhân sự nội bộ</span>
+            <span>Internal Personnel</span>
           </div>
           <div className="text-2xl font-bold text-[#152A20] mt-1 font-headline">
-            {internalCount} <span className="text-xs text-[#5C665F] font-normal font-body">cán bộ/guide</span>
+            {internalCount} <span className="text-xs text-[#5C665F] font-normal font-body">staff / guides</span>
           </div>
         </div>
       </div>
@@ -301,7 +300,7 @@ export const AdminUsersPage: React.FC = () => {
               : 'text-[#5C665F] hover:text-[#111D16]'
           }`}
         >
-          Khách Hàng ({customerCount})
+          Customers ({customerCount})
         </button>
         <button
           type="button"
@@ -312,7 +311,7 @@ export const AdminUsersPage: React.FC = () => {
               : 'text-[#5C665F] hover:text-[#111D16]'
           }`}
         >
-          Toàn Bộ Tài Khoản ({totalCount})
+          All Accounts ({totalCount})
         </button>
         <button
           type="button"
@@ -336,7 +335,7 @@ export const AdminUsersPage: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm theo họ tên, địa chỉ email hoặc số điện thoại..."
+              placeholder="Search by full name, email address, or phone number..."
               className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             />
           </div>
@@ -347,9 +346,9 @@ export const AdminUsersPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
               className={inputCls}
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="ACTIVE">Đang hoạt động (ACTIVE)</option>
-              <option value="INACTIVE">Đã khóa (INACTIVE)</option>
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active (ACTIVE)</option>
+              <option value="INACTIVE">Locked (INACTIVE)</option>
             </select>
           </div>
         </div>
@@ -362,12 +361,12 @@ export const AdminUsersPage: React.FC = () => {
             <thead className="bg-[#EBE6DC] text-[#5C665F] uppercase tracking-wider text-[10px] border-b border-[#D8D2C5]">
               <tr>
                 <th className="p-3">ID</th>
-                <th className="p-3">Họ và Tên Khách Hàng</th>
-                <th className="p-3">Email Đăng Nhập</th>
-                <th className="p-3">Số Điện Thoại</th>
-                <th className="p-3">Vai Trò</th>
-                <th className="p-3">Trạng Thái</th>
-                <th className="p-3 text-right">Thao Tác</th>
+                <th className="p-3">Full Name</th>
+                <th className="p-3">Login Email</th>
+                <th className="p-3">Phone Number</th>
+                <th className="p-3">Role</th>
+                <th className="p-3">Status</th>
+                <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#D8D2C5]">
@@ -375,7 +374,7 @@ export const AdminUsersPage: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-[#5C665F]">
                     <Loader2 className="w-6 h-6 animate-spin text-[#152A20] mx-auto mb-2" />
-                    Đang tải danh sách người dùng...
+                    Loading user accounts...
                   </td>
                 </tr>
               )}
@@ -383,7 +382,7 @@ export const AdminUsersPage: React.FC = () => {
               {!loading && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-[#5C665F]">
-                    Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.
+                    No user accounts found matching the current filters.
                   </td>
                 </tr>
               )}
@@ -409,7 +408,7 @@ export const AdminUsersPage: React.FC = () => {
                           <div>
                             <div className="font-bold text-[#111D16]">{u.fullName}</div>
                             {u.role === 'CUSTOMER' && (
-                              <span className="text-[10px] text-[#7A857E]">Thành viên thám hiểm</span>
+                              <span className="text-[10px] text-[#7A857E]">Expedition Member</span>
                             )}
                           </div>
                         </div>
@@ -423,13 +422,13 @@ export const AdminUsersPage: React.FC = () => {
                       <td className="p-3">
                         <div className="flex items-center gap-1.5 text-[#5C665F]">
                           <Phone className="w-3.5 h-3.5 text-[#7A857E] shrink-0" />
-                          <span>{u.phone || 'Chưa cung cấp'}</span>
+                          <span>{u.phone || 'Not provided'}</span>
                         </div>
                       </td>
                       <td className="p-3">{getRoleBadge(u.role)}</td>
                       <td className="p-3">
                         <Badge variant={isActive ? 'success' : 'danger'}>
-                          {isActive ? 'Hoạt động' : 'Đã khóa'}
+                          {isActive ? 'Active' : 'Locked'}
                         </Badge>
                       </td>
                       <td className="p-3 text-right">
@@ -438,7 +437,7 @@ export const AdminUsersPage: React.FC = () => {
                             type="button"
                             onClick={() => openEdit(u)}
                             className="p-1.5 rounded-xs border border-[#D8D2C5] bg-[#F8F6F1] hover:bg-[#EBE6DC] text-[#111D16] transition cursor-pointer"
-                            title="Sửa thông tin"
+                            title="Edit Details"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -451,7 +450,7 @@ export const AdminUsersPage: React.FC = () => {
                                 ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
                                 : 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                             }`}
-                            title={isActive ? 'Khóa quyền truy cập' : 'Mở khóa tài khoản'}
+                            title={isActive ? 'Lock Access' : 'Unlock Account'}
                           >
                             {isActive ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                           </button>
@@ -460,7 +459,7 @@ export const AdminUsersPage: React.FC = () => {
                             type="button"
                             onClick={() => setDeletingUser(u)}
                             className="p-1.5 rounded-xs border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition cursor-pointer"
-                            title="Xóa tài khoản"
+                            title="Delete Account"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -478,7 +477,7 @@ export const AdminUsersPage: React.FC = () => {
       <Modal
         isOpen={!!editingUser}
         onClose={closeEdit}
-        title={`Chỉnh Sửa Thông Tin Khách Hàng #${editingUser?.id} — ${editingUser?.fullName || ''}`}
+        title={`Edit User Account #${editingUser?.id} — ${editingUser?.fullName || ''}`}
         maxWidth="lg"
       >
         <form onSubmit={handleUpdateUser} className="space-y-4 font-label">
@@ -499,7 +498,7 @@ export const AdminUsersPage: React.FC = () => {
           )}
 
           <div>
-            <label className={labelCls}>Họ và tên *</label>
+            <label className={labelCls}>Full Name *</label>
             <input
               type="text"
               required
@@ -514,7 +513,7 @@ export const AdminUsersPage: React.FC = () => {
           </div>
 
           <div>
-            <label className={labelCls}>Địa chỉ Email</label>
+            <label className={labelCls}>Email Address</label>
             <input
               type="text"
               disabled
@@ -522,12 +521,12 @@ export const AdminUsersPage: React.FC = () => {
               value={editingUser?.email || ''}
             />
             <span className="text-[10px] text-[#7A857E] mt-1 block">
-              * Email là định danh tài khoản Google / Đăng nhập duy nhất, không thể chỉnh sửa.
+              * Email is the unique login / Google identifier and cannot be edited.
             </span>
           </div>
 
           <div>
-            <label className={labelCls}>Số điện thoại</label>
+            <label className={labelCls}>Phone Number</label>
             <input
               type="tel"
               disabled={saving}
@@ -543,7 +542,7 @@ export const AdminUsersPage: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Vai trò (Role)</label>
+              <label className={labelCls}>Role</label>
               <select
                 disabled={saving}
                 className={inputCls}
@@ -553,15 +552,15 @@ export const AdminUsersPage: React.FC = () => {
                   setEditForm({ ...editForm, role: e.target.value });
                 }}
               >
-                <option value="CUSTOMER">CUSTOMER (Khách hàng)</option>
-                <option value="STAFF">STAFF (Cán bộ trạm)</option>
-                <option value="GUIDE">GUIDE (Hướng dẫn viên)</option>
-                <option value="ADMIN">ADMIN (Quản trị viên)</option>
+                <option value="CUSTOMER">CUSTOMER (Customer)</option>
+                <option value="STAFF">STAFF (Branch Staff)</option>
+                <option value="GUIDE">GUIDE (Tour Guide)</option>
+                <option value="ADMIN">ADMIN (Administrator)</option>
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Trạng thái tài khoản</label>
+              <label className={labelCls}>Account Status</label>
               <select
                 disabled={saving}
                 className={inputCls}
@@ -571,15 +570,15 @@ export const AdminUsersPage: React.FC = () => {
                   setEditForm({ ...editForm, status: e.target.value });
                 }}
               >
-                <option value="ACTIVE">ACTIVE (Đang hoạt động)</option>
-                <option value="INACTIVE">INACTIVE (Đã khóa)</option>
+                <option value="ACTIVE">ACTIVE (Active)</option>
+                <option value="INACTIVE">INACTIVE (Locked)</option>
               </select>
             </div>
           </div>
 
           <div className="pt-3 border-t border-[#D8D2C5] flex justify-end gap-2">
             <Button type="button" variant="secondary" size="md" disabled={saving} onClick={closeEdit}>
-              Hủy
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -588,7 +587,7 @@ export const AdminUsersPage: React.FC = () => {
               disabled={saving}
               icon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
             >
-              {saving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>
@@ -598,15 +597,15 @@ export const AdminUsersPage: React.FC = () => {
       <Modal
         isOpen={!!deletingUser}
         onClose={() => setDeletingUser(null)}
-        title="Xác Nhận Xóa Khách Hàng"
+        title="Confirm Account Deletion"
         maxWidth="md"
       >
         <div className="space-y-4 font-label">
           <p className="text-xs text-[#111D16]">
-            Bạn có chắc chắn muốn xóa tài khoản khách hàng <strong>{deletingUser?.fullName}</strong> ({deletingUser?.email})?
+            Are you sure you want to delete user account <strong>{deletingUser?.fullName}</strong> ({deletingUser?.email})?
           </p>
           <div className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xs border border-amber-200 leading-relaxed">
-            💡 <strong>Cơ chế bảo vệ dữ liệu:</strong> Nếu khách hàng đã từng phát sinh đơn hàng thuê đồ hoặc tham gia tour, hệ thống sẽ tự động chuyển sang trạng thái <strong>[ĐÃ KHÓA - INACTIVE]</strong> để bảo toàn lịch sử hóa đơn kế toán.
+            💡 <strong>Data Protection Policy:</strong> If the user has existing rental orders or tour bookings, the system will automatically switch the account to <strong>[LOCKED - INACTIVE]</strong> to preserve accounting and audit history.
           </div>
           <div className="pt-3 border-t border-[#D8D2C5] flex justify-end gap-2">
             <Button
@@ -616,7 +615,7 @@ export const AdminUsersPage: React.FC = () => {
               disabled={deleting}
               onClick={() => setDeletingUser(null)}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="button"
@@ -626,7 +625,7 @@ export const AdminUsersPage: React.FC = () => {
               icon={deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               onClick={handleDeleteUser}
             >
-              {deleting ? 'Đang xóa...' : 'Xác Nhận Xóa'}
+              {deleting ? 'Deleting...' : 'Confirm Delete'}
             </Button>
           </div>
         </div>

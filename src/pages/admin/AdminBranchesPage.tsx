@@ -52,7 +52,7 @@ export const AdminBranchesPage: React.FC = () => {
     try {
       setBranches((await catalogApi<Branch[]>('/branches')) || []);
     } catch (err) {
-      notify('err', err instanceof Error ? err.message : 'Không thể tải danh sách chi nhánh.');
+      notify('err', err instanceof Error ? err.message : 'Unable to load branches.');
     } finally {
       setLoading(false);
     }
@@ -94,15 +94,15 @@ export const AdminBranchesPage: React.FC = () => {
       });
       if (editing) {
         await catalogApi<Branch>(`/branches/${editing.id}`, { method: 'PUT', body });
-        notify('ok', `Đã cập nhật chi nhánh "${form.name}".`);
+        notify('ok', `Branch "${form.name}" updated successfully.`);
       } else {
         await catalogApi<Branch>('/branches', { method: 'POST', body });
-        notify('ok', `Đã tạo chi nhánh mới "${form.name}".`);
+        notify('ok', `Branch "${form.name}" created successfully.`);
       }
       setFormOpen(false);
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Không thể lưu chi nhánh.');
+      setFormError(err instanceof Error ? err.message : 'Unable to save branch.');
     } finally {
       setSaving(false);
     }
@@ -112,15 +112,15 @@ export const AdminBranchesPage: React.FC = () => {
     const next = b.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     if (
       next === 'INACTIVE' &&
-      !window.confirm(`Khóa chi nhánh "${b.name}"? Chi nhánh sẽ ngừng hoạt động.`)
+      !window.confirm(`Lock branch "${b.name}"? The branch will become inactive.`)
     )
       return;
     try {
       await catalogApi<Branch>(`/branches/${b.id}/status?status=${next}`, { method: 'PUT' });
-      notify('ok', next === 'ACTIVE' ? 'Đã mở lại chi nhánh.' : 'Đã khóa chi nhánh.');
+      notify('ok', next === 'ACTIVE' ? 'Branch unlocked successfully.' : 'Branch locked successfully.');
       await load();
     } catch (err) {
-      notify('err', err instanceof Error ? err.message : 'Không thể đổi trạng thái.');
+      notify('err', err instanceof Error ? err.message : 'Unable to update branch status.');
     }
   };
 
@@ -131,7 +131,7 @@ export const AdminBranchesPage: React.FC = () => {
     try {
       setStaffRows((await catalogApi<StaffRow[]>(`/staff/branch/${b.id}`)) || []);
     } catch (err) {
-      notify('err', err instanceof Error ? err.message : 'Không thể tải nhân viên.');
+      notify('err', err instanceof Error ? err.message : 'Unable to load branch staff.');
     } finally {
       setStaffLoading(false);
     }
@@ -151,14 +151,14 @@ export const AdminBranchesPage: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6 font-label">
       <div className="border-b border-[#D8D2C5] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <Badge variant="primary">{branches.length} CHI NHÁNH</Badge>
+          <Badge variant="primary">{branches.length} BRANCHES</Badge>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline mt-1">
-            Quản Lý Chi Nhánh
+            Branch Management
           </h1>
-          <p className="text-xs text-[#5C665F]">Tạo, chỉnh sửa và khóa/mở chi nhánh.</p>
+          <p className="text-xs text-[#5C665F]">Create, edit, and activate/deactivate branches.</p>
         </div>
         <Button variant="accent" size="md" icon={<Plus className="w-4 h-4" />} onClick={openCreate}>
-          Thêm Chi Nhánh
+          Add Branch
         </Button>
       </div>
 
@@ -184,7 +184,7 @@ export const AdminBranchesPage: React.FC = () => {
           <Search className="w-4 h-4 text-[#7A857E] absolute left-3 top-2.5 pointer-events-none" />
           <input
             type="text"
-            placeholder="Tìm theo tên, địa chỉ hoặc số điện thoại..."
+            placeholder="Search by branch name, address, or phone number..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-[#152A20]"
@@ -195,14 +195,14 @@ export const AdminBranchesPage: React.FC = () => {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs py-2 px-3 text-xs focus:outline-none"
         >
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="ACTIVE">Đang hoạt động</option>
-          <option value="INACTIVE">Đã khóa</option>
+          <option value="ALL">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Locked</option>
         </select>
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-xs text-[#5C665F]">Đang tải...</div>
+        <div className="p-8 text-center text-xs text-[#5C665F]">Loading branches...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((b) => (
@@ -217,30 +217,30 @@ export const AdminBranchesPage: React.FC = () => {
                       <h3 className="font-bold text-sm text-[#111D16] font-headline truncate">
                         {b.name}
                       </h3>
-                      <span className="text-[10px] text-[#7A857E]">Mã #{b.id}</span>
+                      <span className="text-[10px] text-[#7A857E]">ID #{b.id}</span>
                     </div>
                   </div>
                   <Badge variant={b.status === 'ACTIVE' ? 'success' : 'danger'}>
-                    {b.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
+                    {b.status === 'ACTIVE' ? 'Active' : 'Locked'}
                   </Badge>
                 </div>
                 <div className="text-xs text-[#5C665F] space-y-1">
                   <div className="flex items-start gap-1.5">
                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>{b.address || 'Chưa cập nhật địa chỉ'}</span>
+                    <span>{b.address || 'No address provided'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <span>{b.phone || 'Chưa cập nhật SĐT'}</span>
+                    <span>{b.phone || 'No phone number'}</span>
                   </div>
                 </div>
               </div>
               <div className="pt-3 border-t border-[#D8D2C5] flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" icon={<Pencil className="w-3.5 h-3.5" />} onClick={() => openEdit(b)}>
-                  Sửa
+                  Edit
                 </Button>
                 <Button size="sm" variant="secondary" icon={<Users className="w-3.5 h-3.5" />} onClick={() => openStaff(b)}>
-                  Nhân viên
+                  Staff
                 </Button>
                 <Button
                   size="sm"
@@ -248,14 +248,14 @@ export const AdminBranchesPage: React.FC = () => {
                   icon={b.status === 'ACTIVE' ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                   onClick={() => toggleStatus(b)}
                 >
-                  {b.status === 'ACTIVE' ? 'Khóa' : 'Mở'}
+                  {b.status === 'ACTIVE' ? 'Lock' : 'Unlock'}
                 </Button>
               </div>
             </Card>
           ))}
           {filtered.length === 0 && (
             <div className="col-span-full p-8 text-center bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-xs text-[#5C665F]">
-              Không có chi nhánh nào.
+              No branches found.
             </div>
           )}
         </div>
@@ -264,7 +264,7 @@ export const AdminBranchesPage: React.FC = () => {
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editing ? 'Sửa Chi Nhánh' : 'Thêm Chi Nhánh Mới'}
+        title={editing ? 'Edit Branch' : 'Add New Branch'}
         maxWidth="lg"
       >
         <form onSubmit={submit} className="space-y-4 font-label">
@@ -285,7 +285,7 @@ export const AdminBranchesPage: React.FC = () => {
           )}
 
           <div>
-            <label className={labelCls}>Tên chi nhánh *</label>
+            <label className={labelCls}>Branch Name *</label>
             <input
               required
               disabled={saving}
@@ -295,32 +295,32 @@ export const AdminBranchesPage: React.FC = () => {
                 setFormError(null);
                 setForm({ ...form, name: e.target.value });
               }}
-              placeholder="VD: Sa Pa Alpine Outpost"
+              placeholder="e.g., Sa Pa Alpine Outpost"
             />
           </div>
           <div>
-            <label className={labelCls}>Địa chỉ</label>
+            <label className={labelCls}>Address</label>
             <input className={inputCls} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Số điện thoại</label>
+              <label className={labelCls}>Phone Number</label>
               <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
             <div>
-              <label className={labelCls}>Trạng thái</label>
+              <label className={labelCls}>Status</label>
               <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                <option value="ACTIVE">Hoạt động</option>
-                <option value="INACTIVE">Đã khóa</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Locked</option>
               </select>
             </div>
           </div>
           <div className="pt-3 border-t border-[#D8D2C5] flex justify-end gap-2">
             <Button type="button" variant="secondary" size="md" onClick={() => setFormOpen(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" variant="accent" size="md" disabled={saving}>
-              {saving ? 'Đang lưu...' : 'Lưu'}
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </form>
@@ -329,22 +329,22 @@ export const AdminBranchesPage: React.FC = () => {
       <Modal
         isOpen={!!staffBranch}
         onClose={() => setStaffBranch(null)}
-        title={`Nhân viên — ${staffBranch?.name || ''}`}
+        title={`Branch Staff — ${staffBranch?.name || ''}`}
         maxWidth="lg"
       >
         <div className="space-y-2 font-label">
-          {staffLoading && <p className="text-xs text-[#5C665F]">Đang tải...</p>}
+          {staffLoading && <p className="text-xs text-[#5C665F]">Loading staff...</p>}
           {!staffLoading && staffRows.length === 0 && (
-            <p className="text-xs text-[#5C665F]">Chi nhánh chưa có nhân viên.</p>
+            <p className="text-xs text-[#5C665F]">No staff members assigned to this branch yet.</p>
           )}
           {staffRows.map((s) => (
             <div key={s.id} className="p-3 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] flex items-center justify-between text-xs">
               <div>
                 <div className="font-bold text-[#111D16]">{s.userName}</div>
-                <div className="text-[#5C665F]">{s.position || 'Chưa có chức vụ'}</div>
+                <div className="text-[#5C665F]">{s.position || 'No position specified'}</div>
               </div>
               <Badge variant={s.status === 'ACTIVE' ? 'success' : 'danger'}>
-                {s.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}
+                {s.status === 'ACTIVE' ? 'Active' : 'Locked'}
               </Badge>
             </div>
           ))}

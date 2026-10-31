@@ -66,7 +66,7 @@ export async function catalogApi<T>(
   if (!response.ok) {
     if (response.status === 401) saveToken(null);
     throw new ApiError(
-      payload?.message || `Không thể thực hiện yêu cầu (${response.status})`,
+      payload?.message || `Unable to complete request (${response.status})`,
       response.status,
     );
   }
@@ -86,7 +86,7 @@ export async function allProducts(admin: boolean) {
 }
 export const vnd = (value: number | null) =>
   value === null
-    ? "Không áp dụng"
+    ? "N/A"
     : new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
