@@ -63,7 +63,7 @@ export function useAuth() {
         setState({
           loading: false,
           account: null,
-          error: "Tài khoản bị tạm khóa hoặc không hoạt động.",
+          error: "Your account is temporarily locked or inactive.",
           isAuthenticated: false,
         });
         return null;
@@ -102,7 +102,7 @@ export function useAuth() {
       setState({
         loading: false,
         account: null,
-        error: err instanceof Error ? err.message : "Phiên đăng nhập hết hạn.",
+        error: err instanceof Error ? err.message : "Session expired.",
         isAuthenticated: false,
       });
       return null;

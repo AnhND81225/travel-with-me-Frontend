@@ -66,15 +66,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
     setPwdError('');
 
     if (!currentPassword) {
-      setPwdError('Vui lòng nhập mật khẩu hiện tại.');
+      setPwdError('Please enter your current password.');
       return;
     }
     if (newPassword.length < 6) {
-      setPwdError('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+      setPwdError('New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwdError('Xác nhận mật khẩu mới không trùng khớp.');
+      setPwdError('New password confirmation does not match.');
       return;
     }
 
@@ -93,13 +93,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
         clearAccountPasswordChangeRequirement(account.email);
       }
 
-      setPwdSuccess('Đổi mật khẩu thành công!');
+      setPwdSuccess('Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPwdSuccess(''), 4000);
     } catch (err: unknown) {
-      setPwdError(err instanceof Error ? err.message : 'Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.');
+      setPwdError(err instanceof Error ? err.message : 'Unable to change password. Please verify your current password.');
     } finally {
       setIsChangingPwd(false);
     }
@@ -108,7 +108,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      setUpdateError('Họ và tên không được để trống.');
+      setUpdateError('Full name is required.');
       return;
     }
 
@@ -126,10 +126,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
       });
 
       await checkAuth();
-      setUpdateSuccess('Cập nhật thông tin tài khoản thành công!');
+      setUpdateSuccess('Account profile updated successfully!');
       setTimeout(() => setUpdateSuccess(''), 4000);
     } catch (err: unknown) {
-      setUpdateError(err instanceof Error ? err.message : 'Không thể cập nhật hồ sơ.');
+      setUpdateError(err instanceof Error ? err.message : 'Unable to update profile.');
     } finally {
       setIsUpdating(false);
     }
@@ -139,7 +139,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
     return (
       <div className="max-w-5xl mx-auto px-4 py-16 text-center font-label">
         <Loader2 className="w-8 h-8 animate-spin text-[#152A20] mx-auto mb-3" />
-        <p className="text-sm text-[#5C665F]">Đang tải thông tin tài khoản...</p>
+        <p className="text-sm text-[#5C665F]">Loading account details...</p>
       </div>
     );
   }
@@ -148,12 +148,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center font-label">
         <AlertCircle className="w-10 h-10 text-red-600 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-[#152A20]">Chưa đăng nhập</h3>
+        <h3 className="text-lg font-bold text-[#152A20]">Not Signed In</h3>
         <p className="text-xs text-[#5C665F] mt-1 mb-4">
-          Vui lòng đăng nhập để xem thông tin tài khoản của bạn.
+          Please sign in to view your account information.
         </p>
         <Link to="/login">
-          <Button variant="primary">Đăng Nhập Ngay</Button>
+          <Button variant="primary">Sign In Now</Button>
         </Link>
       </div>
     );
@@ -161,10 +161,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
   const roleLabel =
     account.role === 'ADMIN'
-      ? 'Quản trị viên (Admin)'
+      ? 'Administrator (Admin)'
       : account.role === 'STAFF'
-      ? 'Cán bộ trạm (Staff)'
-      : 'Thành viên thám hiểm (Customer)';
+      ? 'Outpost Staff (Staff)'
+      : account.role === 'GUIDE'
+      ? 'Expedition Guide (Guide)'
+      : 'Expedition Member (Customer)';
 
   const initials = account.fullName
     ? account.fullName
@@ -183,13 +185,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-xs bg-[#EBE6DC] border border-[#D8D2C5] text-[10px] tracking-wider text-[#152A20] font-bold uppercase mb-2">
             <ShieldCheck className="w-3.5 h-3.5 text-[#D97845]" />
-            <span>HỒ SƠ TÀI KHOẢN • PASSPORT</span>
+            <span>ACCOUNT PROFILE • PASSPORT</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#152A20] tracking-tight font-headline">
-            Thông Tin Cá Nhân
+            Personal Profile
           </h2>
           <p className="text-xs sm:text-sm text-[#5C665F] mt-1 font-body">
-            Xem và cập nhật thông tin thành viên kết nối trực tiếp với hệ thống TerraPeak.
+            View and update your member information connected directly with the TerraPeak system.
           </p>
         </div>
 
@@ -198,14 +200,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
           className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xs transition cursor-pointer self-start sm:self-auto"
         >
           <LogOut className="w-4 h-4" />
-          <span>Đăng Xuất</span>
+          <span>Sign Out</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Member ID Card */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Card Thẻ thành viên phong cách sang trọng */}
+          {/* Member ID Card */}
           <div className="rounded-xs bg-[#152A20] text-white p-6 shadow-xl relative overflow-hidden font-label space-y-5">
             {/* Top Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-[#2C4938]">
@@ -230,7 +232,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                   {account.fullName}
                 </h3>
                 <div className="text-xs text-[#ADCBBB] font-body truncate">
-                  {account.email || 'Chưa có email'}
+                  {account.email || 'No email provided'}
                 </div>
                 <div className="text-xs text-[#D97845] font-bold mt-1 flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-[#D97845] shrink-0" />
@@ -242,22 +244,22 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             {/* Key Information Badges */}
             <div className="grid grid-cols-2 gap-3 text-xs bg-[#1C362A] p-3.5 rounded-xs border border-[#2B4E3C]">
               <div>
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">TRẠNG THÁI</span>
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">STATUS</span>
                 <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-xs mt-0.5">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  {account.status === 'ACTIVE' ? 'Đang hoạt động' : account.status}
+                  {account.status === 'ACTIVE' ? 'Active' : account.status}
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">VAI TRÒ</span>
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">ROLE</span>
                 <span className="text-white font-bold text-xs mt-0.5 block font-headline">
                   {account.role}
                 </span>
               </div>
               <div className="col-span-2 pt-2 border-t border-[#2B4E3C]">
-                <span className="text-[10px] text-[#ADCBBB] block font-semibold">SỐ ĐIỆN THOẠI</span>
+                <span className="text-[10px] text-[#ADCBBB] block font-semibold">PHONE NUMBER</span>
                 <span className="text-white text-xs font-medium">
-                  {account.phone || 'Chưa cập nhật số điện thoại'}
+                  {account.phone || 'Not provided'}
                 </span>
               </div>
             </div>
@@ -266,7 +268,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
           {/* Quick Navigation Shortcuts */}
           <div className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs p-5 space-y-3 font-label">
             <h4 className="text-xs font-bold text-[#152A20] uppercase tracking-wider mb-2">
-              Lối Tắt Truy Cập Nhanh
+              Quick Access Shortcuts
             </h4>
             <Link
               to="/orders"
@@ -274,7 +276,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             >
               <div className="flex items-center gap-2.5">
                 <Package className="w-4 h-4 text-[#D97845]" />
-                <span>Xem Đơn Hàng & Đơn Thuê Của Bạn</span>
+                <span>View Your Orders & Rentals</span>
               </div>
               <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
             </Link>
@@ -285,7 +287,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             >
               <div className="flex items-center gap-2.5">
                 <ShoppingBag className="w-4 h-4 text-[#152A20]" />
-                <span>Khám Phá Cửa Hàng Trang Bị</span>
+                <span>Explore Gear & Equipment Store</span>
               </div>
               <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
             </Link>
@@ -296,7 +298,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             >
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4 text-emerald-700" />
-                <span>Mạng Lưới Trạm Outpost Toàn Quốc</span>
+                <span>National Outpost Network</span>
               </div>
               <span className="text-[#5C665F] group-hover:text-[#152A20] text-sm">→</span>
             </Link>
@@ -316,7 +318,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                   : 'text-[#5C665F] hover:text-[#111D16]'
               }`}
             >
-              Thông Tin Hồ Sơ
+              Profile Information
             </button>
             <button
               type="button"
@@ -328,7 +330,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
               }`}
             >
               <Key className="w-3.5 h-3.5" />
-              <span>Đổi Mật Khẩu</span>
+              <span>Change Password</span>
               {isPwdChangeRequired && (
                 <span className="w-2 h-2 rounded-full bg-[#D97845] animate-pulse"></span>
               )}
@@ -340,10 +342,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-[#152A20] font-headline">
-                  Cập Nhật Thông Tin Tài Khoản
+                  Update Account Information
                 </h3>
                 <p className="text-xs text-[#5C665F] font-body mt-1">
-                  Thông tin này được đồng bộ và lưu trữ trực tiếp trên cơ sở dữ liệu hệ thống.
+                  This information is synchronized and stored directly in the system database.
                 </p>
               </div>
 
@@ -364,7 +366,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Họ và tên
+                    Full Name
                   </label>
                   <div className="relative flex items-center">
                     <User className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -373,7 +375,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nhập họ và tên đầy đủ"
+                      placeholder="Enter your full name"
                       className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
                     />
                   </div>
@@ -381,7 +383,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Địa chỉ Email (Định danh)
+                    Email Address (Account ID)
                   </label>
                   <div className="relative flex items-center">
                     <Mail className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -393,13 +395,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                     />
                   </div>
                   <span className="text-[10px] text-[#7A857E] mt-1 block">
-                    * Email dùng để xác thực phiên và không thể thay đổi trực tiếp.
+                    * Email is used for session authentication and cannot be modified directly.
                   </span>
                 </div>
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Số điện thoại liên lạc
+                    Contact Phone Number
                   </label>
                   <div className="relative flex items-center">
                     <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -421,7 +423,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                     disabled={isUpdating}
                     icon={isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   >
-                    {isUpdating ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
               </form>
@@ -433,10 +435,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-[#152A20] font-headline">
-                  Thiết Lập Mật Khẩu Mới
+                  Set a New Password
                 </h3>
                 <p className="text-xs text-[#5C665F] font-body mt-1">
-                  Đổi mật khẩu định kỳ giúp bảo vệ tài khoản thành viên và quyền truy cập nghiệp vụ nội bộ.
+                  Updating your password regularly helps protect your member account and internal operational access.
                 </p>
               </div>
 
@@ -444,9 +446,9 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                 <div className="p-3 bg-amber-50 border border-amber-300 rounded-xs text-xs text-amber-900 flex items-start gap-2.5 leading-relaxed">
                   <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="block font-bold mb-0.5">Yêu cầu đổi mật khẩu lần đầu:</strong>
+                    <strong className="block font-bold mb-0.5">Initial password change required:</strong>
                     <span>
-                      Tài khoản của bạn vừa được cấp mật khẩu tạm qua Email. Vui lòng đổi mật khẩu mới để đảm bảo tính an toàn.
+                      Your account was issued with a temporary password via Email. Please set a new password to ensure security.
                     </span>
                   </div>
                 </div>
@@ -469,7 +471,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Mật khẩu hiện tại *
+                    Current Password *
                   </label>
                   <div className="relative flex items-center">
                     <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -478,7 +480,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                       required
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Nhập mật khẩu hiện tại hoặc mật khẩu tạm..."
+                      placeholder="Enter your current or temporary password..."
                       className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-10 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
                     />
                     <button
@@ -493,7 +495,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Mật khẩu mới (Tối thiểu 6 ký tự) *
+                    New Password (At least 6 characters) *
                   </label>
                   <div className="relative flex items-center">
                     <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -502,7 +504,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Nhập mật khẩu mới..."
+                      placeholder="Enter new password..."
                       className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-10 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
                     />
                     <button
@@ -517,7 +519,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Xác nhận mật khẩu mới *
+                    Confirm New Password *
                   </label>
                   <div className="relative flex items-center">
                     <Lock className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
@@ -526,7 +528,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Nhập lại mật khẩu mới..."
+                      placeholder="Re-enter new password..."
                       className="w-full bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs py-2.5 pl-9 pr-3 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] transition font-body"
                     />
                   </div>
@@ -540,7 +542,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                     disabled={isChangingPwd}
                     icon={isChangingPwd ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   >
-                    {isChangingPwd ? 'Đang cập nhật...' : 'Xác Nhận Đổi Mật Khẩu'}
+                    {isChangingPwd ? 'Updating...' : 'Update Password'}
                   </Button>
                 </div>
               </form>
