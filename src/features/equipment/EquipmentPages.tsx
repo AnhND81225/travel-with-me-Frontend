@@ -273,6 +273,7 @@ export function EquipmentCatalog({
 }: {
   defaultMode?: "all" | "buy" | "rent";
 }) {
+  const { account } = useAccount();
   const [page, setPage] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -491,7 +492,7 @@ export function EquipmentCatalog({
           </div>
         </div>
       )}
-    </div>
+    </Frame>
   );
 }
 
