@@ -171,6 +171,7 @@ export const AdminStaffPage: React.FC = () => {
       // 3. Map GUIDE rows (internal tour guides without a fixed branch assignment)
       const guideRows: PersonnelRow[] = guidePage.items.map((guide) => {
         const account = userMap.get(guide.userId);
+        const isActive = (account ? account.status === 'ACTIVE' : true) && guide.status === 'ACTIVE';
         return {
           id: guide.guideId,
           guideId: guide.guideId,
@@ -182,7 +183,7 @@ export const AdminStaffPage: React.FC = () => {
           branchId: null,
           branchName: 'System-wide (Expedition Tours)',
           position: guide.specialization || 'Tour Guide (Guide)',
-          status: guide.status,
+          status: isActive ? 'ACTIVE' : 'INACTIVE',
           avatarUrl: guide.avatarUrl,
           bio: guide.bio,
           languages: guide.languages,
@@ -372,11 +373,12 @@ export const AdminStaffPage: React.FC = () => {
     try {
       if (p.role === 'GUIDE' && p.guideId) {
         await eventGuideApi.setGuideStatus(p.guideId, next as 'ACTIVE' | 'INACTIVE');
+        try {
+          await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
+        } catch (_) {}
       }
       if (p.role === 'STAFF') {
         await catalogApi(`/staff/${p.id}/status?status=${next}`, { method: 'PUT' });
-      }
-      if (p.role === 'STAFF') {
         await catalogApi(`/users/${p.userId}/status?status=${next}`, { method: 'PUT' });
       }
 
