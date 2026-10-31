@@ -44,7 +44,7 @@ import {
 import "./equipment.css";
 
 const errorText = (error: unknown) =>
-  error instanceof Error ? error.message : "Không thể thực hiện yêu cầu";
+  error instanceof Error ? error.message : "Unable to complete the request";
 function useAccount() {
   const [state, setState] = useState<{
     loading: boolean;
@@ -82,13 +82,13 @@ function useAccount() {
 function SessionLinks({ account }: { account: Account | null }) {
   const location = useLocation();
   return (
-    <nav className="eq-nav" aria-label="Thiết bị và tồn kho">
+    <nav className="eq-nav" aria-label="Equipment and inventory">
       <Link to="/shop">Equipment</Link>
       <Link to="/cart">Cart</Link>
       <Link to="/orders">My orders</Link>
       {account?.role === "ADMIN" && <Link to="/admin/orders">Manage orders</Link>}
       {account?.role === "ADMIN" && (
-        <Link to="/admin/catalog">Quản lý thiết bị</Link>
+        <Link to="/admin/catalog">Equipment management</Link>
       )}
       {account && ["ADMIN", "STAFF"].includes(account.role) && (
         <Link
@@ -96,7 +96,7 @@ function SessionLinks({ account }: { account: Account | null }) {
             account.role === "ADMIN" ? "/admin/inventory" : "/staff/inventory"
           }
         >
-          Tồn kho chi nhánh
+          Branch inventory
         </Link>
       )}
       <span className="eq-spacer" />
@@ -109,7 +109,7 @@ function SessionLinks({ account }: { account: Account | null }) {
               window.location.assign("/shop");
             }}
           >
-            Đăng xuất
+            Sign out
           </button>
         </>
       ) : (
@@ -119,7 +119,7 @@ function SessionLinks({ account }: { account: Account | null }) {
             encodeURIComponent(location.pathname + location.search)
           }
         >
-          Đăng nhập
+          Sign in
         </Link>
       )}
     </nav>
@@ -140,7 +140,7 @@ function Frame({
     <section className="eq-page">
       <SessionLinks account={account} />
       <header className="eq-heading">
-        <p>TERRAPEAK / THIẾT BỊ & TỒN KHO</p>
+        <p>TERRAPEAK / EQUIPMENT & INVENTORY</p>
         <h1>{title}</h1>
         {description && <p>{description}</p>}
       </header>
@@ -167,7 +167,7 @@ function Gate({
   if (loading)
     return (
       <div className="eq-page" role="status">
-        Đang kiểm tra tài khoản…
+        Checking your account…
       </div>
     );
   if (error)
@@ -188,8 +188,8 @@ function Gate({
     );
   if (!roles.includes(account.role))
     return (
-      <Frame title="Không có quyền truy cập" account={account}>
-        <p role="alert">Tài khoản không được phép mở trang này.</p>
+      <Frame title="Access denied" account={account}>
+        <p role="alert">Your account does not have access to this page.</p>
       </Frame>
     );
   return <>{children(account)}</>;
@@ -208,18 +208,18 @@ function Pager({
   return (
     <div className="eq-actions">
       <span>
-        {data?.totalElements ?? 0} kết quả · Trang {page + 1}/
+        {data?.totalElements ?? 0} results · Page {page + 1}/
         {Math.max(1, data?.totalPages ?? 0)}
       </span>
       <span className="eq-spacer" />
       <button disabled={busy || page === 0} onClick={() => setPage(page - 1)}>
-        ← Trước
+        ← Previous
       </button>
       <button
         disabled={busy || !data || page + 1 >= data.totalPages}
         onClick={() => setPage(page + 1)}
       >
-        Sau →
+        Next →
       </button>
     </div>
   );
@@ -241,7 +241,7 @@ function ProductArt({ category, name, id }: { category?: string | null; name?: s
     <div className="w-full h-44 bg-[#EBE6DC] relative overflow-hidden rounded-xs group">
       <img
         src={imgUrl}
-        alt={name || "Thiết bị TerraPeak"}
+        alt={name || "TerraPeak equipment"}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
@@ -302,11 +302,11 @@ export function EquipmentCatalog({
       <nav aria-label="Equipment mode" className="flex gap-2 mb-4 font-label">
         <Link to="/shop" aria-current={defaultMode === "buy" ? "page" : undefined}
           className={`px-5 py-2 rounded-xs border font-bold text-xs uppercase tracking-wider transition ${defaultMode === "buy" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5] hover:bg-[#EBE6DC]"}`}>
-          Mua thiết bị (Buy)
+          Buy equipment
         </Link>
         <Link to="/rent" aria-current={defaultMode === "rent" ? "page" : undefined}
           className={`px-5 py-2 rounded-xs border font-bold text-xs uppercase tracking-wider transition ${defaultMode === "rent" ? "bg-[#152A20] text-white border-[#152A20]" : "bg-white text-[#152A20] border-[#D8D2C5] hover:bg-[#EBE6DC]"}`}>
-          Thuê dã ngoại (Rent)
+          Rent equipment
         </Link>
       </nav>
       <form
@@ -325,53 +325,53 @@ export function EquipmentCatalog({
         }}
       >
         <label>
-          Tìm thiết bị
-          <input name="keyword" type="search" placeholder="Tên thiết bị…" />
+          Find equipment
+          <input name="keyword" type="search" placeholder="Equipment name…" />
         </label>
         <label>
-          Danh mục
-          <input name="category" placeholder="Ví dụ: Camping" maxLength={100} />
+          Category
+          <input name="category" placeholder="Example: Camping" maxLength={100} />
         </label>
         {defaultMode !== "all" && (
           <>
             <label>
-              Giá từ
+              Min. price
               <input name="minPrice" type="number" min="0" step="0.01" />
             </label>
             <label>
-              Giá đến
+              Max. price
               <input name="maxPrice" type="number" min="0" step="0.01" />
             </label>
           </>
         )}
         <button className="eq-primary font-bold" disabled={busy}>
-          Tìm kiếm
+          Search
         </button>
       </form>
       <Message text={error} />
       {busy ? (
-        <p role="status">Đang tải thiết bị…</p>
+        <p role="status">Loading equipment…</p>
       ) : (
         <>
           <div className="eq-grid">
             {data?.content.map((item) => (
               <article key={item.id} className="eq-panel eq-product group hover:border-[#152A20] transition shadow-xs">
                 <ProductArt category={item.category} name={item.name} id={item.id} />
-                <small className="text-[#D97845] font-bold uppercase tracking-wider">{item.category || "Thiết bị"}</small>
+                <small className="text-[#D97845] font-bold uppercase tracking-wider">{item.category || "Equipment"}</small>
                 <h2 className="font-headline font-bold text-base text-[#152A20]">{item.name}</h2>
                 <p>
-                  Giá bán: <strong>{vnd(item.salePrice)}</strong>
+                  Sale price: <strong>{vnd(item.salePrice)}</strong>
                 </p>
                 <p>
-                  Thuê / ngày: <strong>{vnd(item.rentalPricePerDay)}</strong>
+                  Rent / day: <strong>{vnd(item.rentalPricePerDay)}</strong>
                 </p>
                 <Link className="eq-button font-bold text-xs" to={"/gear/" + item.id}>
-                  Xem chi tiết & Đặt đồ →
+                  View details & book →
                 </Link>
               </article>
             ))}
           </div>
-          {data && !data.content.length && <p>Không có thiết bị phù hợp.</p>}
+          {data && !data.content.length && <p>No equipment matches your search.</p>}
         </>
       )}
       <Pager data={data} page={page} setPage={setPage} busy={busy} />
@@ -392,7 +392,7 @@ export function EquipmentDetail() {
     setProduct(null);
     setError("");
     if (!/^[1-9]\d*$/.test(id || "")) {
-      setError("Mã thiết bị không hợp lệ.");
+      setError("Invalid equipment ID.");
       return;
     }
     catalogApi<Product>("/products/" + id)
@@ -410,12 +410,12 @@ export function EquipmentDetail() {
       <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
         <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
-          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Không tìm thấy trang bị</h1>
+          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Equipment not found</h1>
           <p className="text-sm text-[#5C665F]">{error}</p>
           <div className="pt-2">
             <Link to="/shop">
               <Button variant="secondary" icon={<ArrowRight className="w-3.5 h-3.5 rotate-180" />}>
-                Quay lại danh sách trang bị
+                Back to equipment
               </Button>
             </Link>
           </div>
@@ -429,7 +429,7 @@ export function EquipmentDetail() {
       <main className="max-w-6xl mx-auto px-4 py-16 font-label">
         <div className="flex flex-col items-center justify-center space-y-3 py-20">
           <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
-          <p className="text-sm font-bold text-[#5C665F]">Đang tải thông số thiết bị dã ngoại...</p>
+          <p className="text-sm font-bold text-[#5C665F]">Loading equipment details...</p>
         </div>
       </main>
     );
@@ -442,16 +442,16 @@ export function EquipmentDetail() {
       {/* Breadcrumb Navigation */}
       <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]">
         <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
-          <Link to="/" className="hover:text-[#111D16]">Trang chủ</Link>
+          <Link to="/" className="hover:text-[#111D16]">Home</Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <Link to="/shop" className="hover:text-[#111D16]">Cửa hàng trang bị</Link>
+          <Link to="/shop" className="hover:text-[#111D16]">Equipment shop</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-[#152A20] truncate max-w-xs">{product.name}</span>
         </div>
 
         <Link to="/shop">
           <Button variant="outlined" size="sm" icon={<ArrowRight className="w-3.5 h-3.5 rotate-180" />}>
-            Quay lại cửa hàng
+            Back to shop
           </Button>
         </Link>
       </div>
@@ -475,13 +475,13 @@ export function EquipmentDetail() {
                 {product.category || "ALPINE GEAR"}
               </span>
               <span className="px-2.5 py-1 rounded-xs text-[10px] font-bold bg-[#D97845] text-white uppercase tracking-wider backdrop-blur-xs shadow-xs">
-                CHÍNH HÃNG TERRAPEAK
+                TERRAPEAK ORIGINAL
               </span>
             </div>
 
             <div className="absolute bottom-4 left-4 right-4 text-white">
               <span className="text-[11px] font-bold tracking-widest uppercase opacity-80 block">
-                MÃ SẢN PHẨM: TP-EQ-{product.id}
+                PRODUCT CODE: TP-EQ-{product.id}
               </span>
               <h1 className="text-xl sm:text-2xl font-bold font-headline leading-tight mt-0.5">
                 {product.name}
@@ -493,19 +493,19 @@ export function EquipmentDetail() {
           <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">
-                GIÁ MUA SỞ HỮU MỚI
+                PURCHASE PRICE
               </span>
               <div className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-                {product.salePrice !== null ? vnd(product.salePrice) : "Chỉ cho thuê"}
+                {product.salePrice !== null ? vnd(product.salePrice) : "Rental only"}
               </div>
             </div>
 
             <div className="border-l border-[#D8D2C5] pl-6">
               <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
-                GIÁ THUÊ THỰC ĐỊA
+                DAILY RENTAL RATE
               </span>
               <div className="text-xl sm:text-2xl font-bold text-[#D97845] font-headline">
-                {product.rentalPricePerDay !== null ? `${vnd(product.rentalPricePerDay)} / ngày` : "Chỉ bán"}
+                {product.rentalPricePerDay !== null ? `${vnd(product.rentalPricePerDay)} / day` : "Sale only"}
               </div>
             </div>
           </Card>
@@ -515,30 +515,30 @@ export function EquipmentDetail() {
             <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#059669]">
                 <ShieldCheck className="w-4 h-4 shrink-0" />
-                <span>Khử trùng Ozone</span>
+                <span>Ozone sanitization</span>
               </div>
               <p className="text-[11px] text-[#5C665F] leading-snug">
-                Khử khuẩn tiêu chuẩn y tế tại trạm trước mỗi lần xuất kho.
+                Sanitized at the outpost before every dispatch.
               </p>
             </div>
 
             <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#D97845]">
                 <Package className="w-4 h-4 shrink-0" />
-                <span>Kiểm định tải trọng</span>
+                <span>Load tested</span>
               </div>
               <p className="text-[11px] text-[#5C665F] leading-snug">
-                Vật liệu chống rách Ripstop, chịu thời tiết khắc nghiệt.
+                Weather-resistant ripstop materials for demanding conditions.
               </p>
             </div>
 
             <div className="p-3 rounded-xs bg-[#F8F6F1] border border-[#D8D2C5] space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#152A20]">
                 <Building className="w-4 h-4 shrink-0" />
-                <span>3 Trạm Outpost</span>
+                <span>3 Outposts</span>
               </div>
               <p className="text-[11px] text-[#5C665F] leading-snug">
-                Nhận và hoàn trả linh hoạt tại TP.HCM, Đà Lạt, Đà Nẵng.
+                Flexible pickup and returns in Ho Chi Minh City, Da Lat and Da Nang.
               </p>
             </div>
           </div>
@@ -557,20 +557,20 @@ export function EquipmentDetail() {
           {/* Expedition Policy & Support */}
           <Card padding="md" className="space-y-3 bg-[#F8F6F1] border border-[#D8D2C5] text-xs">
             <h4 className="font-bold text-[#111D16] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-[#D97845]" /> Chính sách nhận & trả trang bị
+              <Compass className="w-3.5 h-3.5 text-[#D97845]" /> Equipment pickup & return policy
             </h4>
             <ul className="space-y-2 text-[#5C665F] text-[11px] leading-relaxed">
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Nhận đồ trực tiếp tại trạm Outpost đã chọn hoặc chuyển giao giữa các trạm.</span>
+                <span>Pick up at your selected outpost or arrange a transfer between outposts.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Biên bản bàn giao kiểm kê tình trạng chi tiết đi kèm chứng nhận khử trùng.</span>
+                <span>Receive a condition report and sanitization certificate at handover.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Hỗ trợ gia hạn thời gian thuê trực tuyến nếu bạn kéo dài chuyến đi dã ngoại.</span>
+                <span>Extend your rental online if your trip runs longer.</span>
               </li>
             </ul>
           </Card>
@@ -632,13 +632,13 @@ function AdminCatalog({ account }: { account: Account }) {
   }
   return (
     <Frame
-      title="Quản lý thiết bị"
-      description="Danh mục và giá bán, cho thuê được lưu tại backend."
+      title="Equipment management"
+      description="Manage equipment, sale prices and daily rental rates."
       account={account}
     >
       <div className="eq-actions">
         <Link className="eq-button eq-primary" to="/admin/catalog/new">
-          + Thêm thiết bị
+          + Add equipment
         </Link>
       </div>
       <form
@@ -657,30 +657,30 @@ function AdminCatalog({ account }: { account: Account }) {
         }}
       >
         <label>
-          Tên thiết bị
+          Equipment name
           <input type="search" name="keyword" />
         </label>
         <label>
-          Trạng thái
+          Status
           <select name="status">
-            <option value="">Tất cả</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Ngừng hoạt động</option>
+            <option value="">All</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
           </select>
         </label>
-        <button disabled={busy}>Tìm kiếm</button>
+        <button disabled={busy}>Search</button>
       </form>
       <Message text={error} />
       <div className="eq-panel eq-table">
         <table>
           <thead>
             <tr>
-              <th>Thiết bị</th>
-              <th>Danh mục</th>
-              <th>Giá bán</th>
-              <th>Thuê / ngày</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>Equipment</th>
+              <th>Category</th>
+              <th>Sale price</th>
+              <th>Rent / day</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -694,15 +694,15 @@ function AdminCatalog({ account }: { account: Account }) {
                 <td>{vnd(p.salePrice)}</td>
                 <td>{vnd(p.rentalPricePerDay)}</td>
                 <td>
-                  {p.status === "ACTIVE" ? "Đang hoạt động" : "Ngừng hoạt động"}
+                  {p.status === "ACTIVE" ? "Active" : "Inactive"}
                 </td>
                 <td>
                   <div className="eq-actions">
                     <Link to={"/admin/catalog/" + p.id + "/edit"}>
-                      Chỉnh sửa
+                      Edit
                     </Link>
                     <button disabled={busy} onClick={() => toggle(p)}>
-                      {p.status === "ACTIVE" ? "Ngừng hoạt động" : "Mở lại"}
+                      {p.status === "ACTIVE" ? "Inactive" : "Reactivate"}
                     </button>
                   </div>
                 </td>
@@ -710,8 +710,8 @@ function AdminCatalog({ account }: { account: Account }) {
             ))}
           </tbody>
         </table>
-        {busy && <p role="status">Đang tải…</p>}
-        {data && !data.content.length && <p>Chưa có thiết bị.</p>}
+        {busy && <p role="status">Loading…</p>}
+        {data && !data.content.length && <p>No equipment yet.</p>}
       </div>
       <Pager data={data} page={page} setPage={setPage} busy={busy} />
     </Frame>
@@ -746,10 +746,10 @@ function Editor({ account }: { account: Account }) {
   }, [id]);
   return (
     <Frame
-      title={id ? "Chỉnh sửa thiết bị" : "Thêm thiết bị"}
+      title={id ? "Edit equipment" : "Add equipment"}
       account={account}
     >
-      <Link to="/admin/catalog">← Quản lý thiết bị</Link>
+      <Link to="/admin/catalog">← Equipment management</Link>
       <Message text={error} />
       {(!id || product) && (
         <form
@@ -759,7 +759,7 @@ function Editor({ account }: { account: Account }) {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.currentTarget));
             if (!data.salePrice && !data.rentalPricePerDay) {
-              setError("Nhập ít nhất một loại giá.");
+              setError("Enter at least one price.");
               return;
             }
             setBusy(true);
@@ -781,7 +781,7 @@ function Editor({ account }: { account: Account }) {
           }}
         >
           <label>
-            Tên thiết bị
+            Equipment name
             <input
               name="name"
               required
@@ -790,7 +790,7 @@ function Editor({ account }: { account: Account }) {
             />
           </label>
           <label>
-            Danh mục
+            Category
             <input
               name="category"
               maxLength={100}
@@ -799,7 +799,7 @@ function Editor({ account }: { account: Account }) {
           </label>
           <div className="eq-columns">
             <label>
-              Giá bán (VNĐ)
+              Sale price (VND)
               <input
                 name="salePrice"
                 type="number"
@@ -809,7 +809,7 @@ function Editor({ account }: { account: Account }) {
               />
             </label>
             <label>
-              Giá thuê / ngày (VNĐ)
+              Daily rental price (VND)
               <input
                 name="rentalPricePerDay"
                 type="number"
@@ -819,12 +819,12 @@ function Editor({ account }: { account: Account }) {
               />
             </label>
           </div>
-          <p>Để trống giá nếu không hỗ trợ hình thức đó.</p>
+          <p>Leave the price blank if that option is unavailable.</p>
           <div className="eq-actions">
             <button className="eq-primary" disabled={busy}>
-              {busy ? "Đang lưu…" : "Lưu thiết bị"}
+              {busy ? "Saving…" : "Save equipment"}
             </button>
-            <Link to="/admin/catalog">Hủy</Link>
+            <Link to="/admin/catalog">Cancel</Link>
           </div>
         </form>
       )}
@@ -920,13 +920,13 @@ function Inventory({ account }: { account: Account }) {
   }
   return (
     <Frame
-      title="Tồn kho chi nhánh"
-      description="Nhập kho, kiểm kê và theo dõi số đang thuê. Nhân viên chỉ được thao tác tại chi nhánh được phân công."
+      title="Branch inventory"
+      description="Receive stock, reconcile inventory and track rentals. Staff can only manage assigned branches."
       account={account}
     >
       <div className="eq-panel eq-filters">
         <label>
-          Chi nhánh
+          Branch
           <select
             disabled={saving}
             value={branch}
@@ -938,7 +938,7 @@ function Inventory({ account }: { account: Account }) {
               setOperation("import");
             }}
           >
-            <option value="">Chọn chi nhánh được phân công</option>
+            <option value="">Select your assigned branch</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -950,7 +950,7 @@ function Inventory({ account }: { account: Account }) {
           disabled={saving || loading || !branch}
           onClick={() => setVersion((v) => v + 1)}
         >
-          Làm mới
+          Refresh
         </button>
       </div>
       <Message text={error || message} />
@@ -960,12 +960,12 @@ function Inventory({ account }: { account: Account }) {
             <table>
               <thead>
                 <tr>
-                  <th>Thiết bị</th>
-                  <th>Tổng số lượng</th>
-                  <th>Còn sẵn</th>
-                  <th>Đang thuê</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>Equipment</th>
+                  <th>Total quantity</th>
+                  <th>Available</th>
+                  <th>Rented</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -976,7 +976,7 @@ function Inventory({ account }: { account: Account }) {
                     <td>{s.quantityAvailable}</td>
                     <td>{s.quantityRented}</td>
                     <td>
-                      {s.status === "ACTIVE" ? "Đang hoạt động" : "Tạm dừng"}
+                      {s.status === "ACTIVE" ? "Active" : "Paused"}
                     </td>
                     <td>
                       <div className="eq-actions">
@@ -989,10 +989,10 @@ function Inventory({ account }: { account: Account }) {
                             setAvailable(String(s.quantityAvailable));
                           }}
                         >
-                          Kiểm kê
+                          Stocktake
                         </button>
                         <button disabled={saving} onClick={() => toggle(s)}>
-                          {s.status === "ACTIVE" ? "Tạm dừng" : "Mở lại"}
+                          {s.status === "ACTIVE" ? "Paused" : "Reactivate"}
                         </button>
                       </div>
                     </td>
@@ -1001,9 +1001,9 @@ function Inventory({ account }: { account: Account }) {
               </tbody>
             </table>
             {loading ? (
-              <p role="status">Đang tải kho…</p>
+              <p role="status">Loading inventory…</p>
             ) : data && !data.content.length ? (
-              <p>Kho chưa có thiết bị. Chọn sản phẩm để nhập kho.</p>
+              <p>No equipment in this inventory. Select a product to receive stock.</p>
             ) : null}
           </div>
           <Pager
@@ -1036,7 +1036,7 @@ function Inventory({ account }: { account: Account }) {
                   },
                 );
                 setVersion((v) => v + 1);
-                setMessage("Đã cập nhật tồn kho.");
+                setMessage("Inventory updated.");
               } catch (e) {
                 setError(errorText(e));
               } finally {
@@ -1044,19 +1044,19 @@ function Inventory({ account }: { account: Account }) {
               }
             }}
           >
-            <h2>Nhập kho & kiểm kê</h2>
+            <h2>Receive stock & stocktake</h2>
             <fieldset
               disabled={saving || loading || !data}
               className="eq-filters"
             >
               <label>
-                Thiết bị
+                Equipment
                 <select
                   required
                   value={productId}
                   onChange={(e) => setProductId(e.target.value)}
                 >
-                  <option value="">Chọn thiết bị</option>
+                  <option value="">Select equipment</option>
                   {[...options].map(([id, name]) => (
                     <option key={id} value={id}>
                       {name} (#{id})
@@ -1065,18 +1065,18 @@ function Inventory({ account }: { account: Account }) {
                 </select>
               </label>
               <label>
-                Nghiệp vụ
+                Operation
                 <select
                   value={operation}
                   onChange={(e) => setOperation(e.target.value)}
                 >
-                  <option value="import">Nhập thêm thiết bị</option>
-                  <option value="adjust">Kiểm kê tồn kho</option>
+                  <option value="import">Receive equipment</option>
+                  <option value="adjust">Stocktake</option>
                 </select>
               </label>
               {operation === "import" ? (
                 <label>
-                  Số lượng nhập
+                  Quantity received
                   <input
                     required
                     name="quantity"
@@ -1089,7 +1089,7 @@ function Inventory({ account }: { account: Account }) {
               ) : (
                 <>
                   <label>
-                    Tổng sau kiểm kê
+                    Total after stocktake
                     <input
                       required
                       type="number"
@@ -1100,7 +1100,7 @@ function Inventory({ account }: { account: Account }) {
                     />
                   </label>
                   <label>
-                    Còn sẵn sau kiểm kê
+                    Available after stocktake
                     <input
                       required
                       type="number"
@@ -1113,7 +1113,7 @@ function Inventory({ account }: { account: Account }) {
                 </>
               )}
               <button className="eq-primary">
-                {saving ? "Đang lưu…" : "Cập nhật kho"}
+                {saving ? "Saving…" : "Update inventory"}
               </button>
             </fieldset>
           </form>
@@ -1149,13 +1149,13 @@ export function EquipmentLogin() {
       </Link>
       <div className="eq-columns">
         <header className="eq-heading">
-          <p>THIẾT BỊ & TỒN KHO</p>
+          <p>EQUIPMENT & INVENTORY</p>
           <h1>
-            Mỗi chuyến đi,
+            Every journey,
             <br />
-            một sự chuẩn bị tốt.
+            starts with good preparation.
           </h1>
-          <p>Đăng nhập để quản lý thiết bị và kho chi nhánh.</p>
+          <p>Sign in to manage equipment and branch inventory.</p>
         </header>
         <form
           className="eq-panel eq-form"
@@ -1173,7 +1173,7 @@ export function EquipmentLogin() {
               const account = await catalogApi<Account>("/users/me");
               if (account.status !== "ACTIVE") {
                 saveToken(null);
-                throw new Error("Tài khoản không hoạt động.");
+                throw new Error("Your account is inactive.");
               }
               navigate(
                 safeReturn(
@@ -1193,13 +1193,13 @@ export function EquipmentLogin() {
             }
           }}
         >
-          <h2>Đăng nhập tài khoản</h2>
+          <h2>Sign in to your account</h2>
           <label>
             Email
             <input required name="email" type="email" autoComplete="username" />
           </label>
           <label>
-            Mật khẩu
+            Password
             <input
               required
               name="password"
@@ -1209,7 +1209,7 @@ export function EquipmentLogin() {
           </label>
           <Message text={error} />
           <button className="eq-primary" disabled={busy}>
-            {busy ? "Đang đăng nhập…" : "Đăng nhập"}
+            {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

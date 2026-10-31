@@ -87,7 +87,7 @@ const TOUR_LOCATIONS = [
 ];
 
 const vnd = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", {
+  new Intl.NumberFormat("en-GB", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
@@ -178,7 +178,7 @@ export function EventsGuidesAdminPage() {
       setEvent(eventBlank);
       setCreateModalOpen(false);
       await load();
-      setNotice("Đã tạo bản nháp. Bổ sung nội dung và ảnh trước khi công bố.");
+      setNotice("Draft created. Add tour content and images before publishing.");
     } catch (error) {
       setBusy(false);
       throw error;
@@ -212,9 +212,9 @@ export function EventsGuidesAdminPage() {
       if (status === "PUBLISHED") {
         const full = await eventGuideApi.getAdminEvent(id);
         const errors = validateEvent(full, true);
-        if (!full.images.length) errors.images = "Cần ít nhất một ảnh trước khi công bố.";
+        if (!full.images.length) errors.images = "Add at least one image before publishing.";
         if (Object.keys(errors).length) {
-          setNotice(`Chưa thể công bố: ${Object.values(errors).join(" ")}`);
+          setNotice(`Unable to publish: ${Object.values(errors).join(" ")}`);
           return;
         }
       }
@@ -248,7 +248,7 @@ export function EventsGuidesAdminPage() {
       await eventGuideApi.updateGuide(editingGuide.guideId, guideEditInput);
       setEditingGuide(null);
       await load();
-      setNotice("Đã cập nhật hồ sơ hướng dẫn viên.");
+      setNotice("Guide profile updated.");
     } catch (error) {
       throw error;
     } finally {
@@ -359,7 +359,7 @@ export function EventsGuidesAdminPage() {
     if (!file || !selectedEventId) return;
     const imageValidation = await validateCatalogImage(file);
     if (imageValidation) { setNotice(imageValidation); setImageError(imageValidation); return; }
-    if (imageDescription.length > 1000) { setImageError("Mô tả ảnh tối đa 1.000 ký tự."); return; }
+    if (imageDescription.length > 1000) { setImageError("Image descriptions must not exceed 1,000 characters."); return; }
     setImageError("");
     setUploadingImage(true);
     try {
@@ -417,7 +417,7 @@ export function EventsGuidesAdminPage() {
       await eventGuideApi.updateEvent(editingEventId, editForm);
       setEditingEventId(null);
       await load();
-      setNotice("Đã cập nhật nội dung tour.");
+      setNotice("Tour content updated.");
     } catch (error) {
       throw error;
     } finally {
@@ -491,7 +491,7 @@ export function EventsGuidesAdminPage() {
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Trip name *</label>
-              <CatalogField name="eventName" label="Tên tour"><input maxLength={200}
+              <CatalogField name="eventName" label="Tour name"><input maxLength={200}
                 required
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 placeholder="Example: Ta Nang — Phan Dung Trek"
@@ -502,7 +502,7 @@ export function EventsGuidesAdminPage() {
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Experience type *</label>
-              <CatalogField name="eventType" label="Loại trải nghiệm"><select
+              <CatalogField name="eventType" label="Experience type"><select
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 value={event.eventType}
                 onChange={(e) =>
@@ -516,7 +516,7 @@ export function EventsGuidesAdminPage() {
 
             <div>
               <label className="text-xs font-bold text-gray-700 block mb-1">Base price (VND) *</label>
-              <CatalogField name="basePrice" label="Giá cơ sở"><input step="0.01"
+              <CatalogField name="basePrice" label="Base price"><input step="0.01"
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 type="number"
                 min="0"
@@ -528,14 +528,14 @@ export function EventsGuidesAdminPage() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">Tỉnh/thành phố (cần khi công bố)</label>
-              <CatalogField name="location" label="Tỉnh/thành phố"><select
+              <label className="text-xs font-bold text-gray-700 block mb-1">Province / city (required to publish)</label>
+              <CatalogField name="location" label="Province / city"><select
 
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 value={event.location ?? ""}
                 onChange={(e) => setEvent({ ...event, location: e.target.value })}
               >
-                <option value="">Chưa chọn tỉnh/thành phố</option>
+                <option value="">Select a province / city</option>
                 {TOUR_LOCATIONS.map((location) => (
                   <option key={location} value={location}>{location}</option>
                 ))}
@@ -543,8 +543,8 @@ export function EventsGuidesAdminPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 block mb-1">Giới thiệu (cần khi công bố)</label>
-              <CatalogField name="description" label="Giới thiệu tour"><textarea maxLength={50000}
+              <label className="text-xs font-bold text-gray-700 block mb-1">Description (required to publish)</label>
+              <CatalogField name="description" label="Tour description"><textarea maxLength={50000}
 
                 className="w-full bg-[#EBE6DC] border border-[#D8D2C5] p-2 text-sm rounded-xs focus:outline-none focus:border-[#152A20]"
                 placeholder="Describe scenery, route, and trip experience..."
@@ -563,7 +563,7 @@ export function EventsGuidesAdminPage() {
 
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">Trail difficulty</label>
-                  <CatalogField name="details.difficultyLevel" label="Độ khó"><select
+                  <CatalogField name="details.difficultyLevel" label="Difficulty"><select
                     className="w-full border border-[#c7cfc9] p-2 bg-white rounded-xs text-sm"
                     value={event.details?.difficultyLevel || "MODERATE"}
                     onChange={(e) =>
@@ -586,7 +586,7 @@ export function EventsGuidesAdminPage() {
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Estimated duration (minutes)
                   </label>
-                  <CatalogField name="details.durationMinutes" label="Thời lượng (phút)"><input max={2147483647} step="1"
+                  <CatalogField name="details.durationMinutes" label="Duration (minutes)"><input max={2147483647} step="1"
                     type="number"
                     min="1"
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
@@ -608,7 +608,7 @@ export function EventsGuidesAdminPage() {
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Pickup & meeting point
                   </label>
-                  <CatalogField name="details.meetingPoint" label="Điểm tập trung"><input maxLength={10000}
+                  <CatalogField name="details.meetingPoint" label="Meeting point"><input maxLength={10000}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                     placeholder="Example: TerraPeak field operations station"
                     value={event.details?.meetingPoint ?? ""}
@@ -628,7 +628,7 @@ export function EventsGuidesAdminPage() {
                   <label className="text-xs font-medium text-gray-600 block mb-1">
                     Participation requirements (fitness & equipment)
                   </label>
-                  <CatalogField name="details.requirements" label="Yêu cầu tham gia"><input maxLength={10000}
+                  <CatalogField name="details.requirements" label="Participation requirements"><input maxLength={10000}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                     placeholder="Example: Good fitness, suitable hiking shoes..."
                     value={event.details?.requirements ?? ""}
@@ -711,7 +711,7 @@ export function EventsGuidesAdminPage() {
             </p>
             <label className="text-sm grid gap-1">
               Full name *
-              <CatalogField name="fullName" label="Họ tên"><input required maxLength={150} autoComplete="name"
+              <CatalogField name="fullName" label="Full name"><input required maxLength={150} autoComplete="name"
                 className="border border-[#c7cfc9] p-2 rounded-xs"
                 value={guideFullName} onChange={(e) => setGuideFullName(e.target.value)} /></CatalogField>
             </label>
@@ -723,11 +723,11 @@ export function EventsGuidesAdminPage() {
             </label>
             <label className="text-sm grid gap-1">
               Phone
-              <CatalogField name="phone" label="Số điện thoại"><input type="tel" maxLength={30} autoComplete="tel"
+              <CatalogField name="phone" label="Phone number"><input type="tel" maxLength={30} autoComplete="tel"
                 className="border border-[#c7cfc9] p-2 rounded-xs"
                 value={guidePhone} onChange={(e) => setGuidePhone(e.target.value)} /></CatalogField>
             </label>
-            <CatalogField name="experienceYears" label="Số năm kinh nghiệm"><input max={2147483647} step="1"
+            <CatalogField name="experienceYears" label="Years of experience"><input max={2147483647} step="1"
               required
               className="border border-[#c7cfc9] p-2 rounded-xs"
               type="number"
@@ -736,20 +736,20 @@ export function EventsGuidesAdminPage() {
               value={guideExperience}
               onChange={(e) => setGuideExperience(e.target.value)}
             /></CatalogField>
-            <CatalogField name="specialization" label="Chuyên môn"><input maxLength={1000}
+            <CatalogField name="specialization" label="Specialization"><input maxLength={1000}
               required
               className="border border-[#c7cfc9] p-2 rounded-xs"
               placeholder="Guiding specialization *"
               value={guideSpecialization}
               onChange={(e) => setGuideSpecialization(e.target.value)}
             /></CatalogField>
-            <CatalogField name="languages" label="Ngôn ngữ"><input
+            <CatalogField name="languages" label="Languages"><input
               className="border border-[#c7cfc9] p-2 rounded-xs"
               placeholder="Languages, separated by commas"
               value={guideLanguages}
               onChange={(e) => setGuideLanguages(e.target.value)}
             /></CatalogField>
-            <CatalogField name="bio" label="Giới thiệu guide"><textarea maxLength={5000}
+            <CatalogField name="bio" label="Guide biography"><textarea maxLength={5000}
               className="border border-[#c7cfc9] p-2 rounded-xs md:col-span-2"
               rows={2}
               placeholder="Short guide biography"
@@ -863,16 +863,16 @@ export function EventsGuidesAdminPage() {
             </div>
             <div className="p-5 space-y-3">
               <label className="block text-sm font-medium">Years of field experience
-                <CatalogField name="experienceYears" label="Số năm kinh nghiệm"><input max={2147483647} step="1" required min="0" type="number" className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={Number.isNaN(guideEditForm.experienceYears) ? "" : guideEditForm.experienceYears} onChange={(e) => setGuideEditForm({ ...guideEditForm, experienceYears: inputNumber(e.target.value) })} /></CatalogField>
+                <CatalogField name="experienceYears" label="Years of experience"><input max={2147483647} step="1" required min="0" type="number" className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={Number.isNaN(guideEditForm.experienceYears) ? "" : guideEditForm.experienceYears} onChange={(e) => setGuideEditForm({ ...guideEditForm, experienceYears: inputNumber(e.target.value) })} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Guiding specialization
-                <CatalogField name="specialization" label="Chuyên môn"><input maxLength={1000} required className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={guideEditForm.specialization} onChange={(e) => setGuideEditForm({ ...guideEditForm, specialization: e.target.value })} /></CatalogField>
+                <CatalogField name="specialization" label="Specialization"><input maxLength={1000} required className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" value={guideEditForm.specialization} onChange={(e) => setGuideEditForm({ ...guideEditForm, specialization: e.target.value })} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Languages
-                <CatalogField name="languages" label="Ngôn ngữ"><input className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" placeholder="English, Vietnamese" value={guideEditLanguages} onChange={(e) => setGuideEditLanguages(e.target.value)} /></CatalogField>
+                <CatalogField name="languages" label="Languages"><input className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" placeholder="English, Vietnamese" value={guideEditLanguages} onChange={(e) => setGuideEditLanguages(e.target.value)} /></CatalogField>
               </label>
               <label className="block text-sm font-medium">Biography
-                <CatalogField name="bio" label="Giới thiệu guide"><textarea maxLength={5000} className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" rows={4} value={guideEditForm.bio || ""} onChange={(e) => setGuideEditForm({ ...guideEditForm, bio: e.target.value })} /></CatalogField>
+                <CatalogField name="bio" label="Guide biography"><textarea maxLength={5000} className="mt-1 w-full border border-[#c7cfc9] p-2 rounded-xs" rows={4} value={guideEditForm.bio || ""} onChange={(e) => setGuideEditForm({ ...guideEditForm, bio: e.target.value })} /></CatalogField>
               </label>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-[#d8d2c5] bg-gray-50">
@@ -911,7 +911,7 @@ export function EventsGuidesAdminPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Trip name *</label>
-                    <CatalogField name="eventName" label="Tên tour"><input maxLength={200}
+                    <CatalogField name="eventName" label="Tour name"><input maxLength={200}
                       required
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                       value={editForm.eventName}
@@ -920,7 +920,7 @@ export function EventsGuidesAdminPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Experience type</label>
-                    <CatalogField name="eventType" label="Loại trải nghiệm"><select
+                    <CatalogField name="eventType" label="Experience type"><select
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                       value={editForm.eventType}
                       onChange={(e) =>
@@ -936,7 +936,7 @@ export function EventsGuidesAdminPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">Base price (VND)</label>
-                    <CatalogField name="basePrice" label="Giá cơ sở"><input step="0.01" min="0"
+                    <CatalogField name="basePrice" label="Base price"><input step="0.01" min="0"
                       type="number"
                       required
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
@@ -947,14 +947,14 @@ export function EventsGuidesAdminPage() {
                     /></CatalogField>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">Tỉnh/thành phố (cần khi công bố)</label>
-                    <CatalogField name="location" label="Tỉnh/thành phố"><select
+                    <label className="text-xs font-bold text-gray-700 block mb-1">Province / city (required to publish)</label>
+                    <CatalogField name="location" label="Province / city"><select
 
                       className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                       value={editForm.location ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                     >
-                      <option value="">Chưa chọn tỉnh/thành phố</option>
+                      <option value="">Select a province / city</option>
                       {editForm.location && !TOUR_LOCATIONS.includes(editForm.location) && (
                         <option value={editForm.location}>{editForm.location}</option>
                       )}
@@ -966,8 +966,8 @@ export function EventsGuidesAdminPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Giới thiệu (cần khi công bố)</label>
-                  <CatalogField name="description" label="Giới thiệu tour"><textarea maxLength={50000}
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Description (required to publish)</label>
+                  <CatalogField name="description" label="Tour description"><textarea maxLength={50000}
 
                     rows={3}
                     className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
@@ -983,7 +983,7 @@ export function EventsGuidesAdminPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">Difficulty</label>
-                      <CatalogField name="details.difficultyLevel" label="Độ khó"><select
+                      <CatalogField name="details.difficultyLevel" label="Difficulty"><select
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm bg-white"
                         value={editForm.details?.difficultyLevel || "MODERATE"}
                         onChange={(e) =>
@@ -1005,7 +1005,7 @@ export function EventsGuidesAdminPage() {
                       <label className="text-xs font-medium text-gray-600 block mb-1">
                         Estimated duration (minutes)
                       </label>
-                      <CatalogField name="details.durationMinutes" label="Thời lượng (phút)"><input max={2147483647} step="1"
+                      <CatalogField name="details.durationMinutes" label="Duration (minutes)"><input max={2147483647} step="1"
                         type="number"
                         min="1"
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
@@ -1023,9 +1023,9 @@ export function EventsGuidesAdminPage() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">
-                        Điểm tập trung (cần khi công bố)
+                        Meeting point (required to publish)
                       </label>
-                      <CatalogField name="details.meetingPoint" label="Điểm tập trung"><input maxLength={10000}
+                      <CatalogField name="details.meetingPoint" label="Meeting point"><input maxLength={10000}
 
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                         placeholder="Example: Field operations station"
@@ -1043,9 +1043,9 @@ export function EventsGuidesAdminPage() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">
-                        Yêu cầu tham gia (cần khi công bố)
+                        Participation requirements (required to publish)
                       </label>
-                      <CatalogField name="details.requirements" label="Yêu cầu tham gia"><input maxLength={10000}
+                      <CatalogField name="details.requirements" label="Participation requirements"><input maxLength={10000}
 
                         className="w-full border border-[#c7cfc9] p-2 rounded-xs text-sm"
                         placeholder="Example: Good fitness, suitable hiking shoes"
@@ -1116,7 +1116,7 @@ export function EventsGuidesAdminPage() {
                   Upload another image
                 </h4>
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <CatalogField name="imageDescription" label="Mô tả ảnh"><input maxLength={1000}
+                  <CatalogField name="imageDescription" label="Image description"><input maxLength={1000}
                     type="text"
                     className="w-full border border-[#c7cfc9] bg-white p-2 text-sm rounded-xs"
                     placeholder="Image description (optional, e.g. Sunset campsite)"

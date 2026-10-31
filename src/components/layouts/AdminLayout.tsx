@@ -42,9 +42,9 @@ export const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F3EFE6] text-[#111D16] flex flex-col md:flex-row font-body">
       {/* Dark Green Admin Console Sidebar (240px) */}
-      <aside className="w-full md:w-60 lg:w-64 bg-[#111D16] text-[#F3EFE6] flex flex-col shrink-0 border-r border-[#1F3D2B] font-label">
+      <aside className="w-full md:fixed md:inset-y-0 md:left-0 md:z-30 md:h-dvh md:w-60 lg:w-64 bg-[#111D16] text-[#F3EFE6] flex flex-col shrink-0 border-r border-[#1F3D2B] font-label">
         {/* Brand Header */}
-        <div className="p-4 border-b border-[#1F3D2B] flex items-center justify-between">
+        <div className="p-4 border-b border-[#1F3D2B] flex items-center justify-between shrink-0">
           <Link to="/admin" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xs bg-[#152A20] border border-[#2B4E3C] flex items-center justify-center text-[#D97845]">
               <Mountain className="w-4 h-4" />
@@ -57,7 +57,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* System Status Tag */}
-        <div className="px-4 py-2.5 bg-[#152A20] border-b border-[#1F3D2B] flex items-center justify-between text-[11px]">
+        <div className="px-4 py-2.5 bg-[#152A20] border-b border-[#1F3D2B] flex items-center justify-between text-[11px] shrink-0">
           <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             SYSTEM-WIDE SCOPE
@@ -87,7 +87,7 @@ export const AdminLayout: React.FC = () => {
         </nav>
 
         {/* Switch to Storefront / Staff Portal */}
-        <div className="p-4 border-t border-[#1F3D2B] space-y-2 text-xs">
+        <div className="p-4 border-t border-[#1F3D2B] space-y-2 text-xs shrink-0">
           <Link
             to="/staff"
             className="flex items-center gap-2 text-[#D97845] hover:underline font-bold"
@@ -106,7 +106,7 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Admin Content Container */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-60 lg:ml-64">
         {/* Top Header Bar */}
         <header className="h-16 bg-[#EBE6DC] border-b border-[#D8D2C5] px-4 sm:px-8 flex items-center justify-between gap-4 font-label">
           <div className="flex items-center gap-3">

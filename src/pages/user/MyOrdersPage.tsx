@@ -77,7 +77,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       const orderData = await catalogApi<Order[]>("/orders/me");
       setOrders(Array.isArray(orderData) ? orderData : []);
     } catch (e) {
-      setError(getErrorMessage(e, "Không thể tải danh sách đơn hàng của bạn"));
+      setError(getErrorMessage(e, "Unable to load your orders"));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -143,10 +143,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     try {
       const updated = await cancelUnpaidOrder(id);
       setOrders((rows) => rows.map((row) => (row.id === id ? updated : row)));
-      showToast(`Đã hủy đơn hàng #${id} thành công!`, "success");
+      showToast(`Cancelled order #${id} successfully!`, "success");
       setOrderToCancel(null);
     } catch (e) {
-      const msg = getErrorMessage(e, "Không thể hủy đơn hàng này");
+      const msg = getErrorMessage(e, "Unable to cancel this order");
       setError(msg);
       showToast(msg, "error");
     } finally {
@@ -248,35 +248,35 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         return (
           <Badge variant="warning" className="flex items-center gap-1.5 py-1 px-2.5 font-bold shadow-2xs">
             <Clock className="w-3.5 h-3.5 text-[#D97845] animate-pulse" />
-            <span>Chờ xuất trạm</span>
+            <span>Awaiting dispatch</span>
           </Badge>
         );
       case "CONFIRMED":
         return (
           <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#3B82F6] text-[#1E40AF] bg-[#EFF6FF] shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Đã duyệt · Sẵn sàng nhận đồ</span>
+            <span>Approved · Ready for pickup</span>
           </Badge>
         );
       case "IN_PROGRESS":
         return (
           <Badge variant="success" className="flex items-center gap-1.5 py-1 px-2.5 font-bold bg-[#ECFDF5] border-[#10B981] text-[#065F46] shadow-2xs">
             <ShieldCheck className="w-3.5 h-3.5 text-[#059669]" />
-            <span>Đang sử dụng · Ngoài hiện trường</span>
+            <span>In use · In the field</span>
           </Badge>
         );
       case "COMPLETED":
         return (
           <Badge variant="primary" className="flex items-center gap-1.5 py-1 px-2.5 font-bold bg-[#152A20] text-[#F3EFE6] shadow-2xs">
             <Check className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Đã hoàn tất</span>
+            <span>Completed</span>
           </Badge>
         );
       case "CANCELLED":
         return (
           <Badge variant="danger" className="flex items-center gap-1.5 py-1 px-2.5 font-bold shadow-2xs">
             <XCircle className="w-3.5 h-3.5 text-[#DC2626]" />
-            <span>Đã hủy</span>
+            <span>Cancelled</span>
           </Badge>
         );
       default:
@@ -290,19 +290,19 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         return (
           <Badge variant="success" className="flex items-center gap-1 py-1 px-2 font-bold bg-[#E0EFE6] text-[#065F46] border border-[#ADCBBB]">
             <CheckCircle2 className="w-3 h-3 text-[#059669]" />
-            <span>Đã thanh toán (Paid)</span>
+            <span>Paid</span>
           </Badge>
         );
       case "PARTIALLY_PAID":
         return (
           <Badge variant="neutral" className="flex items-center gap-1 py-1 px-2 font-bold bg-[#EFF6FF] text-[#1E40AF] border border-[#93C5FD]">
-            <span>Đã đặt cọc</span>
+            <span>Deposit paid</span>
           </Badge>
         );
       case "REFUNDED":
         return (
           <Badge variant="neutral" className="flex items-center gap-1 py-1 px-2 font-bold bg-[#F3E8FF] text-[#6B21A8] border border-[#D8B4FE]">
-            <span>Đã hoàn tiền</span>
+            <span>Refunded</span>
           </Badge>
         );
       case "UNPAID":
@@ -310,7 +310,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         return (
           <Badge variant="warning" className="flex items-center gap-1 py-1 px-2 font-bold bg-[#FFF7ED] text-[#C2410C] border border-[#FDBA74]">
             <Clock className="w-3 h-3 text-[#EA580C]" />
-            <span>Chưa thanh toán (Unpaid)</span>
+            <span>Unpaid</span>
           </Badge>
         );
     }
@@ -323,7 +323,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       return (
         <div className="py-2 px-3 bg-[#FEE2E2]/60 border border-[#FCA5A5] rounded-xs text-[11px] text-[#B91C1C] flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
-          <span>Đơn hàng đã được hủy bỏ và lượng tồn kho đã được giải phóng trở lại trạm.</span>
+          <span>The order has been cancelled and reserved stock has been released.</span>
         </div>
       );
     }
@@ -409,10 +409,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline tracking-tight">
-            Đơn Mua & Thuê Thiết Bị Của Tôi
+            My Equipment Orders & Rentals
           </h1>
           <p className="text-xs text-[#5C665F] font-body mt-1">
-            Quản lý trang bị leo núi đã đặt, theo dõi tiến độ duyệt xuất trạm và trạng thái ký gửi dã ngoại.
+            Manage your equipment orders, follow approvals and track your rentals.
           </p>
         </div>
 
@@ -420,12 +420,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/shop">
             <Button variant="secondary" size="sm" icon={<ShoppingBag className="w-3.5 h-3.5" />}>
-              Mua trang bị
+              Shop equipment
             </Button>
           </Link>
           <Link to="/rent">
             <Button variant="accent" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
-              Thuê thiết bị
+              Rent equipment
             </Button>
           </Link>
           <Button
@@ -435,7 +435,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             disabled={loading || refreshing}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#D97845]" : ""}`} />}
           >
-            {refreshing ? "Đang đồng bộ..." : "Đồng bộ"}
+            {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
@@ -443,9 +443,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       {/* KPI & Metrics Bar for Customer */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
-          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TỔNG ĐƠN ĐÃ ĐẶT</span>
+          <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TOTAL ORDERS</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
-          <span className="text-[10px] text-[#5C665F]">Lịch sử giao dịch</span>
+          <span className="text-[10px] text-[#5C665F]">Order history</span>
         </Card>
 
         <Card
@@ -456,12 +456,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           onClick={() => setStatusFilter(statusFilter === "PENDING" ? "ALL" : "PENDING")}
         >
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">CHỜ DUYỆT / TRẢ TIỀN</span>
+            <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">AWAITING APPROVAL / PAYMENT</span>
             {stats.pending > 0 && <span className="w-2 h-2 rounded-full bg-[#D97845] animate-ping" />}
           </div>
           <div className="text-xl sm:text-2xl font-bold text-[#D97845] font-headline">{stats.pending}</div>
           <span className="text-[10px] text-[#737C75]">
-            {stats.unpaid > 0 ? `${stats.unpaid} đơn chưa thanh toán` : "Đang chờ trạm duyệt"}
+            {stats.unpaid > 0 ? `${stats.unpaid} unpaid orders` : "Awaiting branch approval"}
           </span>
         </Card>
 
@@ -472,9 +472,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           }`}
           onClick={() => setStatusFilter(statusFilter === "IN_PROGRESS" ? "ALL" : "IN_PROGRESS")}
         >
-          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">ĐANG SỬ DỤNG</span>
+          <span className="text-[10px] text-[#059669] font-bold uppercase tracking-wider block">IN USE</span>
           <div className="text-xl sm:text-2xl font-bold text-[#065F46] font-headline">{stats.inProgress}</div>
-          <span className="text-[10px] text-[#737C75]">Ngoài hiện trường</span>
+          <span className="text-[10px] text-[#737C75]">In the field</span>
         </Card>
 
         <Card
@@ -484,21 +484,21 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           }`}
           onClick={() => setStatusFilter(statusFilter === "COMPLETED" ? "ALL" : "COMPLETED")}
         >
-          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">HOÀN TẤT</span>
+          <span className="text-[10px] text-[#4B5563] font-bold uppercase tracking-wider block">COMPLETED</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.completed}</div>
-          <span className="text-[10px] text-[#737C75]">Đã thu hồi trang bị</span>
+          <span className="text-[10px] text-[#737C75]">Equipment returned</span>
         </Card>
 
         <Card
           padding="sm"
           className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#047857] hover:-translate-y-1 hover:shadow-md transition-all duration-200"
         >
-          <span className="text-[10px] text-[#047857] font-bold uppercase tracking-wider block">TỔNG CHI TIÊU</span>
+          <span className="text-[10px] text-[#047857] font-bold uppercase tracking-wider block">TOTAL SPENDING</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline truncate" title={vnd(stats.totalSpent)}>
             {vnd(stats.totalSpent)}
           </div>
           <span className="text-[10px] text-[#059669] flex items-center gap-1 font-medium">
-            <TrendingUp className="w-3 h-3 text-[#059669]" /> Tích lũy dã ngoại
+            <TrendingUp className="w-3 h-3 text-[#059669]" /> Your outdoor purchases
           </span>
         </Card>
       </div>
@@ -508,12 +508,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         {/* Status Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#D8D2C5]/60">
           {[
-            { key: "ALL", label: "TẤT CẢ", count: stats.total },
-            { key: "PENDING", label: "CHỜ DUYỆT", count: stats.pending, alert: stats.pending > 0 },
-            { key: "CONFIRMED", label: "ĐÃ DUYỆT", count: stats.confirmed },
-            { key: "IN_PROGRESS", label: "ĐANG THUÊ", count: stats.inProgress },
-            { key: "COMPLETED", label: "HOÀN THÀNH", count: stats.completed },
-            { key: "CANCELLED", label: "ĐÃ HỦY", count: orders.filter((o) => o.status === "CANCELLED").length },
+            { key: "ALL", label: "ALL", count: stats.total },
+            { key: "PENDING", label: "AWAITING APPROVAL", count: stats.pending, alert: stats.pending > 0 },
+            { key: "CONFIRMED", label: "APPROVED", count: stats.confirmed },
+            { key: "IN_PROGRESS", label: "RENTED", count: stats.inProgress },
+            { key: "COMPLETED", label: "COMPLETED", count: stats.completed },
+            { key: "CANCELLED", label: "CANCELLED", count: orders.filter((o) => o.status === "CANCELLED").length },
           ].map((tab) => {
             const isActive = statusFilter === tab.key;
             return (
@@ -552,7 +552,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo Mã đơn (#12), Tên thiết bị hoặc Trạm Outpost..."
+              placeholder="Search by order number (#12), equipment name or outpost..."
               className="w-full pl-9 pr-8 py-2 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] placeholder-[#A39B8D] focus:outline-none focus:border-[#152A20]"
             />
             {searchQuery && (
@@ -572,9 +572,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               onChange={(e) => setTypeFilter(e.target.value as any)}
               className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="ALL">Tất cả hình thức</option>
-              <option value="RENTAL">Chỉ đơn Thuê dã ngoại</option>
-              <option value="SALE">Chỉ đơn Mua thiết bị</option>
+              <option value="ALL">All order types</option>
+              <option value="RENTAL">Rentals only</option>
+              <option value="SALE">Purchases only</option>
             </select>
           </div>
 
@@ -585,10 +585,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               onChange={(e) => setSortOrder(e.target.value as any)}
               className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="newest">Mới nhất trước</option>
-              <option value="oldest">Cũ nhất trước</option>
-              <option value="highest">Giá trị cao nhất</option>
-              <option value="lowest">Giá trị thấp nhất</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="highest">Highest value</option>
+              <option value="lowest">Lowest value</option>
             </select>
           </div>
         </div>
@@ -605,7 +605,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             onClick={() => void load()}
             className="underline font-bold hover:text-black ml-4 shrink-0 cursor-pointer"
           >
-            Thử lại
+            Try again
           </button>
         </div>
       )}
@@ -635,13 +635,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           <Package className="w-12 h-12 text-[#A39B8D] mx-auto stroke-1" />
           <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
             {searchQuery || statusFilter !== "ALL" || typeFilter !== "ALL"
-              ? "Không tìm thấy đơn hàng phù hợp"
-              : "Bạn chưa có đơn mua hoặc thuê thiết bị nào"}
+              ? "No matching orders found"
+              : "You have no purchases or rentals yet"}
           </h3>
           <p className="text-xs text-[#5C665F] max-w-md mx-auto font-body">
             {searchQuery || statusFilter !== "ALL" || typeFilter !== "ALL"
-              ? "Hãy thử điều chỉnh lại bộ lọc trạng thái hoặc từ khóa tìm kiếm để xem danh sách đơn hàng."
-              : "Khám phá kho thiết bị leo núi cao cấp của TerraPeak và chuẩn bị hành trang chuyên dụng cho chuyến chinh phục sắp tới."}
+              ? "Try changing the status filter or search terms to find your orders."
+              : "Explore TerraPeak equipment and get ready for your next adventure."}
           </p>
           <div className="flex justify-center flex-wrap gap-3 pt-2">
             {searchQuery || statusFilter !== "ALL" || typeFilter !== "ALL" ? (
@@ -654,15 +654,15 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   setTypeFilter("ALL");
                 }}
               >
-                Xóa bộ lọc
+                Clear filters
               </Button>
             ) : (
               <>
                 <Link to="/shop">
-                  <Button variant="primary" size="sm">Cửa Hàng Mua Sắm</Button>
+                  <Button variant="primary" size="sm">Shop equipment</Button>
                 </Link>
                 <Link to="/rent">
-                  <Button variant="accent" size="sm">Dịch Vụ Cho Thuê</Button>
+                  <Button variant="accent" size="sm">Rent equipment</Button>
                 </Link>
               </>
             )}
@@ -689,13 +689,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-headline font-bold text-base text-[#111D16] flex items-center gap-1.5">
                       <Package className="w-4 h-4 text-[#D97845]" />
-                      ĐƠN HÀNG #{order.id}
+                      ORDER #{order.id}
                     </span>
                     {renderStatusBadge(order.status)}
                     {renderPaymentBadge(order.paymentStatus)}
                     <span className="text-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#737C75]" />
-                      {new Date(order.orderDate).toLocaleString("vi-VN", {
+                      {new Date(order.orderDate).toLocaleString("en-GB", {
                         year: "numeric",
                         month: "2-digit",
                         day: "2-digit",
@@ -707,7 +707,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
                   <div className="flex items-center gap-1.5 text-xs text-[#152A20] font-bold">
                     <Building className="w-3.5 h-3.5 text-[#152A20]" />
-                    <span>{branch ? branch.name : `Trạm Outpost #${order.branchId}`}</span>
+                    <span>{branch ? branch.name : `Outpost #${order.branchId}`}</span>
                   </div>
                 </div>
 
@@ -735,37 +735,37 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                                 to={`/gear/${item.productId}`}
                                 className="font-bold text-sm text-[#111D16] font-headline hover:text-[#D97845] transition"
                               >
-                                {product?.name || `Thiết bị mã #${item.productId}`}
+                                {product?.name || `Equipment #${item.productId}`}
                               </Link>
                               <Badge variant={isRental ? "warning" : "neutral"} size="sm" className="text-[9px]">
-                                {isRental ? "THUÊ DÃ NGOẠI" : "MUA SẮM"}
+                                {isRental ? "RENTAL" : "PURCHASE"}
                               </Badge>
                             </div>
 
                             <div className="text-[11px] text-[#5C665F] mt-0.5 flex flex-wrap items-center gap-2">
-                              <span>Mã SKU: #{item.productId}</span>
+                              <span>SKU: #{item.productId}</span>
                               {product?.category && (
                                 <>
                                   <span>•</span>
-                                  <span>Phân loại: {product.category}</span>
+                                  <span>Category: {product.category}</span>
                                 </>
                               )}
                               <span>•</span>
-                              <span>Đơn giá: {vnd(item.unitPrice)}{isRental && " / ngày"}</span>
+                              <span>Unit price: {vnd(item.unitPrice)}{isRental && " / day"}</span>
                             </div>
 
                             {/* Rental Period Badge */}
                             {isRental && item.rentalStartDate && item.rentalEndDate && (
                               <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
                                 <Calendar className="w-3 h-3" />
-                                <span>Thời gian thuê: {item.rentalStartDate} → {item.rentalEndDate}</span>
+                                <span>Rental period: {item.rentalStartDate} → {item.rentalEndDate}</span>
                               </div>
                             )}
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-[10px] text-[#737C75] uppercase">Thành tiền</div>
+                          <div className="text-[10px] text-[#737C75] uppercase">Subtotal</div>
                           <div className="font-bold text-sm text-[#152A20] font-headline">
                             {vnd(item.quantity * item.unitPrice)}
                           </div>
@@ -779,14 +779,14 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                   <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs text-[#737C75] uppercase font-bold">Tổng thanh toán:</span>
+                      <span className="text-xs text-[#737C75] uppercase font-bold">Total payment:</span>
                       <span className="text-lg sm:text-xl font-bold text-[#D97845] font-headline">
                         {vnd(order.totalAmount)}
                       </span>
                     </div>
                     {order.paidAmount > 0 && order.paidAmount < order.totalAmount && (
                       <span className="text-[11px] text-emerald-700 font-bold">
-                        (Đã thanh toán: {vnd(order.paidAmount)})
+                        (Paid: {vnd(order.paidAmount)})
                       </span>
                     )}
                   </div>
@@ -802,7 +802,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       onClick={() => setSelectedOrder(order)}
                       icon={<Eye className="w-3.5 h-3.5" />}
                     >
-                      Chi tiết biên bản
+                      Order details
                     </Button>
 
                     {/* Pay Now Button */}
@@ -814,7 +814,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                           icon={<CreditCard className="w-3.5 h-3.5" />}
                           className="bg-[#D97845] hover:bg-[#C66735]"
                         >
-                          Thanh toán ngay
+                          Pay now
                         </Button>
                       </Link>
                     )}
@@ -835,7 +835,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                         onClick={() => setOrderToCancel(order)}
                         icon={<X className="w-3.5 h-3.5" />}
                       >
-                        {isBusy ? "Đang xử lý..." : "Hủy đơn"}
+                        {isBusy ? "Processing..." : "Cancel order"}
                       </Button>
                     )}
                   </div>
@@ -851,7 +851,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         <Modal
           isOpen={Boolean(selectedOrder)}
           onClose={() => setSelectedOrder(null)}
-          title={`BIÊN BẢN ĐƠN HÀNG #${selectedOrder.id}`}
+          title={`ORDER DETAILS #${selectedOrder.id}`}
           maxWidth="lg"
         >
           <div className="space-y-6 font-label text-xs">
@@ -863,7 +863,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     TERRAPEAK EXPEDITION MANIFEST
                   </span>
                   <h3 className="text-lg font-bold font-headline mt-0.5">
-                    PHIẾU BÀN GIAO THIẾT BỊ #{selectedOrder.id}
+                    EQUIPMENT HANDOVER RECEIPT #{selectedOrder.id}
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -874,9 +874,9 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px]">
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Trạm tiếp nhận</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Pickup outpost</span>
                   <span className="font-bold text-white">
-                    {branchMap.get(selectedOrder.branchId)?.name || `Trạm #${selectedOrder.branchId}`}
+                    {branchMap.get(selectedOrder.branchId)?.name || `Outpost #${selectedOrder.branchId}`}
                   </span>
                   {branchMap.get(selectedOrder.branchId)?.address && (
                     <span className="text-[10px] text-[#ADCBBB] block mt-0.5">
@@ -885,13 +885,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   )}
                 </div>
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Thời gian đặt</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Order date</span>
                   <span className="font-mono-spec text-white">
-                    {new Date(selectedOrder.orderDate).toLocaleString("vi-VN")}
+                    {new Date(selectedOrder.orderDate).toLocaleString("en-GB")}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Tổng giá trị đơn</span>
+                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Order total</span>
                   <span className="font-bold text-[#D97845] font-headline text-sm">
                     {vnd(selectedOrder.totalAmount)}
                   </span>
@@ -903,7 +903,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             <div>
               <h4 className="font-bold text-sm text-[#111D16] uppercase mb-2 flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-[#D97845]" />
-                Danh mục thiết bị ký gửi & bàn giao
+                Equipment & handover details
               </h4>
               <div className="border border-[#D8D2C5] rounded-xs divide-y divide-[#EBE6DC] overflow-hidden bg-white">
                 {selectedOrder.items.map((item) => {
@@ -915,14 +915,14 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-[#111D16]">
-                            {product?.name || `Thiết bị #${item.productId}`}
+                            {product?.name || `Equipment #${item.productId}`}
                           </span>
                           <Badge variant={isRental ? "warning" : "neutral"} size="sm">
-                            {isRental ? "THUÊ DÃ NGOẠI" : "MUA SẮM"}
+                            {isRental ? "RENTAL" : "PURCHASE"}
                           </Badge>
                         </div>
                         <div className="text-[11px] text-[#5C665F] mt-0.5">
-                          Số lượng: {item.quantity} × {vnd(item.unitPrice)}
+                          Quantity: {item.quantity} × {vnd(item.unitPrice)}
                           {isRental && item.rentalStartDate && (
                             <span className="ml-2 font-mono-spec text-[#D97845]">
                               ({item.rentalStartDate} → {item.rentalEndDate})
@@ -943,12 +943,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             <div className="p-3.5 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-2">
               <h5 className="font-bold text-[#111D16] uppercase text-[11px] flex items-center gap-1.5">
                 <Info className="w-4 h-4 text-[#152A20]" />
-                Lưu ý quan trọng khi nhận trang bị tại trạm Outpost
+                Before picking up equipment
               </h5>
               <ul className="text-[11px] text-[#5C665F] space-y-1 list-disc pl-4 font-body">
-                <li>Vui lòng mang theo Căn cước công dân hoặc Hộ chiếu khi đến nhận bàn giao tại trạm.</li>
-                <li>Kiểm lâm viên sẽ cùng bạn kiểm định chốt an toàn, độ mòn và hướng dẫn kỹ thuật trước khi xuất trạm.</li>
-                <li>Đồ thuê cần được hoàn trả đúng hạn về trạm để kiểm tra buồng khử trùng tia cực tím UV và quyết toán tiền cọc.</li>
+                <li>Please bring your ID card or passport when collecting equipment.</li>
+                <li>Our staff will inspect safety fittings and wear with you and explain how to use the equipment.</li>
+                <li>Return rentals on time for inspection, UV sanitization and deposit settlement.</li>
               </ul>
             </div>
 
@@ -960,12 +960,12 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 onClick={() => window.print()}
                 icon={<Printer className="w-3.5 h-3.5" />}
               >
-                In Phiếu Nhận Đồ (Print)
+                Print pickup receipt
               </Button>
 
               <div className="flex items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={() => setSelectedOrder(null)}>
-                  Đóng
+                  Close
                 </Button>
 
                 {selectedOrder.canConfirmReceipt && (
@@ -982,7 +982,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       icon={<CreditCard className="w-3.5 h-3.5" />}
                       className="bg-[#D97845] hover:bg-[#C66735]"
                     >
-                      Thanh toán đơn này
+                      Pay for this order
                     </Button>
                   </Link>
                 )}
@@ -997,27 +997,27 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
         <Modal
           isOpen={Boolean(orderToCancel)}
           onClose={() => setOrderToCancel(null)}
-          title={`HỦY ĐƠN HÀNG #${orderToCancel.id}`}
+          title={`CANCEL ORDER #${orderToCancel.id}`}
           maxWidth="sm"
         >
           <div className="space-y-4 font-label text-xs">
             <div className="p-3 bg-[#FEE2E2] border border-[#FCA5A5] rounded-xs text-[#B91C1C] flex items-start gap-2.5">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold">Bạn có chắc chắn muốn hủy đơn hàng này?</p>
+                <p className="font-bold">Are you sure you want to cancel this order?</p>
                 <p className="text-[11px] mt-0.5 font-body">
-                  Thao tác này sẽ hủy yêu cầu thuê/mua thiết bị và giải phóng lượng tồn kho đã giữ chỗ cho bạn.
+                  This will cancel your equipment order and release your reserved stock.
                 </p>
               </div>
             </div>
 
             <div className="border border-[#D8D2C5] p-3 rounded-xs bg-[#F8F6F1]">
               <div className="flex justify-between">
-                <span className="text-[#737C75]">Mã đơn:</span>
+                <span className="text-[#737C75]">Order number:</span>
                 <span className="font-bold">#{orderToCancel.id}</span>
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[#737C75]">Tổng tiền:</span>
+                <span className="text-[#737C75]">Total:</span>
                 <span className="font-bold text-[#D97845]">{vnd(orderToCancel.totalAmount)}</span>
               </div>
             </div>
@@ -1029,7 +1029,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 onClick={() => setOrderToCancel(null)}
                 disabled={busy === orderToCancel.id}
               >
-                Giữ lại
+                Keep order
               </Button>
               <Button
                 variant="danger"
@@ -1037,7 +1037,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 onClick={() => void handleCancelOrder(orderToCancel.id)}
                 disabled={busy === orderToCancel.id}
               >
-                {busy === orderToCancel.id ? "Đang hủy..." : "Xác nhận hủy"}
+                {busy === orderToCancel.id ? "Cancelling..." : "Confirm cancellation"}
               </Button>
             </div>
           </div>

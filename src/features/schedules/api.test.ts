@@ -52,7 +52,7 @@ test('cancellation forwards manager reason, update can explicitly unassign guide
 });
 test('API conflicts remain errors and do not retry or fabricate a success', async () => {
   globalThis.fetch = async () => { calls.push({ path: '', init: {} }); return Response.json({ message: 'Hết chỗ' }, { status: 409 }); };
-  await assert.rejects(() => scheduleApi.register(1, ''), (e: any) => e.status === 409 && e.message === 'Hết chỗ');
+  await assert.rejects(() => scheduleApi.register(1, ''), (e: any) => e.status === 409 && e.message === 'This departure is fully booked. Please choose another departure.');
   assert.equal(calls.length, 1);
 });
 test('401 clears expired shared token', async () => {

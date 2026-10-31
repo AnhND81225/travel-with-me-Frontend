@@ -3,9 +3,16 @@
 @import "./styles/customer-pages.css";
 @import "./styles/stitch-reference.css";
 
+@theme {
+  --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Nunito', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Nunito', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   html {
     scrollbar-gutter: stable;
+    font-family: var(--font-sans);
   }
 
   :root {
@@ -23,32 +30,40 @@
   body {
     background-color: #F3EFE6;
     color: #111D16;
-    font-family: 'Work Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Nunito', sans-serif;
     letter-spacing: -0.01em;
+  }
+
+  button, input, select, textarea, optgroup, option {
+    font-family: inherit;
+  }
+
+  code, kbd, samp, pre {
+    font-family: var(--font-sans);
   }
 }
 
 .font-headline {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .font-body {
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .font-label {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
 
 .font-mono-spec {
-  font-family: 'Space Grotesk', ui-monospace, monospace;
+  font-family: 'Nunito', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 

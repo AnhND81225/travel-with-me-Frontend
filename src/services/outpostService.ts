@@ -13,16 +13,16 @@ export class OutpostService {
           code: `DEPOT-${b.id}`,
           elevation: '1,500M',
           coordinates: '21.0285° N, 105.8542° E',
-          region: b.address || 'Việt Nam',
-          address: b.address || 'Chưa cập nhật địa chỉ',
+          region: b.address || 'Vietnam',
+          address: b.address || 'Address to be confirmed',
           phone: b.phone || '1900-TERRAPEAK',
-          operatingHours: '06:00 - 21:00 Hàng ngày',
+          operatingHours: '06:00 - 21:00 Daily',
           staffCount: 0,
-          depotManager: 'Trưởng trạm quản lý',
+          depotManager: 'Outpost manager',
           status: b.status === 'ACTIVE' ? 'OPTIMAL' : 'ALPINE_WARNING',
           weather: {
             temp: '18°C',
-            condition: 'Ổn định',
+            condition: 'Stable',
             wind: '12 km/h',
             visibility: '10 km',
           },
@@ -36,7 +36,7 @@ export class OutpostService {
         return { data: stations, status: 200, timestamp: new Date().toISOString() };
       }
     } catch (err) {
-      console.warn("Không thể tải danh sách trạm từ backend /branches:", err);
+      console.warn("Unable to load outposts from /branches:", err);
     }
     return { data: [], status: 200, timestamp: new Date().toISOString() };
   }
