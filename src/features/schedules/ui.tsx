@@ -1,7 +1,8 @@
+import { departureHistoryText } from './departureHistory';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { CalendarDays, Mountain, RefreshCw, X } from 'lucide-react';
-import { auditLabels, dateTime, labels, money } from './rules';
+import { dateTime, labels } from './rules';
 import { useScheduleAccount } from './hooks';
 import type { Audit } from './types';
 import './schedules.css';
@@ -31,7 +32,10 @@ export function More({ list }: { list: { more: boolean; loading: boolean; error:
   return <div className="m5-more">{list.error && <Message error>{list.error}</Message>}{list.loading ? <Loading /> : list.more ? <button onClick={list.loadMore}>{list.error ? 'Retry' : 'Load More'}</button> : <small>All items loaded.</small>}</div>;
 }
 export function Timeline({ rows }: { rows: Audit[] }) {
-  return <ol className="m5-timeline">{rows.map(h => <li key={h.id}><p><b>{(h.action && auditLabels[h.action]) || h.action || 'Departure Updated'}</b> · {dateTime(h.changedAt)}</p><p>{h.oldStatus && `${labels[h.oldStatus] || h.oldStatus} → `}{labels[h.newStatus] || h.newStatus}</p>{h.newStartDatetime && <p><CalendarDays size={14} /> {dateTime(h.oldStartDatetime)} → {dateTime(h.newStartDatetime)}<br />End: {dateTime(h.oldEndDatetime)} → {dateTime(h.newEndDatetime)}</p>}<p>{h.reason || h.changeReason}</p>{h.registeredPrice != null && <small>{money(h.registeredPrice)} · {h.registrationReference}</small>}<small>Changed by: {h.changedBy ? `#${h.changedBy}` : 'System'}</small></li>)}</ol>;
+  return <ol className="departure-history-list" aria-label="Departure activity">{rows.map(row => {
+    const entry = departureHistoryText(row);
+    return <li key={row.id} className="departure-history-entry"><span className="departure-history-icon"><CalendarDays size={18} /></span><div><strong>{entry.title}</strong><time dateTime={row.changedAt}>{dateTime(row.changedAt)} · Vietnam time</time>{entry.details.map(detail => <p key={detail}>{detail}</p>)}{row.newStartDatetime && <div className="departure-history-dates"><span>Departure <b>{dateTime(row.newStartDatetime)}</b></span>{row.newEndDatetime && <span>Return <b>{dateTime(row.newEndDatetime)}</b></span>}</div>}</div></li>;
+  })}</ol>;
 }
 
 const ticketSteps: Record<string, [string, string]> = {

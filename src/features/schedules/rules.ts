@@ -47,3 +47,19 @@ export function validateDates(start: string, end: string, cutoff: string, now = 
   if (c <= now || c > a) return 'The registration deadline must be in the future and no later than departure.';
   return '';
 }
+
+/** Match the server overlap boundaries: touching endpoints do not overlap. */
+export function guideConflicts(schedules: Schedule[], start: string, end: string, excludeId?: number) {
+  const from = Date.parse(start), until = Date.parse(end);
+  const conflicts = new Map<number, Schedule[]>();
+  if (!Number.isFinite(from) || !Number.isFinite(until) || until <= from) return conflicts;
+  for (const schedule of schedules) {
+    if (!schedule.guideId || schedule.id === excludeId || ['CANCELLED', 'COMPLETED'].includes(schedule.status)) continue;
+    if (Date.parse(schedule.startDatetime) < until && Date.parse(schedule.endDatetime) > from) {
+      const rows = conflicts.get(schedule.guideId) || [];
+      rows.push(schedule);
+      conflicts.set(schedule.guideId, rows);
+    }
+  }
+  return conflicts;
+}
