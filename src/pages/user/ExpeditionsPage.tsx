@@ -1,3 +1,4 @@
+import { CollectionHero } from "../../components/common/CollectionHero";
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -103,44 +104,20 @@ export function ExpeditionsPage() {
 
   return (
     <div className="store-home">
-      {/* Banner đầu trang tinh gọn */}
-      <section className="border-b border-[#e6e2d9] bg-[#f7f3ea] py-8 md:py-10">
-        <div className="store-container">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <span className="store-eyebrow">
-                <Compass className="inline-block w-3.5 h-3.5 mr-1 text-[#994717]" />
-                OUTDOOR EXPERIENCES
-              </span>
-              <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-[#02150c] font-headline">
-                Tours & Events
-              </h1>
-              <p className="text-sm text-[#424844]">
-                Trekking and camping adventures led by experienced guides, with rescue insurance and equipment provided.
-              </p>
-            </div>
-
-            {/* 3 cam kết nhanh */}
-            <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#152a20]">
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
-                <ShieldCheck className="w-4 h-4 text-[#994717]" />
-                Rescue insurance
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
-                <Award className="w-4 h-4 text-[#152a20]" />
-                Experienced guides
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-white border border-[#e6e2d9] px-3 py-1.5 rounded-sm shadow-2xs">
-                <Footprints className="w-4 h-4 text-[#994717]" />
-                Outdoor equipment provided
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="store-container collection-page-intro">
+        <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2.5 text-xs text-[#778075]">
+          <Link to="/" className="hover:text-[#994717]">Home</Link><ChevronRight size={13} aria-hidden="true" /><span className="text-[#152a20]">Tours & Events</span>
+        </nav>
+        <CollectionHero eyebrow="TERRAPEAK TOURS & EVENTS" title="Take the trail." accent="Find your story."
+          description="Follow mountain paths, camp beneath the stars, and discover a different side of Vietnam. Find a trekking or camping experience for your next escape."
+          image="https://images.unsplash.com/photo-1637699275359-000ec25359b4?auto=format&fit=crop&w=1400&q=85" imageAlt="Hikers walking through green alpine meadows above a turquoise lake"
+          primary={{ label: "Explore tours & events", href: "#tours-catalog" }}
+          secondary={{ label: "Meet our guides", href: "#guides-roster" }}
+          caption="A LITTLE FURTHER OUTSIDE" captionDetail="Mountain trails. Lakeside camps. New perspectives." />
+      </div>
 
       {/* Danh mục chuyến đi & Thanh lọc */}
-      <section className="store-section" id="tours-catalog">
+      <section className="store-section scroll-mt-24" id="tours-catalog">
         <div className="store-container space-y-6">
           {/* Thanh phân loại và tìm kiếm */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -414,7 +391,7 @@ export function ExpeditionsPage() {
       </section>
 
       {/* Mục Hướng dẫn viên tinh giản */}
-      <section className="store-section border-t border-[#e6e2d9] bg-[#f7f3ea]" id="guides-roster">
+      <section className="store-section border-t border-[#e6e2d9] bg-[#f7f3ea]" id="guides-roster" style={{ scrollMarginTop: 96 }}>
         <div className="store-container space-y-6">
           <div className="flex items-center justify-between">
             <div>

@@ -34,7 +34,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState(() => localStorage.getItem('terrapeak_customer_address') || (account as any)?.address || '72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City');
+  const [address, setAddress] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState('');
   const [updateError, setUpdateError] = useState('');
@@ -55,6 +55,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
     if (account) {
       setFullName(account.fullName || '');
       setPhone(account.phone || '');
+      setAddress(account.address || '');
       if (doesAccountRequirePasswordChange(account.email)) {
         setActiveTab('PASSWORD');
       }
@@ -108,11 +109,12 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      setUpdateError('Full name is required.');
+    if (!fullName.trim() || !phone.trim() || !address.trim()) {
+      setUpdateError('Full name, phone number and address are required to place orders.');
       return;
     }
 
+    if (!/^[+\d\s().-]{7,30}$/.test(phone.trim())) { setUpdateError('Please enter a valid phone number.'); return; }
     setIsUpdating(true);
     setUpdateSuccess('');
     setUpdateError('');
@@ -122,13 +124,11 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
         method: 'PUT',
         body: JSON.stringify({
           fullName: fullName.trim(),
-          phone: phone.trim() || undefined,
+          phone: phone.trim(),
+          address: address.trim(),
         }),
       });
 
-      if (address.trim()) {
-        localStorage.setItem('terrapeak_customer_address', address.trim());
-      }
       await checkAuth();
       setUpdateSuccess('Account profile updated successfully!');
       setTimeout(() => setUpdateSuccess(''), 4000);
@@ -405,12 +405,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Contact Phone Number
+                    Contact Phone Number *
                   </label>
                   <div className="relative flex items-center">
                     <Phone className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                     <input
                       type="tel"
+                      required maxLength={30}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="0912 345 678"
@@ -421,12 +422,13 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
 
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
-                    Customer Address
+                    Customer Address *
                   </label>
                   <div className="relative flex items-center">
                     <MapPin className="w-4 h-4 text-[#7A857E] absolute left-3 pointer-events-none" />
                     <input
                       type="text"
+                      required maxLength={500}
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="e.g. 72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City"
@@ -434,7 +436,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                     />
                   </div>
                   <span className="text-[10px] text-[#7A857E] mt-1 block">
-                    * Used as default recipient address on order handover manifests and receipts.
+                    * Required for orders. Saved to your personal profile and copied to each new order.
                   </span>
                 </div>
 

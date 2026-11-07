@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  GearItem, 
-  GearCategory, 
-  OutpostStation 
+import {
+  GearItem,
+  GearCategory,
+  OutpostStation
 } from '../types';
-import { 
-  Tent, 
-  Sparkles, 
-  Flame, 
-  Briefcase, 
-  ShieldAlert, 
-  Radio, 
-  Wind, 
-  CheckCircle2, 
+import {
+  Tent,
+  Sparkles,
+  Flame,
+  Briefcase,
+  ShieldAlert,
+  Radio,
+  Wind,
+  CheckCircle2,
   Info,
   Layers,
   Star,
@@ -37,7 +37,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<GearCategory>('all');
   const [priceMode, setPriceMode] = useState<'rent' | 'buy'>('rent');
-  const [onlyInStockAtStation, setOnlyInStockAtStation] = useState(false);
 
   const categories: { id: GearCategory; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All Equipment', icon: <Layers className="w-3.5 h-3.5" /> },
@@ -62,10 +61,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       if (!matchName && !matchBrand && !matchDesc && !matchModel) {
         return false;
       }
-    }
-    if (onlyInStockAtStation) {
-      const stock = item.stockByOutpost[selectedStation.id] || 0;
-      if (stock <= 0) return false;
     }
     return true;
   });
@@ -94,17 +89,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
         {/* Pricing Mode Toggle & Filters */}
         <div className="flex items-center gap-3">
-          {/* Station In-Stock Checkbox */}
-          <label className="flex items-center gap-1.5 text-xs text-[#5C665F] cursor-pointer select-none font-bold uppercase">
-            <input
-              type="checkbox"
-              checked={onlyInStockAtStation}
-              onChange={(e) => setOnlyInStockAtStation(e.target.checked)}
-              className="rounded-xs bg-[#F8F6F1] border-[#D8D2C5] text-[#152A20] focus:ring-0 cursor-pointer"
-            />
-            <span>At {selectedStation.code} Only</span>
-          </label>
-
           {/* Rent vs Acquire Toggle */}
           <div className="bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs p-0.5 flex items-center text-xs font-bold uppercase">
             <button
@@ -146,8 +130,6 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* Gear Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredGear.map((item) => {
-          const stationStock = item.stockByOutpost[selectedStation.id] || 0;
-          const isAvailableAtStation = stationStock > 0;
 
           return (
             <div
@@ -163,7 +145,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     className="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-300"
                     loading="lazy"
                   />
-                  
+
                   {/* Condition Badge */}
                   <div className="absolute top-2 left-2">
                     <span className="text-[10px] px-2 py-0.5 rounded-xs bg-[#152A20] text-white font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs">
@@ -181,15 +163,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
                   {/* Station Stock Status */}
                   <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px]">
-                    <span className={`px-2 py-0.5 rounded-xs border font-bold uppercase ${
-                      isAvailableAtStation 
-                        ? 'bg-[#F8F6F1]/95 text-[#152A20] border-[#D8D2C5]' 
-                        : 'bg-[#FDF2EC]/95 text-[#D97845] border-[#F1BA9B]'
-                    }`}>
-                      {isAvailableAtStation 
-                        ? `${stationStock} AT ${selectedStation.code}` 
-                        : `TRANSFER REQ`}
-                    </span>
+
                     <span className="flex items-center gap-1 text-[#111D16] font-bold bg-[#F8F6F1]/95 px-1.5 py-0.5 rounded-xs border border-[#D8D2C5] font-mono-spec">
                       <Star className="w-3 h-3 fill-[#D97845] text-[#D97845]" />
                       {item.rating}
@@ -203,7 +177,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     <div className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider">
                       {item.brand}
                     </div>
-                    <h3 
+                    <h3
                       onClick={() => onSelectGear(item)}
                       className="font-bold text-[#111D16] text-sm leading-snug group-hover:text-[#D97845] transition cursor-pointer font-headline truncate"
                     >

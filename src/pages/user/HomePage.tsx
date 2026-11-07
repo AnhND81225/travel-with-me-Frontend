@@ -16,14 +16,13 @@ import {
   ShoppingCart,
   SlidersHorizontal,
 } from "lucide-react";
-import { HOME_GEAR } from "../../data/mockData";
+import { getProductImage } from "../../features/equipment/productImage";
+import { allProducts, catalogApi, type Product, type Branch } from "../../features/equipment/catalogApi";
 import {
   storefrontAssets as images,
-  storefrontBranches as branches,
 } from "../../data/storefront";
-import { useAppStore } from "../../store/useAppStore";
 import { eventGuideApi, type EventResponse } from "../../services/eventGuideApi";
-import { scheduleApi } from "../../features/schedules/api";
+import { PAGE_SIZE, scheduleApi } from "../../features/schedules/api";
 import type { Schedule } from "../../features/schedules/types";
 
 const services = [
@@ -33,7 +32,7 @@ const services = [
     caption: "Lifetime Hardware Guarantee",
     description:
       "Premium trail & alpine gear curated from leading international manufacturers. Every purchased piece features our local repair support, trail fitting, and authentic lifetime warranty.",
-    detail: "350+ SKUs in Stock",
+    detail: "Browse our equipment catalog",
     action: "Shop Hardware",
     to: "/shop",
     icon: ShoppingBag,
@@ -61,9 +60,7 @@ const services = [
     icon: Footprints,
   },
 ];
-const productCategories = ["Packs", "Tents", "Trekking", "Kitchen"];
-const productBadges = ["Dual Option", "1.45 kg", "100% Carbon", "2,800W Flame"];
-type UpcomingAdventure = { schedule: Schedule; event: EventResponse; branchName?: string };
+type UpcomingAdventure = { schedule?: Schedule; event: EventResponse };
 
 const durationLabel = (start: string, end: string) => {
   const hours = Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / 3_600_000));
@@ -72,7 +69,7 @@ const durationLabel = (start: string, end: string) => {
 };
 
 const difficultyLabel = (level?: string | null) =>
-  level === "EASY" ? "Easy" : level === "HARD" ? "Hard" : "Moderate";
+  level === "EASY" ? "Easy" : level === "HARD" ? "Hard" : level === "MODERATE" ? "Moderate" : "View details";
 
 const formatVnd = (amount: number) =>
   new Intl.NumberFormat("en-GB", {
@@ -104,8 +101,13 @@ function SectionHeading({
 }
 export function HomePage() {
   const navigate = useNavigate();
-  const { outposts, setSelectedStation } = useAppStore();
-  const [branch, setBranch] = useState("dalat-alpine");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branch, setBranch] = useState("");
+  const [branchesError, setBranchesError] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [purpose, setPurpose] = useState("rent");
   const [date, setDate] = useState("");
   const [category, setCategory] = useState("All Gear");
@@ -119,22 +121,24 @@ export function HomePage() {
       setAdventuresLoading(true);
       setAdventuresError("");
       try {
-        const [schedules, apiBranches] = await Promise.all([
-          scheduleApi.list({ page: 0 }),
-          scheduleApi.branches(),
+        const [events, schedules] = await Promise.all([
+          eventGuideApi.listEvents({ page: 0, size: 3 }),
+          (async () => {
+            const rows: Schedule[] = [];
+            for (let page = 0; ; page++) {
+              const batch = await scheduleApi.list({ page });
+              rows.push(...batch);
+              if (batch.length < PAGE_SIZE) return rows;
+            }
+          })(),
         ]);
         const now = Date.now();
-        const upcoming = schedules
-          .filter((schedule) => ["OPEN", "FULL"].includes(schedule.status) && Date.parse(schedule.startDatetime) >= now)
-          .sort((a, b) => Date.parse(a.startDatetime) - Date.parse(b.startDatetime))
-          .slice(0, 3);
-        const details = await Promise.all(
-          upcoming.map(async (schedule) => ({
-            schedule,
-            event: await eventGuideApi.getEvent(schedule.eventId),
-            branchName: apiBranches.find((branch) => branch.id === schedule.branchId)?.name,
-          })),
-        );
+        const upcoming = schedules.filter(item => ["OPEN", "FULL"].includes(item.status) && Date.parse(item.startDatetime) > now)
+          .sort((a, b) => Date.parse(a.startDatetime) - Date.parse(b.startDatetime));
+        const details = await Promise.all(events.items.map(async event => ({
+          event: await eventGuideApi.getEvent(event.eventId),
+          schedule: upcoming.find(item => item.eventId === event.eventId),
+        })));
         if (active) setUpcomingAdventures(details);
       } catch (error) {
         if (active) setAdventuresError(error instanceof Error ? error.message : "Unable to load upcoming adventures.");
@@ -144,11 +148,29 @@ export function HomePage() {
     };
     void loadUpcomingAdventures();
     return () => { active = false; };
-  }, []);
+  }, [retry]);
+  useEffect(() => {
+    let active = true;
+    setProductsLoading(true); setProductsError("");
+    allProducts(false).then(rows => { if (active) setProducts(rows.filter(item => item.status === "ACTIVE")); })
+      .catch(error => { if (active) setProductsError(error instanceof Error ? error.message : "Unable to load equipment."); })
+      .finally(() => { if (active) setProductsLoading(false); });
+    return () => { active = false; };
+  }, [retry]);
+  useEffect(() => {
+    let active = true;
+    setBranchesError("");
+    catalogApi<Branch[]>("/branches").then(rows => {
+      if (!active) return;
+      const available = rows.filter(item => item.status === "ACTIVE");
+      setBranches(available); setBranch(previous => available.some(item => String(item.id) === previous) ? previous : String(available[0]?.id ?? ""));
+    }).catch(error => { if (active) setBranchesError(error instanceof Error ? error.message : "Unable to load branches."); });
+    return () => { active = false; };
+  }, [retry]);
+  const productCategories = [...new Set(products.map(item => item.category).filter((value): value is string => !!value))];
+  const featuredProducts = products.filter(item => category === "All Gear" || item.category === category).slice(0, 4);
   function dispatch(e: React.FormEvent) {
     e.preventDefault();
-    const selected = outposts.find((b) => b.id === branch);
-    if (selected) setSelectedStation(selected);
     const params = new URLSearchParams({ branch });
     if (date) params.set("start", date);
     navigate(
@@ -167,7 +189,7 @@ export function HomePage() {
         <div className="store-hero-shade" />
         <div className="store-container store-hero-inner">
           <div className="store-season">
-            <span>● Autumn expedition season active</span>
+            <span>● Your next adventure starts here</span>
             <span>• High Altitude Fleet Ready</span>
           </div>
           <h1 id="hero-title">
@@ -207,7 +229,7 @@ export function HomePage() {
                 <SlidersHorizontal size={16} />
                 Expedition Quick Dispatch
               </b>
-              <span>Live stock across 3 outposts</span>
+              <span>Choose your pickup branch</span>
             </div>
             <div className="store-dispatch-grid">
               <label>
@@ -267,13 +289,6 @@ export function HomePage() {
             eyebrow="Integrated Backcountry System"
             title="Our Services"
           >
-            <div className="store-capacity">
-              <span className="store-capacity-ring">94%</span>
-              <span>
-                <b>Depot Capacity</b>
-                <small>328 items prepped for this weekend</small>
-              </span>
-            </div>
           </SectionHeading>
           <div className="store-grid-three">
             {services.map((service, i) => (
@@ -319,7 +334,7 @@ export function HomePage() {
         <div className="store-container">
           <SectionHeading
             eyebrow="◈ Field-Vetted Hardware"
-            title="Popular Gear"
+            title="Featured Gear"
             description="Acquire brand-new or rent pristine condition equipment for upcoming weekend trails."
           >
             <div className="store-product-tabs" aria-label="Product categories">
@@ -335,80 +350,29 @@ export function HomePage() {
             </div>
           </SectionHeading>
           <div className="store-grid-four">
-            {HOME_GEAR.map((gear, i) =>
-              category === "All Gear" || category === productCategories[i] ? (
-                <article className="store-product-card" key={gear.id}>
-                  <Link to={`/gear/${gear.id}`} className="store-product-image">
-                    <img src={gear.imageUrl} alt={gear.name} loading="lazy" />
-                    <span className="store-image-tag">
-                      {productCategories[i] === "Packs"
-                        ? "Backpacks"
-                        : productCategories[i]}
-                    </span>
-                    <span className="store-image-tag store-image-tag-right">
-                      {productBadges[i]}
-                    </span>
-                  </Link>
-                  <div className="store-card-body">
-                    <Link to={`/gear/${gear.id}`}>
-                      <h3>{gear.name}</h3>
-                    </Link>
-                    <p>{gear.description}</p>
-                    <div className="store-price-grid">
-                      <div>
-                        <small>● Buy</small>
-                        <strong>
-                          {(gear.retailPrice * 25).toLocaleString("en-US")}k{" "}
-                          <em>₫</em>
-                        </strong>
-                      </div>
-                      <div>
-                        <small>● Rent</small>
-                        <strong>
-                          {Math.round(
-                            gear.dailyRentalPrice * 25,
-                          ).toLocaleString("en-US")}
-                          k <em>₫/day</em>
-                        </strong>
-                      </div>
-                    </div>
-                    <div className="store-stock">
-                      <span>
-                        • Da Lat Outpost
-                        <b>{gear.stockByOutpost["dalat-alpine"]} avail</b>
-                      </span>
-                      <span>
-                        • {i === 1 ? "Da Nang Depot" : "HCM Flagship"}
-                        <b>
-                          {
-                            gear.stockByOutpost[
-                              i === 1 ? "danang-pass" : "hcmc-flagship"
-                            ]
-                          }{" "}
-                          avail
-                        </b>
-                      </span>
-                    </div>
-                    <div className="store-product-actions">
-                      <Link
-                        className="store-button"
-                        to={`/gear/${gear.id}?mode=buy`}
-                      >
-                        <ShoppingCart size={14} />
-                        Buy
-                      </Link>
-                      <Link
-                        className="store-button store-button-orange"
-                        to={`/gear/${gear.id}?mode=rent`}
-                      >
-                        <CalendarDays size={14} />
-                        Rent
-                      </Link>
-                    </div>
+            {featuredProducts.map(gear => (
+              <article className="store-product-card" key={gear.id}>
+                <Link to={`/gear/${gear.id}`} className="store-product-image" aria-label={`View ${gear.name}`}>
+                  <img src={gear.imageUrl || getProductImage(gear.category, gear.name, gear.id)} alt={gear.name} loading="lazy" decoding="async" />
+                  <span className="store-image-tag">{gear.category || "Equipment"}</span>
+                </Link>
+                <div className="store-card-body">
+                  <Link to={`/gear/${gear.id}`}><h3>{gear.name}</h3></Link>
+                  <p>{gear.category || "Outdoor equipment"}</p>
+                  <div className="store-price-grid">
+                    {gear.salePrice !== null && <div><small>● Buy</small><strong>{formatVnd(gear.salePrice)}</strong></div>}
+                    {gear.rentalPricePerDay !== null && <div><small>● Rent</small><strong>{formatVnd(gear.rentalPricePerDay)} <em>/day</em></strong></div>}
                   </div>
-                </article>
-              ) : null,
-            )}
+                  <div className="store-product-actions">
+                    {gear.salePrice !== null && <Link className="store-button" to={`/gear/${gear.id}?mode=buy`}><ShoppingCart size={14} />Buy</Link>}
+                    {gear.rentalPricePerDay !== null && <Link className="store-button store-button-orange" to={`/gear/${gear.id}?mode=rent`}><CalendarDays size={14} />Rent</Link>}
+                  </div>
+                </div>
+              </article>
+            ))}
+            {productsLoading && <p role="status" className="col-span-full text-sm text-[#5C665F]">Loading equipment…</p>}
+            {!productsLoading && productsError && <div role="alert" className="col-span-full text-sm text-[#994717]">{productsError} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></div>}
+            {!productsLoading && !productsError && !featuredProducts.length && <p className="col-span-full text-sm text-[#5C665F]">No equipment is available in this category yet.</p>}
           </div>
         </div>
       </section>
@@ -419,61 +383,56 @@ export function HomePage() {
         <div className="store-container">
           <SectionHeading
             eyebrow="♧ Field Departures & Camps"
-            title="Upcoming Adventures"
-            description="Guided wilderness itineraries with full high-altitude gear packages included."
+            title="Explore Adventures"
+            description="Explore our published tours and find your next departure."
           >
-            <span className="store-coverage">
-              <ShieldCheck size={14} />
-              All departures include Search & Evacuation coverage
-            </span>
+            <Link to="/tours" className="store-coverage">View all tours <ArrowRight size={14} /></Link>
           </SectionHeading>
           <div className="store-grid-three">
-            {upcomingAdventures.map(({ schedule, event, branchName }) => {
-              const remaining = Math.max(0, schedule.maxParticipants - schedule.currentParticipants);
-              const imageUrl = event.coverImageUrl || event.images[0]?.imageUrl || images.hike;
-              const departureDate = new Date(schedule.startDatetime);
+            {upcomingAdventures.map(({ schedule, event }) => {
+              const remaining = schedule ? Math.max(0, schedule.maxParticipants - schedule.currentParticipants) : 0;
+              const imageUrl = event.coverImageUrl || event.images?.[0]?.imageUrl || images.hike;
+              const departureDate = schedule ? new Date(schedule.startDatetime) : null;
               return (
-              <article className="store-tour-card" key={schedule.id}>
+              <article className="store-tour-card" key={event.eventId}>
                 <Link
                   className="store-tour-image"
-                  to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}
+                  to={`/expeditions/${event.eventId}${schedule ? `?schedule=${schedule.id}` : ""}`}
                 >
                   <img src={imageUrl} alt={event.eventName} loading="lazy" />
                   <span className="store-image-tag store-orange-tag">
                     {event.eventType === "TREKKING" ? "Trekking Tour" : "Camping Event"}
                   </span>
                   <span className="store-image-tag store-image-tag-right">
-                    {difficultyLabel(event.details?.difficultyLevel)}
+                    {difficultyLabel(event.details?.difficultyLevel || event.difficultyLevel)}
                   </span>
                   <span className="store-image-caption">
                     <MapPin size={13} />
-                    {event.location || branchName || "Vietnam"}
+                    {event.location || branches.find(item => item.id === schedule?.branchId)?.name || "Location to be announced"}
                   </span>
                 </Link>
                 <div className="store-card-body">
                   <div className="store-tour-meta">
                     <span>
                       <CalendarDays size={13} />
-                      {departureDate.toLocaleDateString("en-US", {
+                      {departureDate ? departureDate.toLocaleDateString("en-US", {
                         month: "short",
-                        day: "numeric",
-                      })}
+                        day: "numeric", timeZone: "Asia/Ho_Chi_Minh",
+                      }) : "Schedule coming soon"}
                     </span>
                     <b>
                       <Clock3 size={13} />
-                      {durationLabel(schedule.startDatetime, schedule.endDatetime)}
+                      {schedule ? durationLabel(schedule.startDatetime, schedule.endDatetime) : event.details?.durationMinutes ? `${Math.round(event.details.durationMinutes / 60)} hours` : "View itinerary"}
                     </b>
                   </div>
-                  <Link to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}>
+                  <Link to={`/expeditions/${event.eventId}${schedule ? `?schedule=${schedule.id}` : ""}`}>
                     <h3>{event.eventName}</h3>
                   </Link>
                   <p>{event.description || "A guided outdoor experience with full field support and equipment planning."}</p>
-                  <div className="store-slots">
+                  {schedule && <div className="store-slots">
                     <div>
                       <b>
-                        {remaining <= 2
-                          ? "Last 2 spots!"
-                          : `${remaining} slots remaining`}
+                        {remaining === 0 ? "Fully booked" : `${remaining} spot${remaining === 1 ? "" : "s"} remaining`}
                       </b>
                       <span>
                         {schedule.currentParticipants} / {schedule.maxParticipants} booked
@@ -484,7 +443,7 @@ export function HomePage() {
                       max={schedule.maxParticipants}
                       aria-label={`Booked places for ${event.eventName}`}
                     />
-                  </div>
+                  </div>}
                   <div className="store-tour-bottom">
                     <div>
                       <small>Per {event.eventType === "CAMPING" ? "Camper" : "Expeditionist"}</small>
@@ -492,7 +451,7 @@ export function HomePage() {
                     </div>
                     <Link
                       className="store-button"
-                      to={`/expeditions/${event.eventId}?schedule=${schedule.id}`}
+                      to={`/expeditions/${event.eventId}${schedule ? `?schedule=${schedule.id}` : ""}`}
                     >
                       View Adventure
                       <ArrowRight size={14} />
@@ -503,8 +462,8 @@ export function HomePage() {
               );
             })}
             {adventuresLoading && <p className="col-span-full text-sm text-[#5C665F]">Loading upcoming adventures…</p>}
-            {!adventuresLoading && adventuresError && <p className="col-span-full text-sm text-[#994717]">{adventuresError}</p>}
-            {!adventuresLoading && !adventuresError && !upcomingAdventures.length && <p className="col-span-full text-sm text-[#5C665F]">No upcoming departures are available yet.</p>}
+            {!adventuresLoading && adventuresError && <p className="col-span-full text-sm text-[#994717]">{adventuresError} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></p>}
+            {!adventuresLoading && !adventuresError && !upcomingAdventures.length && <p className="col-span-full text-sm text-[#5C665F]">No tours are published yet.</p>}
           </div>
         </div>
       </section>
@@ -515,48 +474,24 @@ export function HomePage() {
             title="Physical Outpost Network"
             description="Visit our local service hubs for fitting, pre-trip briefings, sanitized gear pickup, and expedited return."
           >
-            <span className="store-online">● 3 Active Hubs Online</span>
+            <span className="store-online">● {branches.length} active branches</span>
           </SectionHeading>
+          {branchesError && <p role="alert">{branchesError} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></p>}
           <div className="store-grid-three">
-            {branches.map((b, i) => (
+            {branches.map(b => (
               <article className="store-branch-card" key={b.id}>
-                <div className="store-branch-meta">
-                  <span className={i === 1 ? "store-orange-tag" : ""}>
-                    {b.tag}
-                  </span>
-                  <small>● Hours: {b.hours}</small>
-                </div>
                 <h3>{b.name}</h3>
                 <p>
                   <MapPin size={13} />
-                  {b.address}
+                  {b.address || "Address not provided"}
                 </p>
-                <a
-                  className="store-map"
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.address)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Open map for ${b.name}`}
-                >
-                  <img
-                    src={b.map}
-                    alt={`Map preview for ${b.name}`}
-                    loading="lazy"
-                  />
-                </a>
-                <small className="store-depot-label">Depot Services:</small>
-                <div className="store-branch-services">
-                  {b.services.map((s) => (
-                    <span key={s}>{s}</span>
-                  ))}
-                </div>
                 <div className="store-branch-bottom">
                   <span>
                     Phone:{" "}
-                    <a href={`tel:${b.phone.replace(/\s/g, "")}`}>{b.phone}</a>
+                    <a href={`tel:${b.phone?.replace(/\s/g, "")}`}>{b.phone || "Not provided"}</a>
                   </span>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.address)}`}
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.address || b.name)}`}
                     target="_blank"
                     rel="noreferrer"
                   >

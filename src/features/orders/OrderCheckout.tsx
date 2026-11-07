@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { catalogApi, vnd, type Branch } from "../equipment/catalogApi";
+import { CustomerContactSummary, getCustomerContact, contactError } from "./customerContact";
 import type { Order } from "./orderApi";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppStore } from "../../store/useAppStore";
@@ -26,7 +27,8 @@ export function OrderCheckout({
   rental: number | null;
 }) {
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { account, isAuthenticated, loading: authLoading } = useAuth();
+  const contact = getCustomerContact(account);
   const { setCartOpen } = useAppStore();
 
   const today = new Date();
@@ -36,12 +38,9 @@ export function OrderCheckout({
   const [startDate, setStartDate] = useState(draft.get("start") || minDate);
   const [endDate, setEndDate] = useState(draft.get("end") || minDate);
   const [quantity, setQuantity] = useState(draft.get("quantity") || "1");
-  const [retry, setRetry] = useState(0);
-  const [availability, setAvailability] = useState<{ key: string; count?: number; error?: string } | null>(null);
   const [selectedMode, setSelectedMode] = useState<"SALE" | "RENTAL">(
-    sale !== null ? "SALE" : "RENTAL"
+    draft.get("mode") === "rent" && rental !== null ? "RENTAL" : sale !== null ? "SALE" : "RENTAL"
   );
-  const requestKey = [productId, branchId, selectedMode, selectedMode === "RENTAL" ? startDate : "", selectedMode === "RENTAL" ? endDate : "", retry].join("|");
   const dateError = !startDate || !endDate ? "Please select both pickup and return dates."
     : startDate < minDate ? "Pickup date must be today or later."
     : endDate < startDate ? "Return date must be on or after the pickup date." : "";
@@ -61,22 +60,9 @@ export function OrderCheckout({
   }, []);
 
   useEffect(() => { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }, [productId]);
-  useEffect(() => {
-    if (!branchId || (selectedMode === "RENTAL" && dateError)) return;
-    const controller = new AbortController();
-    let alive = true;
-    const params = new URLSearchParams({ productId: String(productId), branchId });
-    if (selectedMode === "RENTAL") { params.set("startDate", startDate); params.set("endDate", endDate); }
-    const endpoint = selectedMode === "RENTAL" ? "/inventory/availability" : "/inventory/sale-availability";
-    catalogApi<{ quantityRentable: number; quantityAvailable: number }>(endpoint + "?" + params, { signal: controller.signal })
-      .then((value) => { if (alive) setAvailability({ key: requestKey, count: selectedMode === "RENTAL" ? value.quantityRentable : value.quantityAvailable }); })
-      .catch((error) => { if (alive) setAvailability({ key: requestKey, error: error instanceof Error ? error.message : "Unable to load inventory." }); });
-    return () => { alive = false; controller.abort(); };
-  }, [productId, selectedMode, branchId, startDate, endDate, dateError, requestKey]);
-  const current = availability?.key === requestKey ? availability : null;
-  const canOrder = !!branchId && (selectedMode === "SALE" || !dateError) && !!current && !current.error &&
-    Number.isInteger(Number(quantity)) && Number(quantity) > 0 && Number(quantity) <= (current.count ?? 0);
-  const stockBlocked = !canOrder && createdOrderId === null;
+  const canOrder = !!branchId && (selectedMode === "SALE" || !dateError) &&
+    Number.isSafeInteger(Number(quantity)) && Number(quantity) > 0;
+  const orderBlocked = !canOrder && createdOrderId === null;
 
   return (
     <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
@@ -86,7 +72,7 @@ export function OrderCheckout({
           Buy & Rent at Outpost
         </h3>
         <p className="text-[11px] text-[#5C665F] font-body mt-0.5">
-          Equipment prices and availability are verified in real time when placing your order. Rental duration is calculated from pickup date to return date at the outpost.
+          You can place an order even when equipment is out of stock. The branch prepares equipment before handover. Rental duration is calculated from pickup date to return date at the outpost.
         </p>
       </div>
 
@@ -97,7 +83,7 @@ export function OrderCheckout({
         }}
         onSubmit={async (e) => {
           e.preventDefault();
-          if (busy || stockBlocked) return;
+          if (busy || orderBlocked) return;
           if (createdOrderId !== null && (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") !== "cart") {
             navigate(`/payment/pending?orderId=${createdOrderId}`);
             return;
@@ -160,12 +146,14 @@ export function OrderCheckout({
               return;
             }
 
+            const invalidContact = contactError(contact.value);
+            if (invalidContact) throw new Error(invalidContact);
             const order = await catalogApi<Order>("/orders", {
               method: "POST",
               body: JSON.stringify({
                 branchId: Number(data.get("branch")),
                 items: [line],
-              }),
+                    }),
             });
 
             setIsSuccess(true);
@@ -178,7 +166,6 @@ export function OrderCheckout({
             navigate(`/payment/pending?orderId=${order.id}`);
           } catch (error) {
             setIsSuccess(false);
-            setRetry((v) => v + 1);
             setMessage(error instanceof Error ? error.message : "Unable to create order.");
           } finally {
             setBusy(false);
@@ -231,7 +218,6 @@ export function OrderCheckout({
             name="quantity"
             type="number"
             min="1"
-            max={current?.count}
             value={quantity} onInput={(e) => setQuantity(e.currentTarget.value)}
             required
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] font-mono-spec focus:outline-none focus:border-[#152A20]"
@@ -266,15 +252,8 @@ export function OrderCheckout({
           </div>
         )}
 
-        <div role="status" aria-live="polite" className="p-3 bg-white border border-[#D8D2C5] rounded-xs">
-            {!branchId ? "Select a pickup branch to view available quantity."
-              : selectedMode === "RENTAL" && dateError ? dateError : !current ? "Loading available quantity…"
-              : current.error ? <>{current.error} <button type="button" onClick={() => setRetry((v) => v + 1)}>Retry</button></>
-              : current.count === 0 ? (selectedMode === "SALE" ? "Out of stock at this branch." : "No equipment available for rent during these dates.")
-              : <>{selectedMode === "SALE" ? "Available to buy: " : "Available to rent: "}<strong>{current.count} units</strong>.
-                {!canOrder && <p>Select a quantity between 1 and {current.count}.</p>}</>}
-            <p className="mt-1 text-[11px]">Quantity updates automatically by branch and order type. Checking availability does not reserve stock.</p>
-        </div>
+        {selectedMode === "RENTAL" && dateError && <p role="alert">{dateError}</p>}
+        <CustomerContactSummary contact={contact} />
         {/* Status Message */}
         {message && (
           <div
@@ -331,7 +310,7 @@ export function OrderCheckout({
             variant="secondary"
             size="md"
             fullWidth
-            disabled={busy || stockBlocked}
+            disabled={busy || orderBlocked}
             icon={<PlusCircle className="w-4 h-4 text-[#D97845]" />}
           >
             Add to Cart
@@ -345,7 +324,7 @@ export function OrderCheckout({
             variant="accent"
             size="md"
             fullWidth
-            disabled={busy || stockBlocked || authLoading || !isAuthenticated}
+            disabled={busy || orderBlocked || authLoading || !isAuthenticated || !!contactError(contact.value)}
             icon={<CreditCard className="w-4 h-4 text-white" />}
             style={{ backgroundColor: '#D97845', color: '#FFFFFF', borderColor: '#D97845' }}
             className="!bg-[#D97845] hover:!bg-[#C66735] !text-white font-bold shadow-xs cursor-pointer"

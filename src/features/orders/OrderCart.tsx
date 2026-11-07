@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Badge } from '../../components/ui';
 import { catalogApi, Branch, Product, vnd } from '../equipment/catalogApi';
+import { CustomerContactSummary, getCustomerContact, contactError } from './customerContact';
 import type { Order } from './orderApi';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -49,6 +50,7 @@ function getRentalDays(start: string | null, end: string | null): number {
 export function OrderCart() {
   const navigate = useNavigate();
   const { account, isAuthenticated, loading: authLoading } = useAuth();
+  const contact = getCustomerContact(account);
 
   const [lines, setLines] = useState<CartLine[]>(() => {
     try {
@@ -168,6 +170,8 @@ export function OrderCart() {
       setError('Please sign in to place an order. Your cart has been saved.');
       return;
     }
+    const invalidContact = contactError(contact.value);
+    if (invalidContact) { setError(invalidContact); return; }
     setBusy(true);
     setError('');
 
@@ -678,12 +682,13 @@ export function OrderCart() {
               </div>
             )}
 
+            <CustomerContactSummary contact={contact} />
             {/* Checkout Action Button */}
             <Button
               variant="accent"
               size="lg"
               fullWidth
-              disabled={busy || authLoading || !isAuthenticated || lines.length === 0}
+              disabled={busy || authLoading || !isAuthenticated || lines.length === 0 || !!contactError(contact.value)}
               onClick={() => void handleCheckout()}
               icon={<ArrowRight className="w-4 h-4" />}
             >
