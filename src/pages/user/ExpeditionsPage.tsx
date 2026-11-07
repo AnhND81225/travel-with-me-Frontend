@@ -49,46 +49,51 @@ export function ExpeditionsPage() {
 
   // Bộ lọc
   const [keyword, setKeyword] = useState("");
+  // Submitted keyword is separate from the draft; submitting again also retries the request.
+  const [searchQuery, setSearchQuery] = useState({ keyword: "" });
   const [eventType, setEventType] = useState<EventType | "">("");
   const [difficulty, setDifficulty] = useState<DifficultyLevel | "">("");
 
-  const load = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [eventPage, guidePage] = await Promise.all([
-        eventGuideApi.listEvents({
-          keyword: keyword.trim() || undefined,
-          eventType: eventType || undefined,
-          difficultyLevel: difficulty || undefined,
-          page,
-          size: 9,
-        }),
-        eventGuideApi.listGuides({ size: 8 }),
-      ]);
-      setEvents(eventPage.items);
-      setTotalPages(eventPage.totalPages);
-      setTotalElements(eventPage.totalElements);
-      setGuides(guidePage.items);
-    } catch (cause) {
-      setError(errorText(cause));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const [eventPage, guidePage] = await Promise.all([
+          eventGuideApi.listEvents({
+            keyword: searchQuery.keyword || undefined,
+            eventType: eventType || undefined,
+            difficultyLevel: difficulty || undefined,
+            page,
+            size: 9,
+          }),
+          eventGuideApi.listGuides({ size: 8 }),
+        ]);
+        if (!active) return;
+        setEvents(eventPage.items);
+        setTotalPages(eventPage.totalPages);
+        setTotalElements(eventPage.totalElements);
+        setGuides(guidePage.items);
+      } catch (cause) {
+        if (active) setError(errorText(cause));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
     void load();
-  }, [page, eventType, difficulty]);
+    return () => { active = false; };
+  }, [page, eventType, difficulty, searchQuery]);
 
   const search = (e: FormEvent) => {
     e.preventDefault();
     setPage(0);
-    void load();
+    setSearchQuery({ keyword: keyword.trim() });
   };
 
   const clearFilters = () => {
     setKeyword("");
+    setSearchQuery({ keyword: "" });
     setEventType("");
     setDifficulty("");
     setPage(0);
@@ -97,7 +102,7 @@ export function ExpeditionsPage() {
   const hasActiveFilters = Boolean(keyword || eventType || difficulty);
 
   return (
-    <main className="store-home">
+    <div className="store-home">
       {/* Banner đầu trang tinh gọn */}
       <section className="border-b border-[#e6e2d9] bg-[#f7f3ea] py-8 md:py-10">
         <div className="store-container">
@@ -179,9 +184,10 @@ export function ExpeditionsPage() {
                 <Search className="w-3.5 h-3.5 text-[#74947e] shrink-0" />
                 <input
                   type="text"
-                  className="bg-transparent border-0 outline-none text-xs w-full text-[#02150c] placeholder:text-gray-400 font-sans"
+                  className="bg-transparent border-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#994717] text-xs w-full text-[#02150c] placeholder:text-gray-400 font-sans"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
+                  aria-label="Search tours"
                   placeholder="Search tours..."
                 />
                 {keyword && (
@@ -189,6 +195,7 @@ export function ExpeditionsPage() {
                     type="button"
                     onClick={() => {
                       setKeyword("");
+                      setSearchQuery({ keyword: "" });
                       setPage(0);
                     }}
                     className="text-gray-400 hover:text-gray-600"
@@ -200,7 +207,8 @@ export function ExpeditionsPage() {
               </div>
 
               <select
-                className="bg-white border border-[#c2c8c266] rounded px-2.5 py-1.5 text-xs font-medium text-[#152a20] cursor-pointer outline-none"
+                aria-label="Filter by difficulty"
+                className="bg-white border border-[#c2c8c266] rounded px-2.5 py-1.5 text-xs font-medium text-[#152a20] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#994717]"
                 value={difficulty}
                 onChange={(e) => {
                   setDifficulty(e.target.value as DifficultyLevel | "");
@@ -285,9 +293,9 @@ export function ExpeditionsPage() {
                       <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-white">
                         <div>
                           <Link to={`/tours/${tour.eventId}`} className="hover:text-[#994717] transition-colors">
-                            <h3 className="line-clamp-2 text-base font-bold text-[#02150c] font-headline min-h-[44px]">
+                            <h2 className="line-clamp-2 text-base font-bold text-[#02150c] font-headline min-h-[44px]">
                               {tour.eventName}
-                            </h3>
+                            </h2>
                           </Link>
 
                           <div className="flex flex-wrap items-center gap-1.5 mt-2">
@@ -388,7 +396,7 @@ export function ExpeditionsPage() {
             /* Khi không có chuyến đi nào */
             <div className="py-14 text-center border border-dashed border-[#e6e2d9] bg-white rounded-md p-8 space-y-3">
               <Compass className="w-10 h-10 text-gray-400 mx-auto" />
-              <h3 className="text-lg font-bold text-[#02150c]">No matching tours found</h3>
+              <h2 className="text-lg font-bold text-[#02150c]">No matching tours found</h2>
               <p className="text-xs text-[#424844] max-w-sm mx-auto">
                 Try changing your search or clearing the filters to view all tours.
               </p>
@@ -469,6 +477,6 @@ export function ExpeditionsPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
