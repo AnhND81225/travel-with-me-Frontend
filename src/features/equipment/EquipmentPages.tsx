@@ -644,7 +644,7 @@ export function EquipmentCatalog({
                 {/* Visual Imagery */}
                 <div className="relative w-full h-48 bg-[#EBE6DC] overflow-hidden">
                   <img
-                    src={getProductImage(item.category, item.name, item.id)}
+                    src={item.imageUrl || getProductImage(item.category, item.name, item.id)}
                     alt={item.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
@@ -876,7 +876,7 @@ export function EquipmentDetail() {
     );
   }
 
-  const coverImg = getProductImage(product.category, product.name, product.id);
+  const coverImg = product.imageUrl || getProductImage(product.category, product.name, product.id);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
@@ -1172,6 +1172,14 @@ function Editor({ account }: { account: Account }) {
   const [product, setProduct] = useState<Product | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
+  useEffect(() => {
+    if (!imageFile) { setPreview(""); return; }
+    const url = URL.createObjectURL(imageFile);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
   useEffect(() => {
     let alive = true;
     setProduct(null);
@@ -1206,16 +1214,28 @@ function Editor({ account }: { account: Account }) {
               setError("Enter at least one price.");
               return;
             }
+            setError("");
             setBusy(true);
             try {
-              await catalogApi("/admin/products" + (id ? "/" + id : ""), {
-                method: id ? "PUT" : "POST",
+              const productId = id || product?.id;
+              const saved = await catalogApi<Product>("/admin/products" + (productId ? "/" + productId : ""), {
+                method: productId ? "PUT" : "POST",
                 body: JSON.stringify({
                   ...data,
                   salePrice: data.salePrice || null,
                   rentalPricePerDay: data.rentalPricePerDay || null,
                 }),
               });
+              if (imageFile) {
+                const body = new FormData();
+                body.append("file", imageFile);
+                try {
+                  await catalogApi<Product>(`/admin/products/${saved.id}/image`, { method: "POST", body });
+                } catch (uploadError) {
+                  setProduct(saved);
+                  throw new Error(`Equipment saved, but image upload failed. Please select the image and save again. ${errorText(uploadError)}`);
+                }
+              }
               navigate("/admin/catalog");
             } catch (e) {
               setError(errorText(e));
@@ -1264,6 +1284,25 @@ function Editor({ account }: { account: Account }) {
             </label>
           </div>
           <p>Leave the price blank if that option is unavailable.</p>
+          <label>
+            Equipment image
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                if (file && (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+                  setError("Choose a JPEG, PNG or WebP image up to 5 MB.");
+                  event.target.value = "";
+                  setImageFile(null);
+                  return;
+                }
+                setError("");
+                setImageFile(file);
+              }}
+            />
+            <small>JPEG, PNG or WebP, up to 5 MB. A new image replaces the current image when saved.</small>
+          </label>
+          {(preview || product?.imageUrl) && <img src={preview || product?.imageUrl || ""} alt="Equipment preview" style={{ width: 240, maxHeight: 200, objectFit: "contain" }} />}
+
           <div className="eq-actions">
             <button className="eq-primary" disabled={busy}>
               {busy ? "Saving…" : "Save equipment"}
