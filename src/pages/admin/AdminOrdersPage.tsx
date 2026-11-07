@@ -46,30 +46,11 @@ export const AdminOrdersPage: React.FC = () => {
   const usersMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
 
   const getOrderCustomer = (order: Order) => {
-    const o = order as any;
     const user = usersMap.get(order.userId);
-    const name =
-      o.customerName ||
-      o.fullName ||
-      o.userName ||
-      user?.fullName ||
-      (order.userId === 1 ? 'Admin Ranger' : `Climber #${order.userId}`);
-    const phone =
-      o.customerPhone ||
-      o.phone ||
-      user?.phone ||
-      '+84 912 345 678';
-    const email =
-      o.customerEmail ||
-      o.email ||
-      user?.email ||
-      (user ? `user${user.id}@terrapeak.vn` : `customer${order.userId}@terrapeak.vn`);
-    const address =
-      o.customerAddress ||
-      o.address ||
-      user?.address ||
-      localStorage.getItem('terrapeak_customer_address') ||
-      '72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City';
+    const name = order.customerName || user?.fullName || `Customer #${order.userId}`;
+    const phone = order.customerPhone || user?.phone || 'Not provided';
+    const email = order.customerEmail || user?.email || 'Not provided';
+    const address = order.customerAddress || 'Not provided';
     return { name, phone, email, address };
   };
   const [loading, setLoading] = useState(true);

@@ -47,18 +47,11 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   }
 
   const { account } = useAuth();
-  const [customAddress, setCustomAddress] = useState<string>(() => {
-    return localStorage.getItem("terrapeak_customer_address") || "72 Le Thanh Ton, Ben Nghe, District 1, Ho Chi Minh City";
-  });
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
-  const [tempAddress, setTempAddress] = useState(customAddress);
-
   const getOrderCustomer = (order: Order) => {
-    const o = order as any;
-    const name = o.customerName || o.fullName || o.userName || account?.fullName || "Jamie Nguyen";
-    const phone = o.customerPhone || o.phone || account?.phone || "+84 912 345 678";
-    const email = o.customerEmail || o.email || account?.email || "customer@terrapeak.vn";
-    const address = o.customerAddress || o.address || customAddress;
+    const name = order.customerName || account?.fullName || `Customer #${order.userId}`;
+    const phone = order.customerPhone || account?.phone || 'Not provided';
+    const email = order.customerEmail || account?.email || 'Not provided';
+    const address = order.customerAddress || 'Not provided';
     return { name, phone, email, address };
   };
 
@@ -348,7 +341,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       return (
         <div className="py-2 px-3 bg-[#FEE2E2]/60 border border-[#FCA5A5] rounded-xs text-[11px] text-[#B91C1C] flex items-center gap-2">
           <XCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
-          <span>The order has been cancelled and reserved stock has been released.</span>
+          <span>The order has been cancelled.</span>
         </div>
       );
     }
@@ -1063,7 +1056,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                         {cust.phone}
                       </p>
                       <span className="inline-block px-1.5 py-0.5 rounded-2xs bg-emerald-50 text-emerald-700 text-[9px] font-bold">
-                        Verified Contact
+                        Customer Contact
                       </span>
                     </div>
 
@@ -1074,59 +1067,8 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                           <MapPin className="w-3 h-3 text-[#5C665F]" />
                           Customer Address
                         </span>
-                        {!isEditingAddress ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTempAddress(cust.address);
-                              setIsEditingAddress(true);
-                            }}
-                            className="text-[10px] text-[#D97845] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
-                          >
-                            <Edit3 className="w-2.5 h-2.5" />
-                            Edit
-                          </button>
-                        ) : null}
                       </div>
-
-                      {isEditingAddress ? (
-                        <div className="space-y-1.5 pt-1">
-                          <input
-                            type="text"
-                            value={tempAddress}
-                            onChange={(e) => setTempAddress(e.target.value)}
-                            className="w-full text-xs p-1.5 bg-[#F8F6F1] border border-[#152A20] rounded-xs text-[#111D16] focus:outline-none"
-                            placeholder="Enter delivery or residential address..."
-                            autoFocus
-                          />
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (tempAddress.trim()) {
-                                  localStorage.setItem("terrapeak_customer_address", tempAddress.trim());
-                                  setCustomAddress(tempAddress.trim());
-                                }
-                                setIsEditingAddress(false);
-                              }}
-                              className="px-2 py-0.5 bg-[#152A20] text-white rounded-2xs text-[10px] font-bold hover:bg-[#1E3A2D] cursor-pointer"
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsEditingAddress(false)}
-                              className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-2xs text-[10px] font-bold hover:bg-gray-300 cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-[#152A20] font-medium leading-relaxed">
-                          {cust.address}
-                        </p>
-                      )}
+                      <p className="text-xs text-[#152A20] font-medium leading-relaxed">{cust.address}</p>
                     </div>
                   </div>
                 </div>
@@ -1270,7 +1212,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               <div>
                 <p className="font-bold">Are you sure you want to cancel this order?</p>
                 <p className="text-[11px] mt-0.5 font-body">
-                  This will cancel your equipment order and release your reserved stock.
+                  This will cancel your equipment order.
                 </p>
               </div>
             </div>

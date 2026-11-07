@@ -130,36 +130,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Station Inventory Matrix */}
-              <div className="bg-[#EBE6DC] rounded-xs p-3.5 border border-[#D8D2C5] space-y-2 text-xs font-label">
-                <div className="text-[10px] text-[#7A857E] font-bold uppercase tracking-wider">
-                  DEPOT STOCK AVAILABILITY:
-                </div>
-                <div className="space-y-1.5">
-                  {outposts.map((station) => {
-                    const count = gear.stockByOutpost[station.id] || 0;
-                    return (
-                      <div
-                        key={station.id}
-                        className="flex items-center justify-between text-[11px]"
-                      >
-                        <span className="text-[#4A524C] font-semibold">
-                          {station.name}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-xs font-bold font-mono-spec ${
-                            count > 0
-                              ? "bg-[#152A20] text-white"
-                              : "bg-[#DDD7CB] text-[#7A857E]"
-                          }`}
-                        >
-                          {count > 0 ? `${count} Ready` : "0 in depot"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
 
             {/* Right Information & Mode Switcher */}

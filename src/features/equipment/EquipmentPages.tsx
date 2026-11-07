@@ -1,3 +1,4 @@
+import { CollectionHero } from "../../components/common/CollectionHero";
 import React, { useEffect, useState } from "react";
 import { OrderCheckout } from "../orders/OrderCheckout";
 import {
@@ -48,7 +49,9 @@ import {
   saveToken,
   vnd,
 } from "./catalogApi";
+import { getProductImage } from "./productImage";
 import "./equipment.css";
+import "./equipment-store.css";
 
 const errorText = (error: unknown) =>
   error instanceof Error ? error.message : "Unable to complete the request";
@@ -240,16 +243,6 @@ function Pager({
   );
 }
 
-function getProductImage(category?: string | null, name?: string | null, id?: number): string {
-  const text = `${category || ""} ${name || ""}`.toLowerCase();
-  if (text.includes("lều") || text.includes("tent") || text.includes("shelter")) return images.tent;
-  if (text.includes("balo") || text.includes("pack") || text.includes("bag") || text.includes("túi")) return images.pack;
-  if (text.includes("gậy") || text.includes("pole") || text.includes("trek")) return images.poles;
-  if (text.includes("bếp") || text.includes("nấu") || text.includes("kitchen") || text.includes("cook") || text.includes("stove")) return images.kitchen;
-  if (text.includes("giày") || text.includes("boot") || text.includes("shoe")) return images.hike;
-  const list = [images.tent, images.pack, images.poles, images.kitchen, images.camp, images.hike];
-  return list[(id || 0) % list.length];
-}
 
 function ProductArt({ category, name, id }: { category?: string | null; name?: string | null; id?: number } = {}) {
   const imgUrl = getProductImage(category, name, id);
@@ -274,6 +267,7 @@ export function EquipmentCatalog({
   defaultMode?: "all" | "buy" | "rent";
 }) {
   const [page, setPage] = useState(0);
+  const [reload, setReload] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [minPrice, setMinPrice] = useState("");
@@ -285,11 +279,16 @@ export function EquipmentCatalog({
 
   const categories = [
     { label: "All Categories", value: "" },
-    { label: "Tents & Shelters", value: "lều" },
-    { label: "Backpacks & Packs", value: "balo" },
-    { label: "Trekking Poles", value: "gậy" },
-    { label: "Kitchen & Stoves", value: "bếp" },
-    { label: "Footwear & Boots", value: "giày" },
+    { label: "Tents & Shelters", value: "tent" },
+    { label: "Backpacks & Packs", value: "backpack" },
+    { label: "Trekking Poles", value: "trekking poles" },
+    { label: "Kitchen & Stoves", value: "cooking" },
+    { label: "Footwear & Boots", value: "footwear" },
+    { label: "Sleeping gear", value: "sleeping" },
+    { label: "Lighting", value: "lighting" },
+    { label: "Stoves", value: "stove" },
+    { label: "Safety", value: "safety" },
+    { label: "Accessories", value: "accessories" },
   ];
 
   const handleApplyFilters = (e?: React.FormEvent) => {
@@ -338,485 +337,48 @@ export function EquipmentCatalog({
         if (alive) setBusy(false);
       });
 
-    return () => {
-      alive = false;
-    };
-  }, [query, page, defaultMode]);
+    return () => { alive = false; };
+  }, [query, page, defaultMode, reload]);
 
   useEffect(() => {
-    setPage(0);
     handleResetFilters();
   }, [defaultMode]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-label">
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
-        <Link to="/" className="hover:text-[#111D16]">Home</Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-[#111D16]">Equipment Armoury</span>
-        {defaultMode !== "all" && (
-          <>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-[#D97845] uppercase">
-              {defaultMode === "buy" ? "Buy Hardware" : "Rental Fleet"}
-            </span>
-          </>
-        )}
+    <div className="store-home equipment-store">
+      <div className="store-container">
+        <nav className="equipment-breadcrumb" aria-label="Breadcrumb"><Link to="/">Home</Link><ChevronRight size={13} /><span>Equipment</span></nav>
+        <CollectionHero eyebrow="THE TERRAPEAK EQUIPMENT COLLECTION" title="Good gear." accent="Great adventures."
+          description="Find your next trail companion. Buy equipment to keep, or rent what you need for the journey ahead."
+          image={images.rent} imageAlt="Outdoor equipment arranged in a rental depot"
+          primary={{ label: "Explore the collection", href: "#equipment-collection" }}
+          secondary={{ label: "Find your next adventure", href: "/tours" }}
+          caption="FOR EVERY WAY OUTSIDE" captionDetail="From weekend camps to mountain trails." />
+        <section className="equipment-collection" id="equipment-collection" aria-labelledby="equipment-title">
+          <div className="equipment-collection-heading"><div><span className="store-eyebrow">PACK FOR WHAT'S NEXT</span><h2 id="equipment-title">Explore our gear</h2></div><nav className="equipment-mode-tabs" aria-label="Equipment type">{([{ to: '/catalog', mode: 'all', label: 'All gear' }, { to: '/shop', mode: 'buy', label: 'Buy gear' }, { to: '/rent', mode: 'rent', label: 'Rent gear' }] as const).map(item => <Link key={item.mode} to={item.to} aria-current={defaultMode === item.mode ? 'page' : undefined}>{item.label}</Link>)}</nav></div>
+          <form onSubmit={handleApplyFilters} className="equipment-filter-panel">
+            <div className="equipment-filters">
+              <label className="equipment-search">Search equipment<div><Search size={16} /><input type="search" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="Tents, backpacks, trail essentials…" /></div></label>
+              <label>Category<select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>{categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+              <label>Min price · VND<input type="number" min="0" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="From" /></label>
+              <label>Max price · VND<input type="number" min="0" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="To" /></label>
+              <button type="submit" className="store-button" disabled={busy}><SlidersHorizontal size={15} />Apply filters</button>
+            </div>
+            <div className="equipment-quick-filters"><span>Price range</span>{[{ label: 'Under 500,000 ₫', min: '', max: '500000' }, { label: '500,000–2,000,000 ₫', min: '500000', max: '2000000' }, { label: 'Over 2,000,000 ₫', min: '2000000', max: '' }].map(range => <button type="button" key={range.label} aria-pressed={minPrice === range.min && maxPrice === range.max} onClick={() => { setMinPrice(range.min); setMaxPrice(range.max); }}>{range.label}</button>)}</div>
+          </form>
+          <div className="equipment-results-bar"><p aria-live="polite">{busy ? 'Finding your gear…' : `${data?.totalElements ?? 0} products`}{defaultMode !== 'all' && <span> · {defaultMode === 'buy' ? 'Available to buy' : 'Available to rent'}</span>}</p>{hasActiveFilters && <button onClick={handleResetFilters}><X size={13} />Clear filters</button>}</div>
+          {error ? <div role="alert" className="equipment-empty"><AlertCircle size={28} /><h3>Unable to load equipment</h3><p>{error}</p><button className="store-button" onClick={() => setReload(value => value + 1)}>Try again <RefreshCw size={14} /></button></div> : busy ? <div className="store-grid-four" role="status" aria-label="Loading equipment">{Array.from({ length: 8 }, (_, index) => <div key={index} className="equipment-skeleton"><div /><span /><span /></div>)}</div> : data?.content.length ? <div className="store-grid-four equipment-product-grid">{data.content.map(item => <article className="store-product-card" key={item.id}>
+            <Link to={`/gear/${item.id}`} className="store-product-image"><img src={item.imageUrl || getProductImage(item.category, item.name, item.id)} alt={item.name} loading="lazy" decoding="async" /><span className="store-image-tag">{item.category || 'Equipment'}</span></Link>
+            <div className="store-card-body"><Link to={`/gear/${item.id}`}><h3>{item.name}</h3></Link><p>{item.salePrice !== null && item.rentalPricePerDay !== null ? 'Buy it for the long run. Rent it for the weekend.' : item.salePrice !== null ? 'Make it part of your adventure kit.' : 'Ready for your next rental adventure.'}</p>
+              <div className="store-price-grid">{item.salePrice !== null && <div><small>● Buy</small><strong>{vnd(item.salePrice)}</strong></div>}{item.rentalPricePerDay !== null && <div><small>● Rent</small><strong>{vnd(item.rentalPricePerDay)} <em>/day</em></strong></div>}</div>
+              <div className="store-product-actions">{item.salePrice !== null && <Link className="store-button" to={`/gear/${item.id}?mode=buy`}><ShoppingBag size={14} />Buy gear</Link>}{item.rentalPricePerDay !== null && <Link className="store-button store-button-orange" to={`/gear/${item.id}?mode=rent`}><Calendar size={14} />Rent gear</Link>}</div>
+            </div>
+          </article>)}</div> : <div className="equipment-empty"><Compass size={34} strokeWidth={1.3} /><h3>No gear found this time</h3><p>Try another search or adjust your filters to discover more equipment.</p><button className="store-button" onClick={handleResetFilters}>Clear filters <ArrowRight size={14} /></button></div>}
+          {data && data.totalPages > 1 && <nav className="equipment-pagination" aria-label="Product pages"><span>Page {page + 1} of {data.totalPages}</span><div><button disabled={busy || page === 0} onClick={() => setPage(value => value - 1)}><ChevronLeft size={15} />Previous</button>{Array.from({ length: data.totalPages }, (_, index) => <button key={index} aria-current={page === index ? 'page' : undefined} aria-label={`Page ${index + 1}`} disabled={busy} onClick={() => setPage(index)}>{index + 1}</button>)}<button disabled={busy || page + 1 >= data.totalPages} onClick={() => setPage(value => value + 1)}>Next<ChevronRight size={15} /></button></div></nav>}
+        </section>
+        <aside className="equipment-help"><Compass size={26} strokeWidth={1.4} /><div><h3>Not sure what to pack?</h3><p>Explore our guided tours and plan your next trip.</p></div><Link to="/tours">Explore adventures <ArrowRight size={15} /></Link></aside>
       </div>
 
-      {/* Hero Header Banner */}
-      <div className="bg-[#152A20] text-white rounded-xs p-6 sm:p-10 relative overflow-hidden shadow-lg border border-[#2B4E3C]">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xs bg-[#2B4E3C]/90 text-emerald-400 text-[10px] font-bold tracking-widest uppercase border border-emerald-500/30">
-            <Mountain className="w-3.5 h-3.5" />
-            <span>TERRAPEAK EXPEDITION ARMOURY</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-headline tracking-tight text-white leading-tight">
-            Field-Grade Gear & Technical Fleets
-          </h1>
-
-          <p className="text-xs sm:text-sm text-[#ADCBBB] font-body leading-relaxed max-w-2xl">
-            Alpine-certified four-season shelters, carbon trekking systems, ergonomic packs, and high-output stoves. Purchase brand-new hardware with our lifetime repair guarantee, or rent field-inspected fleets from our 5 Outpost branches.
-          </p>
-
-          {/* Guarantees Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[#2B4E3C] text-xs">
-            <div className="flex items-center gap-2 text-[#ADCBBB]">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-[11px] font-bold">3-Stage Ozone Sanitized</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#ADCBBB]">
-              <Building className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-[11px] font-bold">5 Depot Locations</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#ADCBBB]">
-              <Package className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-[11px] font-bold">Factory Warranty</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#ADCBBB]">
-              <RefreshCw className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-[11px] font-bold">Easy Station Returns</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Decorative background accent */}
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-15 pointer-events-none hidden md:block">
-          <img src={images.hero} alt="" className="w-full h-full object-cover object-right" />
-        </div>
-      </div>
-
-      {/* Mode Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-[#D8D2C5] pb-4">
-        <div className="flex items-center gap-2 bg-[#EBE6DC] p-1 rounded-xs border border-[#D8D2C5]">
-          <Link
-            to="/catalog"
-            className={`px-4 py-2 rounded-xs font-bold text-xs uppercase tracking-wider transition ${
-              defaultMode === "all"
-                ? "bg-[#152A20] text-white shadow-xs"
-                : "text-[#5C665F] hover:text-[#111D16]"
-            }`}
-          >
-            All Hardware
-          </Link>
-          <Link
-            to="/shop"
-            className={`px-4 py-2 rounded-xs font-bold text-xs uppercase tracking-wider transition ${
-              defaultMode === "buy"
-                ? "bg-[#152A20] text-white shadow-xs"
-                : "text-[#5C665F] hover:text-[#111D16]"
-            }`}
-          >
-            Buy Gear
-          </Link>
-          <Link
-            to="/rent"
-            className={`px-4 py-2 rounded-xs font-bold text-xs uppercase tracking-wider transition ${
-              defaultMode === "rent"
-                ? "bg-[#D97845] text-white shadow-xs"
-                : "text-[#5C665F] hover:text-[#111D16]"
-            }`}
-          >
-            Rent Fleet
-          </Link>
-        </div>
-
-        <div className="text-xs text-[#5C665F] font-bold flex items-center gap-2">
-          <span>
-            {busy ? "Loading inventory..." : `${data?.totalElements ?? 0} items available`}
-          </span>
-          {hasActiveFilters && (
-            <button
-              onClick={handleResetFilters}
-              className="text-[#D97845] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-              Reset filters
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <form
-        onSubmit={handleApplyFilters}
-        className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs p-4 sm:p-5 shadow-xs space-y-4"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          {/* Keyword Search */}
-          <div className="md:col-span-5 space-y-1">
-            <label className="text-[10px] font-bold uppercase text-[#737C75] block">
-              Search Gear & SKU
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-[#737C75] absolute left-3 top-3 pointer-events-none" />
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Search tents, packs, stoves, boots..."
-                className="w-full bg-white border border-[#D8D2C5] rounded-xs pl-9 pr-8 py-2 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
-              />
-              {keyword && (
-                <button
-                  type="button"
-                  onClick={() => setKeyword("")}
-                  className="absolute right-2.5 top-2.5 text-[#737C75] hover:text-[#111D16] cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Category Dropdown */}
-          <div className="md:col-span-3 space-y-1">
-            <label className="text-[10px] font-bold uppercase text-[#737C75] block">
-              Category
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-white border border-[#D8D2C5] rounded-xs px-3 py-2 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
-            >
-              {categories.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Price Range (Min / Max) */}
-          <div className="md:col-span-4 flex items-end gap-2">
-            <div className="space-y-1 flex-1">
-              <label className="text-[10px] font-bold uppercase text-[#737C75] block">
-                Price (Min)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="50000"
-                placeholder="0"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className="w-full bg-white border border-[#D8D2C5] rounded-xs px-3 py-2 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] font-mono-spec"
-              />
-            </div>
-            <div className="space-y-1 flex-1">
-              <label className="text-[10px] font-bold uppercase text-[#737C75] block">
-                Price (Max)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="50000"
-                placeholder="Max"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="w-full bg-white border border-[#D8D2C5] rounded-xs px-3 py-2 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20] font-mono-spec"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={busy}
-              className="px-4 py-2 bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold uppercase rounded-xs transition shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 h-[34px]"
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span>Filter</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Price Shortcuts */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#D8D2C5]/60 text-xs">
-          <span className="text-[10px] font-bold uppercase text-[#737C75]">Quick Ranges:</span>
-          <button
-            type="button"
-            onClick={() => { setMinPrice(""); setMaxPrice("500000"); }}
-            className={`px-2.5 py-1 rounded-xs border text-[11px] font-bold transition cursor-pointer ${
-              minPrice === "" && maxPrice === "500000"
-                ? "bg-[#152A20] text-white border-[#152A20]"
-                : "bg-white text-[#5C665F] border-[#D8D2C5] hover:bg-[#EBE6DC]"
-            }`}
-          >
-            Under 500,000 ₫
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMinPrice("500000"); setMaxPrice("2000000"); }}
-            className={`px-2.5 py-1 rounded-xs border text-[11px] font-bold transition cursor-pointer ${
-              minPrice === "500000" && maxPrice === "2000000"
-                ? "bg-[#152A20] text-white border-[#152A20]"
-                : "bg-white text-[#5C665F] border-[#D8D2C5] hover:bg-[#EBE6DC]"
-            }`}
-          >
-            500,000 ₫ – 2,000,000 ₫
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMinPrice("2000000"); setMaxPrice(""); }}
-            className={`px-2.5 py-1 rounded-xs border text-[11px] font-bold transition cursor-pointer ${
-              minPrice === "2000000" && maxPrice === ""
-                ? "bg-[#152A20] text-white border-[#152A20]"
-                : "bg-white text-[#5C665F] border-[#D8D2C5] hover:bg-[#EBE6DC]"
-            }`}
-          >
-            Above 2,000,000 ₫
-          </button>
-        </div>
-      </form>
-
-      {/* Error message */}
-      {error && (
-        <div className="p-4 bg-[#FEE2E2] border border-[#FCA5A5] rounded-xs text-xs text-[#B91C1C] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-          <button
-            onClick={() => handleApplyFilters()}
-            className="font-bold underline hover:text-black cursor-pointer"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Product Grid Area */}
-      {busy ? (
-        /* Loading Skeleton */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs overflow-hidden animate-pulse flex flex-col"
-            >
-              <div className="h-48 bg-[#EBE6DC]" />
-              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <div className="h-5 bg-[#EBE6DC] rounded-xs w-3/4" />
-                  <div className="h-3 bg-[#EBE6DC] rounded-xs w-1/2" />
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <div className="h-12 bg-[#EBE6DC] rounded-xs" />
-                  <div className="h-12 bg-[#EBE6DC] rounded-xs" />
-                </div>
-                <div className="h-9 bg-[#EBE6DC] rounded-xs w-full" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : data && data.content.length > 0 ? (
-        /* Products Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.content.map((item) => {
-            const hasSale = item.salePrice !== null;
-            const hasRental = item.rentalPricePerDay !== null;
-
-            return (
-              <article
-                key={item.id}
-                className="bg-[#F8F6F1] border border-[#D8D2C5] hover:border-[#152A20] hover:shadow-lg rounded-xs transition-all duration-300 flex flex-col group overflow-hidden"
-              >
-                {/* Visual Imagery */}
-                <div className="relative w-full h-48 bg-[#EBE6DC] overflow-hidden">
-                  <img
-                    src={item.imageUrl || getProductImage(item.category, item.name, item.id)}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-
-                  {/* Floating Badges */}
-                  <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-[#152A20]/90 text-white uppercase tracking-wider backdrop-blur-xs">
-                      {item.category || "ALPINE GEAR"}
-                    </span>
-                    {hasSale && hasRental ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-[#065F46] text-white uppercase tracking-wider shadow-xs">
-                        BUY & RENT
-                      </span>
-                    ) : hasSale ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-[#152A20] text-white uppercase tracking-wider shadow-xs">
-                        PURCHASE ONLY
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-[#D97845] text-white uppercase tracking-wider shadow-xs">
-                        RENTAL FLEET
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="absolute bottom-2 left-2.5 text-[10px] font-mono-spec font-bold text-white/80">
-                    TP-EQ-{item.id}
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-3 font-label">
-                  <div>
-                    <h3 className="font-headline font-bold text-base text-[#111D16] group-hover:text-[#D97845] transition-colors line-clamp-1">
-                      {item.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-[#5C665F]">
-                      <span className="flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        Ozone Sanitized
-                      </span>
-                      <span>•</span>
-                      <span>Outpost Ready</span>
-                    </div>
-                  </div>
-
-                  {/* Dual Pricing Grid */}
-                  <div className="pt-2 border-t border-[#D8D2C5]/70 grid grid-cols-2 gap-2 text-xs">
-                    <div
-                      className={`p-2 rounded-xs border ${
-                        defaultMode === "buy"
-                          ? "bg-[#EBE6DC] border-[#152A20]"
-                          : "bg-white border-[#D8D2C5]"
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold text-[#737C75] uppercase block">
-                        Buy Outright
-                      </span>
-                      <span className="font-bold text-[#111D16] font-headline text-xs block truncate">
-                        {hasSale ? vnd(item.salePrice) : <span className="text-[#A39B8D]">N/A</span>}
-                      </span>
-                    </div>
-
-                    <div
-                      className={`p-2 rounded-xs border ${
-                        defaultMode === "rent"
-                          ? "bg-[#FFF8F3] border-[#D97845]"
-                          : "bg-white border-[#D8D2C5]"
-                      }`}
-                    >
-                      <span className="text-[10px] font-bold text-[#D97845] uppercase block">
-                        Rent Daily
-                      </span>
-                      <span className="font-bold text-[#D97845] font-headline text-xs block truncate">
-                        {hasRental ? `${vnd(item.rentalPricePerDay)}/d` : <span className="text-[#A39B8D]">N/A</span>}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <Link
-                    to={`/gear/${item.id}`}
-                    className="w-full py-2 px-3 rounded-xs bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition shadow-xs group/btn cursor-pointer"
-                  >
-                    <span>View Specs & Reserve</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                  </Link>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        /* Empty State */
-        <div className="p-12 text-center bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-4">
-          <div className="w-14 h-14 rounded-full bg-[#EBE6DC] border border-[#D8D2C5] flex items-center justify-center mx-auto text-[#737C75]">
-            <Compass className="w-7 h-7 stroke-1 text-[#152A20]" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
-              No Equipment Matches Found
-            </h3>
-            <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
-              We couldn't find any equipment matching your active keyword, category, or price range.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="px-4 py-2 bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold uppercase rounded-xs transition shadow-xs cursor-pointer"
-          >
-            Clear All Filters
-          </button>
-        </div>
-      )}
-
-      {/* Pagination Bar */}
-      {data && data.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#D8D2C5] text-xs">
-          <span className="text-[#5C665F] font-bold">
-            Showing Page {page + 1} of {data.totalPages} ({data.totalElements} total items)
-          </span>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled={busy || page === 0}
-              onClick={() => {
-                setPage((p) => Math.max(0, p - 1));
-                window.scrollTo({ top: 300, behavior: "smooth" });
-              }}
-              className="px-3 py-1.5 rounded-xs border border-[#D8D2C5] bg-white text-[#111D16] font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#EBE6DC] transition flex items-center gap-1 cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Prev</span>
-            </button>
-
-            {Array.from({ length: Math.min(5, data.totalPages) }).map((_, i) => {
-              const pageNumber = i;
-              return (
-                <button
-                  key={pageNumber}
-                  disabled={busy}
-                  onClick={() => {
-                    setPage(pageNumber);
-                    window.scrollTo({ top: 300, behavior: "smooth" });
-                  }}
-                  className={`w-8 h-8 rounded-xs text-xs font-bold font-mono-spec transition cursor-pointer ${
-                    page === pageNumber
-                      ? "bg-[#152A20] text-white border border-[#152A20]"
-                      : "bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]"
-                  }`}
-                >
-                  {pageNumber + 1}
-                </button>
-              );
-            })}
-
-            <button
-              disabled={busy || page + 1 >= data.totalPages}
-              onClick={() => {
-                setPage((p) => p + 1);
-                window.scrollTo({ top: 300, behavior: "smooth" });
-              }}
-              className="px-3 py-1.5 rounded-xs border border-[#D8D2C5] bg-white text-[#111D16] font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#EBE6DC] transition flex items-center gap-1 cursor-pointer"
-            >
-              <span>Next</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
