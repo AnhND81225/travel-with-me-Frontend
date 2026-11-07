@@ -2,6 +2,7 @@ import { englishApiMessage } from '../../utils/englishApiMessage';
 export type Product = {
   id: number;
   name: string;
+  imageUrl?: string | null;
   category: string | null;
   salePrice: number | null;
   rentalPricePerDay: number | null;
@@ -59,7 +60,7 @@ export async function catalogApi<T>(
   const response = await fetch("/api" + path, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: "Bearer " + token } : {}),
       ...init.headers,
     },
