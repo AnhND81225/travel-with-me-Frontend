@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Mountain,
   Mail,
   Lock,
   User,
@@ -266,17 +265,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
       {/* Top Simple Navigation Bar */}
       <header className="px-6 py-4 border-b border-[#D8D2C5] bg-[#F8F6F1] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xs bg-[#152A20] flex items-center justify-center text-[#D97845] group-hover:bg-[#1E3A2D] transition">
-            <Mountain className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="font-bold text-sm tracking-wider text-[#152A20] font-headline block">
-              TERRAPEAK
-            </span>
-            <span className="text-[10px] text-[#7A857E] tracking-widest font-bold block uppercase">
-              EXPEDITION OUTPOST
-            </span>
-          </div>
+          <img src="/terrapeak-mark.svg" alt="TerraPeak Expedition Outpost" className="w-[170px] sm:w-[190px] h-auto" />
         </Link>
 
         <Link

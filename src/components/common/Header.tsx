@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  MapPin,
-  ChevronDown,
   Search,
   ShoppingBag,
   Menu,
@@ -11,19 +9,14 @@ import {
 import { useAppStore } from "../../store/useAppStore";
 import { useAuth } from "../../hooks/useAuth";
 import { publicNavigation, roleNavigation } from "../../utils/navigation";
-import { storefrontAssets, storefrontBranches } from "../../data/storefront";
+import { storefrontAssets } from "../../data/storefront";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cartCount, setCartCount] = useState(0);
   const { account, isAuthenticated, logout } = useAuth();
-  const {
-    setCartOpen,
-    selectedStation,
-    setSelectedStation,
-    outposts,
-  } = useAppStore();
+  const { setCartOpen } = useAppStore();
 
   useEffect(() => {
     const updateCount = () => {
@@ -54,7 +47,6 @@ export function Header() {
   const navClass = (to: string, active: boolean) =>
     active || (to === "/shop" && (pathname === "/rent" || pathname === "/catalog" || pathname.startsWith("/gear/")))
       ? "active" : "";
-  const currentBranch = storefrontBranches.find(b => b.id === selectedStation.id);
   const privateLinks = roleNavigation(isAuthenticated ? account?.role : undefined);
   const links = [...publicNavigation, ...privateLinks];
   const canShop = !isAuthenticated || account?.role === 'CUSTOMER';
@@ -75,26 +67,7 @@ export function Header() {
             src={storefrontAssets.logo}
             alt="TerraPeak Outpost"
           />
-          <strong>TERRAPEAK</strong>
         </Link>
-        <label className="store-branch-select">
-          <MapPin size={15} />
-          <span className="sr-only">Select branch</span>
-          <select
-            value={currentBranch?.id ?? "hcmc-flagship"}
-            onChange={(e) => {
-              const branch = outposts.find((b) => b.id === e.target.value);
-              if (branch) setSelectedStation(branch);
-            }}
-          >
-            {storefrontBranches.map((b) => (
-              <option value={b.id} key={b.id}>
-                {b.short}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={13} />
-        </label>
         <nav className="store-desktop-nav" aria-label="Main navigation">
           {links.map(([to, label]) => (
             <NavLink end={to === "/"} key={to} to={to} className={({ isActive }) => navClass(to, isActive)}>

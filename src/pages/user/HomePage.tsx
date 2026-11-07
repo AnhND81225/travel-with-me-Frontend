@@ -9,7 +9,6 @@ import {
   Footprints,
   Layers,
   MapPin,
-  Navigation,
   PackageCheck,
   ShieldCheck,
   ShoppingBag,
@@ -464,43 +463,6 @@ export function HomePage() {
             {adventuresLoading && <p className="col-span-full text-sm text-[#5C665F]">Loading upcoming adventures…</p>}
             {!adventuresLoading && adventuresError && <p className="col-span-full text-sm text-[#994717]">{adventuresError} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></p>}
             {!adventuresLoading && !adventuresError && !upcomingAdventures.length && <p className="col-span-full text-sm text-[#5C665F]">No tours are published yet.</p>}
-          </div>
-        </div>
-      </section>
-      <section className="store-section store-network">
-        <div className="store-container">
-          <SectionHeading
-            eyebrow="⌂ Custody & Inspection Depots"
-            title="Physical Outpost Network"
-            description="Visit our local service hubs for fitting, pre-trip briefings, sanitized gear pickup, and expedited return."
-          >
-            <span className="store-online">● {branches.length} active branches</span>
-          </SectionHeading>
-          {branchesError && <p role="alert">{branchesError} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></p>}
-          <div className="store-grid-three">
-            {branches.map(b => (
-              <article className="store-branch-card" key={b.id}>
-                <h3>{b.name}</h3>
-                <p>
-                  <MapPin size={13} />
-                  {b.address || "Address not provided"}
-                </p>
-                <div className="store-branch-bottom">
-                  <span>
-                    Phone:{" "}
-                    <a href={`tel:${b.phone?.replace(/\s/g, "")}`}>{b.phone || "Not provided"}</a>
-                  </span>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.address || b.name)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Get Directions
-                    <Navigation size={13} />
-                  </a>
-                </div>
-              </article>
-            ))}
           </div>
         </div>
       </section>

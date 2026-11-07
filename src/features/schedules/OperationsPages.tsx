@@ -208,7 +208,7 @@ function ParticipantAction({ ticket: p, action, onClose, onSaved }: { ticket: Pa
 export function GuideLayout() {
   const { account, logout } = useAuth();
   return <div className="guide-console"><aside className="guide-sidebar" aria-label="Guide navigation">
-    <Link className="guide-brand" to="/guide/schedules"><span><Mountain size={22} /></span><div><strong>TERRAPEAK</strong><small>GUIDE OPERATIONS</small></div></Link>
+    <Link className="guide-brand" to="/guide/schedules"><div><img src="/terrapeak-mark-light.svg" alt="TerraPeak" style={{ width: 164, height: "auto", marginBottom: 8 }} /><small>GUIDE OPERATIONS</small></div></Link>
     <div className="guide-sidebar-caption">YOUR FIELD WORKSPACE</div>
     <nav><NavLink to="/guide/schedules"><CalendarDays size={17} /> Assignments & Check-in</NavLink><Link to="/tours"><Compass size={17} /> Browse Tours</Link><Link to="/passport"><UserRound size={17} /> My Profile</Link></nav>
     <div className="guide-sidebar-footer"><Link to="/"><ArrowLeft size={15} /> Return to Storefront</Link><button type="button" onClick={logout}><LogOut size={15} /> Sign Out</button></div>
