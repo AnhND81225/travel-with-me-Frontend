@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Phone } from "lucide-react";
-import { storefrontAssets, storefrontBranches } from "../../data/storefront";
+import { storefrontBranches } from "../../data/storefront";
 import { useAuth } from "../../hooks/useAuth";
 import { roleNavigation } from "../../utils/navigation";
 export function Footer() {
@@ -15,10 +15,9 @@ export function Footer() {
             <Link to="/" className="store-brand">
               <img
                 className="store-logo"
-                src={storefrontAssets.logo}
+                src="/terrapeak-mark-light.svg"
                 alt="TerraPeak Outpost"
               />
-              <strong>TERRAPEAK</strong>
             </Link>
             <p>
               Alpine-grade technical rentals, field equipment acquisition, and

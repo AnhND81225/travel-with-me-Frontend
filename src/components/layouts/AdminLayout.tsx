@@ -46,12 +46,9 @@ export const AdminLayout: React.FC = () => {
         {/* Brand Header */}
         <div className="p-4 border-b border-[#1F3D2B] flex items-center justify-between shrink-0">
           <Link to="/admin" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xs bg-[#152A20] border border-[#2B4E3C] flex items-center justify-center text-[#D97845]">
-              <Mountain className="w-4 h-4" />
-            </div>
             <div>
-              <span className="font-bold text-sm tracking-wider text-white font-headline block">TERRAPEAK</span>
-              <span className="text-[10px] text-[#ADCBBB] tracking-widest font-bold block uppercase">ADMIN CONSOLE</span>
+              <img src="/terrapeak-mark-light.svg" alt="TerraPeak" className="w-[164px] h-auto mb-2" />
+              <span className="text-[10px] text-[#ADCBBB] tracking-widest font-bold block">ADMIN CONSOLE</span>
             </div>
           </Link>
         </div>

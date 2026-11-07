@@ -1492,18 +1492,18 @@
   }
 }
 .store-logo {
-  height: 32px;
-  width: 64px;
+  height: auto;
+  width: 190px;
   object-fit: contain;
 }
 .store-footer .store-logo {
-  height: 24px;
-  filter: brightness(2);
+  height: auto;
+  width: 190px;
 }
 @media (max-width: 639px) {
   .store-logo {
-    height: 26px;
-    width: 46px;
+    height: auto;
+    width: 158px;
   }
   .store-brand strong {
     font-size: 16px;
