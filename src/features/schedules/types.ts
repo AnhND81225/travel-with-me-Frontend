@@ -8,6 +8,7 @@ export interface Schedule {
 export interface GuideAssignment extends Schedule { eventName: string; branchName: string }
 export interface Participant {
   id: number; scheduleId: number; userId: number; registrationDate: string;
+  customerName?: string | null; customerPhone?: string | null; customerEmail?: string | null;
   participantStatus: ParticipantStatus; checkInStatus: 'NOT_CHECKED_IN' | 'CHECKED_IN';
   registeredPrice: number; note: string | null; registrationReference: string; expiresAt: string | null;
 }
