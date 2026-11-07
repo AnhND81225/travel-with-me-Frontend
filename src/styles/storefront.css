@@ -1517,3 +1517,13 @@
 .store-dispatch .store-field :is(select,input) { color:#fffdf8; color-scheme:dark; }
 .store-dispatch .store-field option { background:#f7f3ea; color:#152a20; }
 @media(max-width:600px) { .store-hero-inner { padding-bottom:24px; } }
+
+/* Card headings retain h2 semantics without inheriting section-title sizing. */
+#tours-catalog .store-tour-card h2 {
+  font: 700 16px/22px "Nunito";
+  letter-spacing: normal;
+}
+#tours-catalog h2.store-tour-empty-title {
+  font: 700 18px/26px "Nunito";
+  letter-spacing: normal;
+}

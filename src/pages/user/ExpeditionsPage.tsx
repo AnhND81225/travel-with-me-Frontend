@@ -396,7 +396,7 @@ export function ExpeditionsPage() {
             /* Khi không có chuyến đi nào */
             <div className="py-14 text-center border border-dashed border-[#e6e2d9] bg-white rounded-md p-8 space-y-3">
               <Compass className="w-10 h-10 text-gray-400 mx-auto" />
-              <h2 className="text-lg font-bold text-[#02150c]">No matching tours found</h2>
+              <h2 className="store-tour-empty-title text-lg font-bold text-[#02150c]">No matching tours found</h2>
               <p className="text-xs text-[#424844] max-w-sm mx-auto">
                 Try changing your search or clearing the filters to view all tours.
               </p>
