@@ -71,8 +71,8 @@ export function ExpeditionDetailPage() {
     return () => { active = false; };
   }, [id, retry]);
 
-  if (loading) return <main className="td-page"><div className="td-state" role="status"><RefreshCw className="animate-spin" strokeWidth={1.4} /><h1>Preparing your adventure</h1><p>Loading tour details and itinerary…</p></div></main>;
-  if (error || !tour) return <main className="td-page"><div className="td-state" role="alert"><Compass size={36} strokeWidth={1} /><h1>We couldn't load this tour</h1><p>{error || "This adventure is currently unavailable."}</p><div><button className="td-pill" onClick={() => setRetry(value => value + 1)}>Try again</button><Link to="/tours">Explore all tours <ArrowUpRight size={16} /></Link></div></div></main>;
+  if (loading) return <div className="td-page"><div className="td-state" role="status"><RefreshCw className="animate-spin" strokeWidth={1.4} /><h1>Preparing your adventure</h1><p>Loading tour details and itinerary…</p></div></div>;
+  if (error || !tour) return <div className="td-page"><div className="td-state" role="alert"><Compass size={36} strokeWidth={1} /><h1>We couldn't load this tour</h1><p>{error || "This adventure is currently unavailable."}</p><div><button className="td-pill" onClick={() => setRetry(value => value + 1)}>Try again</button><Link to="/tours">Explore all tours <ArrowUpRight size={16} /></Link></div></div></div>;
 
   const photos = Array.from(new Set([tour.coverImageUrl, ...(tour.images ?? []).map(image => image.imageUrl)].filter((src): src is string => !!src)));
   const days = tour.details?.itinerary ?? [];
@@ -88,7 +88,7 @@ export function ExpeditionDetailPage() {
     { label: "Participation requirements", value: tour.details?.requirements || "Requirements will be shared before departure.", icon: Compass },
   ];
 
-  return <main className="td-page">
+  return <div className="td-page">
     <div className="td-container">
       <nav className="td-breadcrumb" aria-label="Breadcrumb"><Link to="/tours"><ArrowLeft size={14} /> All tours</Link><span>/</span><span>{tour.eventType === "TREKKING" ? "Trekking" : "Camping"}</span><span>/</span><span aria-current="page">{tour.eventName}</span></nav>
       <div className="td-intro">
@@ -100,7 +100,7 @@ export function ExpeditionDetailPage() {
         { icon: Mountain, value: difficulty, label: "Fitness level" },
         { icon: Compass, value: tour.eventType === "TREKKING" ? "Trekking" : "Camping", label: "Experience" },
         { icon: Users, value: "By departure", label: "Availability & guide" },
-      ].map(metric => <div key={metric.label}><metric.icon size={27} strokeWidth={1.2} /><div><dt>{metric.label}</dt><dd>{metric.value}</dd></div></div>)}</dl>
+      ].map(metric => <div key={metric.label}><dt><metric.icon size={27} strokeWidth={1.2} aria-hidden="true" /><span>{metric.label}</span></dt><dd>{metric.value}</dd></div>)}</dl>
       <div className="td-layout">
         <article className="td-content">
           <nav className="td-tabs" aria-label="Tour information">{(["itinerary", "specifications", "equipment"] as const).map(item => <Link key={item} to={{ pathname: location.pathname, search: location.search, hash: `#${item}` }} replace preventScrollReset aria-current={tab === item ? "page" : undefined}>{item.charAt(0).toUpperCase() + item.slice(1)}</Link>)}</nav>
@@ -123,5 +123,5 @@ export function ExpeditionDetailPage() {
         <aside className="td-sidebar" aria-label="Book this tour"><div className="td-booking-shell"><BookingPanel key={tour.eventId} eventId={tour.eventId} eventName={tour.eventName} price={tour.basePrice} /></div><div className="td-guide-note"><Compass size={27} strokeWidth={1} /><div><span className="td-eyebrow">YOUR TRAIL COMPANION</span><p>Your assigned guide appears when you select a departure.</p><Link to="/tours#guides-roster">Meet our guides <ArrowUpRight size={14} /></Link></div></div></aside>
       </div>
     </div>
-  </main>;
+  </div>;
 }
