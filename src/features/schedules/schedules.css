@@ -53,6 +53,7 @@
 .m5 th { background:#ebe6dc; font-size:11px; letter-spacing:.04em; }
 .m5 td,.m5 th { padding:15px; border-bottom:1px solid #e6e2d9; vertical-align:top; max-width:320px; overflow-wrap:anywhere; }
 .m5 td small { display:block; margin-top:5px; }
+.m5-customer-contact small { display:block; margin-top:5px; overflow-wrap:anywhere; }
 .m5-more { text-align:center; margin:20px 0; }
 .m5-more small { display:block; }
 .m5-booking { padding:22px; background:#fffdf8; border:1px solid #d8d2c5; border-radius:8px; position:sticky; top:90px; }
