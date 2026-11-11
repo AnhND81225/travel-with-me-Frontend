@@ -63,11 +63,11 @@ export function OrderCheckout({
   );
   const dateError =
     !startDate || !endDate
-      ? "Vui lòng chọn ngày bắt đầu và kết thúc thuê."
+      ? "Please select both pickup and return dates."
       : startDate < minDate
-      ? "Ngày bắt đầu thuê phải từ hôm nay trở đi."
+      ? "Pickup date must be today or later."
       : endDate < startDate
-      ? "Ngày kết thúc phải cùng hoặc sau ngày bắt đầu."
+      ? "Return date must be on or after the pickup date."
       : "";
   const [branches, setBranches] = useState<Branch[]>([]);
   const signInUrl =
@@ -124,10 +124,10 @@ export function OrderCheckout({
           EXPEDITION DISPATCH
         </Badge>
         <h3 className="text-base font-bold text-[#111D16] font-headline">
-          Mua & Thuê Thiết Bị Chuyến Đi
+          Buy & Rent at Outpost
         </h3>
         <p className="text-[11px] text-[#5C665F] font-body mt-0.5">
-          Bạn có thể chọn nhận đồ trực tiếp tại Outpost chi nhánh hoặc bàn giao tận tay tại buổi tập trung tour đã đăng ký.
+          Collect equipment directly at an Outpost branch or choose handover at your booked expedition gathering point.
         </p>
       </div>
 
@@ -172,7 +172,7 @@ export function OrderCheckout({
                 !line.rentalEndDate ||
                 String(line.rentalEndDate) < String(line.rentalStartDate))
             ) {
-              throw new Error("Vui lòng chọn ngày nhận và trả thiết bị hợp lệ.");
+              throw new Error("Please select valid pickup and return dates.");
             }
 
             if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cart") {
@@ -183,12 +183,12 @@ export function OrderCheckout({
 
               if (cart.length > 0 && cart.some((x) => x.branchId !== finalBranchId)) {
                 throw new Error(
-                  "Mỗi giỏ hàng hiện thuộc một Chi nhánh Outpost. Vui lòng thanh toán hoặc làm trống giỏ hàng trước."
+                  "Each cart belongs to a single Outpost branch. Please complete checkout or clear your current cart first."
                 );
               }
               if (cart.some((x) => x.productId === productId)) {
                 throw new Error(
-                  "Sản phẩm này đã có trong giỏ hàng. Mở giỏ hàng để cập nhật số lượng."
+                  "This product is already in your cart. Open your cart to update the quantity."
                 );
               }
 
@@ -209,13 +209,13 @@ export function OrderCheckout({
               );
               window.dispatchEvent(new Event("cart_updated"));
               setIsSuccess(true);
-              setMessage("Thiết bị đã được thêm vào giỏ hàng.");
+              setMessage("Equipment added to cart successfully.");
               setCartOpen(true);
               return;
             }
 
             if (!isAuthenticated || !sessionStorage.getItem("treektour.catalog.token")) {
-              setMessage("Vui lòng đăng nhập để đặt hàng và thanh toán trực tuyến.");
+              setMessage("Please sign in to place an order and pay online.");
               return;
             }
 
@@ -237,13 +237,13 @@ export function OrderCheckout({
             setIsSuccess(true);
             setCreatedOrder(order);
             setMessage(
-              `Đã tạo Đơn hàng #${order.id} · ${vnd(order.totalAmount)} · Đang chuyển đến thanh toán...`
+              `Created Order #${order.id} · ${vnd(order.totalAmount)} · Redirecting to payment...`
             );
 
             navigate(`/payment/pending?orderId=${order.id}`);
           } catch (error) {
             setIsSuccess(false);
-            setMessage(error instanceof Error ? error.message : "Không thể tạo đơn hàng.");
+            setMessage(error instanceof Error ? error.message : "Unable to create order.");
           } finally {
             setBusy(false);
           }
@@ -271,7 +271,7 @@ export function OrderCheckout({
         {/* Mode select */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Hình thức *
+            Order type *
           </label>
           <select
             name="mode"
@@ -279,9 +279,9 @@ export function OrderCheckout({
             onChange={(e) => setSelectedMode(e.target.value as "SALE" | "RENTAL")}
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
           >
-            {sale !== null && <option value="SALE">Mua mới · {vnd(sale)}</option>}
+            {sale !== null && <option value="SALE">Buy new equipment · {vnd(sale)}</option>}
             {rental !== null && (
-              <option value="RENTAL">Thuê theo ngày · {vnd(rental)} / ngày</option>
+              <option value="RENTAL">Rent equipment · {vnd(rental)} / day</option>
             )}
           </select>
         </div>
@@ -289,7 +289,7 @@ export function OrderCheckout({
         {/* Quantity */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Số lượng *
+            Quantity *
           </label>
           <input
             name="quantity"
@@ -307,9 +307,9 @@ export function OrderCheckout({
           <div className="grid grid-cols-2 gap-2.5 p-3 bg-white border border-[#D8D2C5] rounded-xs">
             <div className="space-y-1">
               <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
-                <span>Ngày nhận đồ</span>
+                <span>Pickup date</span>
                 {deliveryType === "TOUR_DELIVERY" && scheduleId && (
-                  <span className="text-[9px] text-[#059669] lowercase font-normal">(theo tour)</span>
+                  <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
                 )}
               </label>
               <input
@@ -328,9 +328,9 @@ export function OrderCheckout({
             </div>
             <div className="space-y-1">
               <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
-                <span>Ngày trả đồ</span>
+                <span>Return date</span>
                 {deliveryType === "TOUR_DELIVERY" && scheduleId && (
-                  <span className="text-[9px] text-[#059669] lowercase font-normal">(theo tour)</span>
+                  <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
                 )}
               </label>
               <input
@@ -373,7 +373,7 @@ export function OrderCheckout({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xs bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold shrink-0 shadow-xs transition cursor-pointer"
                 >
                   <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Thanh toán ngay</span>
+                  <span>Pay now</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               ) : (
@@ -382,7 +382,7 @@ export function OrderCheckout({
                   onClick={() => setCartOpen(true)}
                   className="underline hover:text-black shrink-0 font-bold cursor-pointer"
                 >
-                  Mở giỏ hàng →
+                  Open cart →
                 </button>
               ))}
           </div>
@@ -393,9 +393,9 @@ export function OrderCheckout({
             role="status"
             className="p-3 border border-[#F1BA9B] bg-[#FFF8F3] text-[#9A4D22] rounded-xs space-y-1"
           >
-            <p>Vui lòng đăng nhập để đặt hàng và thanh toán trực tuyến. Bạn vẫn có thể thêm sản phẩm vào giỏ hàng.</p>
+            <p>Please sign in to place an order and pay online. You can still add items to your cart.</p>
             <Link to={signInUrl} className="font-bold underline block">
-              Đăng nhập ngay →
+              Sign in →
             </Link>
           </div>
         )}
@@ -412,7 +412,7 @@ export function OrderCheckout({
             disabled={busy || orderBlocked}
             icon={<PlusCircle className="w-4 h-4 text-[#D97845]" />}
           >
-            Thêm vào giỏ hàng
+            Add to Cart
           </Button>
 
           <Button
@@ -439,12 +439,12 @@ export function OrderCheckout({
             className="!bg-[#D97845] hover:!bg-[#C66735] !text-white font-bold shadow-xs cursor-pointer"
           >
             {busy
-              ? "Đang xử lý..."
+              ? "Processing..."
               : authLoading
-              ? "Kiểm tra..."
+              ? "Checking..."
               : createdOrderId
-              ? `Thanh toán Đơn #${createdOrderId}`
-              : "Đặt hàng & Thanh toán"}
+              ? `Pay Order #${createdOrderId}`
+              : "Order Now & Pay"}
           </Button>
         </div>
 
@@ -455,14 +455,14 @@ export function OrderCheckout({
             onClick={() => setCartOpen(true)}
             className="hover:text-[#111D16] font-bold underline cursor-pointer"
           >
-            Mở giỏ hàng
+            Open cart
           </button>
           <Link to="/orders" className="hover:text-[#111D16] font-bold underline">
-            Đơn hàng của tôi
+            My orders
           </Link>
           {!isAuthenticated && (
             <Link to={signInUrl} className="hover:text-[#D97845]">
-              Đăng nhập
+              Sign in
             </Link>
           )}
         </div>

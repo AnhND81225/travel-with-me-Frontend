@@ -3,6 +3,7 @@ import { catalogApi } from "../equipment/catalogApi";
 export type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
+  | "WITH_GUIDE"
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED";
@@ -52,3 +53,11 @@ export type Order = {
 };
 
 export const getMyOrders = () => catalogApi<Order[]>("/orders/me");
+
+export const getScheduleOrders = (scheduleId: number) =>
+  catalogApi<Order[]>(`/orders/schedule/${scheduleId}`);
+
+export const operateOrder = (
+  orderId: number,
+  action: "confirm" | "guide-pickup" | "hand-over" | "return",
+) => catalogApi<Order>(`/orders/${orderId}/${action}`, { method: "POST" });

@@ -229,11 +229,11 @@ export function OrderCart() {
   const handleCheckout = async () => {
     if (lines.length === 0) return;
     if (!isAuthenticated || !sessionStorage.getItem('treektour.catalog.token')) {
-      setError('Vui lòng đăng nhập để hoàn tất đơn hàng. Giỏ hàng của bạn đã được lưu.');
+      setError('Please sign in to place an order. Your cart has been saved.');
       return;
     }
     if (deliveryPref.deliveryType === 'TOUR_DELIVERY' && !deliveryPref.scheduleId) {
-      setError('Vui lòng chọn tour bạn tham gia để nhân viên bàn giao thiết bị.');
+      setError('Please select your booked expedition schedule for equipment handover.');
       return;
     }
     const invalidContact = contactError(contact.value);
@@ -260,7 +260,7 @@ export function OrderCart() {
       setCreatedOrder(order);
       saveLines([]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không thể hoàn tất đơn hàng');
+      setError(e instanceof Error ? e.message : 'Unable to complete your order');
     } finally {
       setBusy(false);
     }
@@ -307,32 +307,32 @@ export function OrderCart() {
               EXPEDITION MANIFEST CONFIRMED
             </Badge>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-              Đặt Hàng Thành Công · Đơn #{createdOrder.id}
+              Order Placed · Order #{createdOrder.id}
             </h1>
             <p className="text-xs text-[#5C665F] max-w-lg mx-auto font-body">
-              Đơn hàng thiết bị của bạn đã được ghi nhận. Vui lòng hoàn tất thanh toán để ban quản lý duyệt đơn và chuẩn bị bàn giao.
+              Your equipment order has been submitted. Complete payment before the branch can approve your order and arrange handover.
             </p>
           </div>
 
           {/* Quick Invoice Card */}
           <div className="bg-white border border-[#D8D2C5] rounded-xs p-5 max-w-lg mx-auto text-left text-xs space-y-3">
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Mã đơn hàng:</span>
+              <span className="text-[#737C75]">Order ID:</span>
               <span className="font-bold font-headline text-sm text-[#111D16]">#{createdOrder.id}</span>
             </div>
 
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Phương thức nhận:</span>
+              <span className="text-[#737C75]">Fulfillment method:</span>
               <span className="font-bold text-[#152A20] flex items-center gap-1">
                 {isTourDelivery ? (
                   <>
                     <Compass className="w-3.5 h-3.5 text-[#059669]" />
-                    <span className="text-[#059669]">Bàn giao tại Tour</span>
+                    <span className="text-[#059669]">Tour Handover</span>
                   </>
                 ) : (
                   <>
                     <Building className="w-3.5 h-3.5 text-[#152A20]" />
-                    <span>Nhận tại Outpost</span>
+                    <span>Outpost Pickup</span>
                   </>
                 )}
               </span>
@@ -340,7 +340,7 @@ export function OrderCart() {
 
             {isTourDelivery && createdOrder.deliveryLocation && (
               <div className="flex justify-between items-start border-b border-[#EBE6DC] pb-2.5">
-                <span className="text-[#737C75] shrink-0">Điểm hẹn bàn giao:</span>
+                <span className="text-[#737C75] shrink-0">Handover destination:</span>
                 <span className="text-right text-[#15803D] font-bold max-w-xs">
                   {createdOrder.deliveryLocation}
                 </span>
@@ -348,7 +348,7 @@ export function OrderCart() {
             )}
 
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Chi nhánh phụ trách:</span>
+              <span className="text-[#737C75]">Fulfilling branch:</span>
               <span className="font-bold text-[#111D16]">
                 {orderBranch?.name || `Outpost #${createdOrder.branchId}`}
               </span>
@@ -356,7 +356,7 @@ export function OrderCart() {
 
             {createdOrder.deliveryNotes && (
               <div className="flex justify-between items-start border-b border-[#EBE6DC] pb-2.5">
-                <span className="text-[#737C75] shrink-0">Ghi chú của bạn:</span>
+                <span className="text-[#737C75] shrink-0">Your instructions:</span>
                 <span className="text-right text-[#5C665F] font-body max-w-xs">
                   {createdOrder.deliveryNotes}
                 </span>
@@ -364,14 +364,14 @@ export function OrderCart() {
             )}
 
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Thời gian tạo:</span>
+              <span className="text-[#737C75]">Created at:</span>
               <span className="font-mono-spec">
-                {new Date(createdOrder.orderDate).toLocaleString('vi-VN')}
+                {new Date(createdOrder.orderDate).toLocaleString('en-GB')}
               </span>
             </div>
 
             <div className="flex justify-between items-center pt-1">
-              <span className="text-sm font-bold text-[#111D16] uppercase">Tổng giá trị:</span>
+              <span className="text-sm font-bold text-[#111D16] uppercase">Order value:</span>
               <span className="text-lg font-bold text-[#D97845] font-headline">
                 {vnd(createdOrder.totalAmount)}
               </span>
@@ -382,17 +382,17 @@ export function OrderCart() {
           <div className="p-4 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs max-w-lg mx-auto text-left text-xs text-[#5C665F] space-y-1.5 font-body">
             <div className="font-bold text-[#D97845] flex items-center gap-1.5 font-label uppercase text-[11px]">
               <Info className="w-4 h-4 shrink-0" />
-              Lưu ý bàn giao thiết bị
+              Equipment handover notes
             </div>
             {isTourDelivery ? (
               <>
-                <p>• Hướng dẫn viên / ban tổ chức tour sẽ mang đồ đến điểm tập kết xuất phát của tour.</p>
-                <p>• Vui lòng có mặt đúng giờ hẹn và đối chiếu mã đơn #{createdOrder.id} để nhận thiết bị.</p>
+                <p>• Expedition guides / staff will bring equipment directly to the departure gathering point.</p>
+                <p>• Please arrive at the scheduled time and reference Order #{createdOrder.id} to receive your equipment.</p>
               </>
             ) : (
               <>
-                <p>• Vui lòng mang theo CMND/CCCD hoặc Hộ chiếu khi đến nhận thiết bị tại Outpost.</p>
-                <p>• Đối với đồ thuê, bạn sẽ cùng nhân viên kiểm tra tình trạng và ký biên bản giao nhận.</p>
+                <p>• Bring your national ID or passport when collecting your equipment at the Outpost.</p>
+                <p>• For rentals, inspect the equipment with branch staff and sign the condition report before pickup.</p>
               </>
             )}
           </div>
@@ -402,25 +402,25 @@ export function OrderCart() {
             {createdOrder.status === 'PENDING' && createdOrder.paymentStatus !== 'PAID' && (
               <Link to={`/payment/pending?orderId=${createdOrder.id}`}>
                 <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-                  Tiếp tục thanh toán
+                  Continue to payment
                 </Button>
               </Link>
             )}
             <Link to="/orders">
               <Button variant="primary" size="md" icon={<Package className="w-4 h-4" />}>
-                Xem Đơn Hàng Của Tôi
+                View My Orders
               </Button>
             </Link>
             {account?.role === 'ADMIN' && (
               <Link to="/admin/orders">
                 <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-                  Quản lý đơn (Admin)
+                  Manage Orders (Admin)
                 </Button>
               </Link>
             )}
             <Link to="/shop">
               <Button variant="secondary" size="md">
-                Tiếp tục mua sắm
+                Continue Shopping
               </Button>
             </Link>
           </div>
@@ -440,17 +440,17 @@ export function OrderCart() {
 
           <div className="space-y-1">
             <h1 className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">
-              Giỏ hàng của bạn đang trống
+              Your cart is empty
             </h1>
             <p className="text-xs text-[#5C665F] font-body max-w-md mx-auto">
-              Bạn chưa có trang thiết bị nào trong danh mục chuẩn bị chuyến đi. Hãy khám phá kho thiết bị thám hiểm của chúng tôi.
+              You have no expedition equipment selected. Explore our equipment outpost to prepare for your journey.
             </p>
           </div>
 
           <div className="pt-2">
             <Link to="/shop">
               <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-                Khám phá kho thiết bị
+                Explore equipment
               </Button>
             </Link>
           </div>
@@ -469,17 +469,17 @@ export function OrderCart() {
             EXPEDITION MANIFEST
           </Badge>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-            Giỏ Hàng & Điểm Nhận Thiết Bị
+            Order Manifest & Equipment Pickup
           </h1>
           <p className="text-xs text-[#5C665F] font-body mt-0.5">
-            Xem lại thiết bị chuẩn bị cho chuyến đi, chọn nhận tại chi nhánh Outpost hoặc giao tại tour bạn đã đặt.
+            Review your expedition gear, select an Outpost pickup branch or choose delivery at your booked tour.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link to="/shop">
             <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
-              Thêm thiết bị khác
+              Add more equipment
             </Button>
           </Link>
           <Button
@@ -489,7 +489,7 @@ export function OrderCart() {
             disabled={busy}
             icon={<Trash2 className="w-3.5 h-3.5 text-red-600" />}
           >
-            Làm trống giỏ
+            Clear cart
           </Button>
         </div>
       </div>
@@ -505,7 +505,7 @@ export function OrderCart() {
             onClick={() => setError('')}
             className="text-xs font-bold underline hover:text-black cursor-pointer"
           >
-            Đóng
+            Close
           </button>
         </div>
       )}
@@ -528,8 +528,8 @@ export function OrderCart() {
         {/* Left Column: List of items */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs text-[#737C75] font-bold uppercase">
-            <span>DANH SÁCH THIẾT BỊ ({lines.length} MÓN)</span>
-            <span>TỔNG TIỀN</span>
+            <span>EQUIPMENT LIST ({lines.length} ITEMS)</span>
+            <span>ITEM TOTAL</span>
           </div>
 
           <div className="space-y-3">
@@ -564,20 +564,20 @@ export function OrderCart() {
                           </Link>
 
                           <Badge variant={isRental ? 'warning' : 'neutral'} size="sm">
-                            {isRental ? 'THUÊ THEO NGÀY' : 'MUA MỚI'}
+                            {isRental ? 'RENTAL' : 'PURCHASE'}
                           </Badge>
                         </div>
 
                         <div className="text-[11px] text-[#5C665F] flex flex-wrap items-center gap-2">
-                          <span>Mã: #{line.productId}</span>
+                          <span>SKU: #{line.productId}</span>
                           {prod?.category && (
                             <>
                               <span>•</span>
-                              <span>Danh mục: {prod.category}</span>
+                              <span>Category: {prod.category}</span>
                             </>
                           )}
                           <span>•</span>
-                          <span>Đơn giá: {vnd(unitPrice)}{isRental && ' / ngày'}</span>
+                          <span>Unit price: {vnd(unitPrice)}{isRental && ' / day'}</span>
                         </div>
 
                         {/* Rental Date Range Badge */}
@@ -585,7 +585,7 @@ export function OrderCart() {
                           <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
                             <Calendar className="w-3.5 h-3.5 shrink-0" />
                             <span>
-                              Thời gian thuê: {line.rentalStartDate} → {line.rentalEndDate} ({days} ngày)
+                              Rental dates: {line.rentalStartDate} → {line.rentalEndDate} ({days} days)
                             </span>
                           </div>
                         )}
@@ -594,7 +594,7 @@ export function OrderCart() {
 
                     {/* Line total price */}
                     <div className="sm:text-right shrink-0">
-                      <div className="text-[10px] text-[#737C75] uppercase">Tạm tính</div>
+                      <div className="text-[10px] text-[#737C75] uppercase">Subtotal</div>
                       <div className="text-base font-bold text-[#152A20] font-headline">
                         {loadingProducts && !prod ? '...' : vnd(lineTotal)}
                       </div>
@@ -604,14 +604,14 @@ export function OrderCart() {
                   {/* Quantity and Actions Bar */}
                   <div className="flex items-center justify-between pt-2.5 border-t border-[#DDD7CB] text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[#737C75] font-bold uppercase">Số lượng:</span>
+                      <span className="text-[11px] text-[#737C75] font-bold uppercase">Quantity:</span>
                       <div className="flex items-center border border-[#D8D2C5] rounded-xs bg-white overflow-hidden">
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(index, -1)}
                           disabled={busy}
                           className="px-2 py-1 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Giảm số lượng"
+                          title="Decrease quantity"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -623,7 +623,7 @@ export function OrderCart() {
                           onClick={() => handleUpdateQuantity(index, 1)}
                           disabled={busy}
                           className="px-2 py-1 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Tăng số lượng"
+                          title="Increase quantity"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -637,7 +637,7 @@ export function OrderCart() {
                       className="text-xs text-[#B91C1C] hover:text-[#991B1B] font-bold flex items-center gap-1 cursor-pointer transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Xóa khỏi giỏ</span>
+                      <span>Remove from cart</span>
                     </button>
                   </div>
                 </Card>
@@ -649,10 +649,10 @@ export function OrderCart() {
           <div className="p-4 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-xs text-[#5C665F] space-y-2">
             <h4 className="font-bold text-[#111D16] flex items-center gap-1.5 uppercase text-[11px]">
               <ShieldCheck className="w-4 h-4 text-[#152A20]" />
-              Tiêu Chuẩn Thiết Bị & Khử Khuẩn TerraPeak
+              TerraPeak Equipment Safety Standards
             </h4>
             <p className="font-body text-[11px] leading-relaxed">
-              Mọi thiết bị thám hiểm đều được kiểm tra kỹ thuật và tiệt trùng trước khi giao. Quý khách vui lòng kiểm tra cùng nhân viên / hướng dẫn viên khi nhận đồ.
+              Inspect your equipment with branch staff or tour guide at handover and review its condition before signing the handover record.
             </p>
           </div>
         </div>
@@ -662,10 +662,10 @@ export function OrderCart() {
           <Card padding="md" className="bg-white border-2 border-[#152A20] space-y-4 shadow-sm">
             <div className="border-b border-[#D8D2C5] pb-3">
               <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
-                TÓM TẮT ĐƠN HÀNG
+                MANIFEST FINANCIALS
               </span>
               <h3 className="text-base font-bold text-[#111D16] font-headline mt-0.5">
-                Chi Tiết Thanh Toán
+                Order Summary
               </h3>
             </div>
 
@@ -673,7 +673,7 @@ export function OrderCart() {
             <div className="space-y-2.5 text-xs">
               {totals.saleSubtotal > 0 && (
                 <div className="flex justify-between items-center text-[#5C665F]">
-                  <span>Mua thiết bị ({lines.filter((l) => l.itemType === 'SALE').length} món):</span>
+                  <span>Buy equipment ({lines.filter((l) => l.itemType === 'SALE').length} items):</span>
                   <span className="font-mono-spec font-bold text-[#111D16]">
                     {vnd(totals.saleSubtotal)}
                   </span>
@@ -682,7 +682,7 @@ export function OrderCart() {
 
               {totals.rentalSubtotal > 0 && (
                 <div className="flex justify-between items-center text-[#5C665F]">
-                  <span>Thuê thiết bị ({lines.filter((l) => l.itemType === 'RENTAL').length} món):</span>
+                  <span>Rent equipment ({lines.filter((l) => l.itemType === 'RENTAL').length} items):</span>
                   <span className="font-mono-spec font-bold text-[#111D16]">
                     {vnd(totals.rentalSubtotal)}
                   </span>
@@ -690,26 +690,26 @@ export function OrderCart() {
               )}
 
               <div className="flex justify-between items-center text-[#5C665F]">
-                <span>Kiểm tra & khử trùng:</span>
+                <span>Inspection & sanitization:</span>
                 <span className="font-bold text-emerald-600 uppercase text-[10px]">
-                  Miễn phí
+                  Free
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-[#5C665F]">
-                <span>Hỗ trợ cứu hộ trail:</span>
+                <span>Trail emergency support:</span>
                 <span className="font-bold text-[#152A20] text-[10px]">
-                  Bao gồm
+                  Included
                 </span>
               </div>
 
               <div className="border-t border-[#D8D2C5] pt-3 flex justify-between items-baseline">
                 <div>
                   <span className="text-xs font-bold text-[#111D16] uppercase block">
-                    TỔNG CỘNG:
+                    ORDER TOTAL:
                   </span>
                   <span className="text-[10px] text-[#737C75]">
-                    ({totals.totalItemsCount} món đồ)
+                    ({totals.totalItemsCount} equipment items)
                   </span>
                 </div>
                 <div className="text-xl font-bold text-[#D97845] font-headline">
@@ -720,7 +720,7 @@ export function OrderCart() {
 
             {/* Account Status / Login reminder */}
             {authLoading ? (
-              <p role="status">Đang kiểm tra đăng nhập...</p>
+              <p role="status">Checking sign-in...</p>
             ) : isAuthenticated && account ? (
               <div className="p-2.5 bg-[#E0EFE6] border border-[#ADCBBB] rounded-xs text-[11px] text-[#152A20] space-y-0.5">
                 <span className="font-bold flex items-center gap-1">
@@ -736,12 +736,12 @@ export function OrderCart() {
                 role="status"
                 className="p-2.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[11px] text-[#D97845] space-y-1"
               >
-                <span>Vui lòng đăng nhập để tiến hành đặt hàng.</span>
+                <span>Please sign in to place an order. Your cart will be kept while you sign in.</span>
                 <Link
                   to="/login?returnTo=/cart"
                   className="font-bold underline block hover:text-[#C66735]"
                 >
-                  Đăng nhập ngay →
+                  Sign in now →
                 </Link>
               </div>
             )}
@@ -764,11 +764,11 @@ export function OrderCart() {
               onClick={() => void handleCheckout()}
               icon={<ArrowRight className="w-4 h-4" />}
             >
-              {busy ? 'Đang tạo đơn...' : 'Đặt Hàng & Thanh Toán'}
+              {busy ? 'Placing order...' : 'Place Order'}
             </Button>
 
             <p className="text-[10px] text-[#737C75] text-center font-body">
-              Sau khi đặt hàng, bạn sẽ thanh toán trực tuyến để ban quản lý duyệt đơn và chuẩn bị thiết bị.
+              After placing your order, complete payment so branch staff can approve it and prepare your equipment.
             </p>
           </Card>
         </div>
