@@ -52,8 +52,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
   React.useEffect(() => {
     const urlMode = searchParams.get("mode") as "login" | "register" | null;
+    const urlError = searchParams.get("error");
     setMode(urlMode || defaultMode);
-    setError("");
+    if (urlError) {
+      setError(decodeURIComponent(urlError));
+    } else {
+      setError("");
+    }
     setSuccessMessage("");
   }, [defaultMode, searchParams]);
 
