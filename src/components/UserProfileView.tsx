@@ -48,8 +48,21 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [isChangingPwd, setIsChangingPwd] = useState(false);
+  const [isSendingTempPwd, setIsSendingTempPwd] = useState(false);
+  const [googleTempPwd, setGoogleTempPwd] = useState<string | null>(null);
   const [pwdSuccess, setPwdSuccess] = useState('');
   const [pwdError, setPwdError] = useState('');
+
+  useEffect(() => {
+    try {
+      const storedTempPwd = sessionStorage.getItem('terrapeak_google_temp_pwd');
+      if (storedTempPwd) {
+        setGoogleTempPwd(storedTempPwd);
+        setCurrentPassword(storedTempPwd);
+        setActiveTab('PASSWORD');
+      }
+    } catch (_) {}
+  }, []);
 
   useEffect(() => {
     if (account) {
@@ -61,6 +74,33 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
       }
     }
   }, [account]);
+
+  const handleRequestTemporaryPassword = async () => {
+    setPwdSuccess('');
+    setPwdError('');
+    setIsSendingTempPwd(true);
+    try {
+      const res = await catalogApi<{ temporaryPassword?: string; emailSent?: boolean; message?: string }>(
+        '/users/me/temporary-password',
+        { method: 'POST' }
+      );
+      if (res?.temporaryPassword) {
+        setGoogleTempPwd(res.temporaryPassword);
+        setCurrentPassword(res.temporaryPassword);
+        try {
+          sessionStorage.setItem('terrapeak_google_temp_pwd', res.temporaryPassword);
+        } catch (_) {}
+      }
+      setPwdSuccess(
+        res?.message ||
+          `A 10-character temporary password has been generated and sent to ${account?.email || 'your email'}.`
+      );
+    } catch (err: unknown) {
+      setPwdError(err instanceof Error ? err.message : 'Unable to generate temporary password.');
+    } finally {
+      setIsSendingTempPwd(false);
+    }
+  };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +134,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
       if (account?.email) {
         clearAccountPasswordChangeRequirement(account.email);
       }
+      try {
+        sessionStorage.removeItem('terrapeak_google_temp_pwd');
+      } catch (_) {}
+      setGoogleTempPwd(null);
 
       setPwdSuccess('Password updated successfully!');
       setCurrentPassword('');
@@ -467,17 +511,41 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                 </p>
               </div>
 
-              {isPwdChangeRequired && (
-                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xs text-xs text-amber-900 flex items-start gap-2.5 leading-relaxed">
-                  <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold mb-0.5">Initial password change required:</strong>
-                    <span>
-                      Your account was issued with a temporary password via Email. Please set a new password to ensure security.
-                    </span>
+              {googleTempPwd && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xs text-xs text-emerald-950 space-y-1.5 leading-relaxed">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="font-bold flex items-center gap-1.5 text-emerald-900">
+                      <Key className="w-4 h-4 text-emerald-700" />
+                      <span>10-Character Temporary Password Issued (Also sent to {account.email}):</span>
+                    </strong>
+                    <code className="px-2 py-0.5 bg-white border border-emerald-300 rounded-xs font-mono font-bold text-sm text-[#152A20] select-all">
+                      {googleTempPwd}
+                    </code>
                   </div>
+                  <p className="text-[11px] text-emerald-800">
+                    We have pre-filled this temporary password in <strong>Current Password</strong> below so you can set your own password right away.
+                  </p>
                 </div>
               )}
+
+              <div className="p-3 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <strong className="block font-bold text-[#152A20]">Signed in with Google or need a temporary password?</strong>
+                  <span className="text-[11px] text-[#5C665F]">
+                    Generate a 10-character temporary password and send it to <strong>{account.email}</strong>.
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isSendingTempPwd}
+                  icon={isSendingTempPwd ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                  onClick={handleRequestTemporaryPassword}
+                >
+                  {isSendingTempPwd ? 'Sending...' : 'Send 10-Char Temp Password'}
+                </Button>
+              </div>
 
               {pwdSuccess && (
                 <div className="p-3.5 rounded-xs bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5">

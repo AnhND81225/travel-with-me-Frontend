@@ -5,5 +5,13 @@ export function oauthCallbackRedirect(pathname: string, search: string): string 
   const params = new URLSearchParams(search);
   const token = params.get('token') || params.get('accessToken');
   if (!token) return null;
-  return `/oauth2/callback?${new URLSearchParams({ token })}`;
+  const callbackParams = new URLSearchParams({ token });
+  if (pathname && pathname !== '/' && pathname !== '/login' && pathname !== '/auth') {
+    callbackParams.set('returnTo', pathname);
+  }
+  const googleWelcome = params.get('googleWelcome');
+  const tempPwd = params.get('tempPwd');
+  if (googleWelcome) callbackParams.set('googleWelcome', googleWelcome);
+  if (tempPwd) callbackParams.set('tempPwd', tempPwd);
+  return `/oauth2/callback?${callbackParams.toString()}`;
 }

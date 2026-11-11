@@ -60,8 +60,10 @@ export function CatalogForm({ children, className, validate, onSubmit, onInvalid
         Object.entries(error.data?.fieldErrors ?? {}).forEach(([name, message]) => {
           fields[catalogErrorPath(name)] = catalogFieldMessage(message);
         });
-        if (/email/i.test(error.message) && /exist|already|đã|trùng/i.test(error.message) && form.elements.namedItem("email")) {
-          fields.email = "This email is already in use. Please use another email.";
+        if (/email/i.test(error.message) && form.elements.namedItem("email")) {
+          if (/exist|already|đã|trùng|belongs to/i.test(error.message)) {
+            fields.email = error.message;
+          }
         }
       }
       setServerErrors(fields);
