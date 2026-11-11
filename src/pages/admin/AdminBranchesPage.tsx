@@ -83,21 +83,39 @@ export const AdminBranchesPage: React.FC = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setFormError(null);
+
+    const trimmedName = form.name.trim();
+    const trimmedPhone = form.phone.trim();
+    const trimmedAddress = form.address.trim();
+
+    if (!trimmedName) {
+      setFormError('Branch name is required.');
+      return;
+    }
+    if (trimmedName.length > 150) {
+      setFormError('Branch name must not exceed 150 characters.');
+      return;
+    }
+    if (trimmedPhone && !/^[+\d\s().-]{7,30}$/.test(trimmedPhone)) {
+      setFormError('Please enter a valid phone number (7–30 digits).');
+      return;
+    }
+
+    setSaving(true);
     try {
       const body = JSON.stringify({
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
+        name: trimmedName,
+        phone: trimmedPhone,
+        address: trimmedAddress,
         status: form.status,
       });
       if (editing) {
         await catalogApi<Branch>(`/branches/${editing.id}`, { method: 'PUT', body });
-        notify('ok', `Branch "${form.name}" updated successfully.`);
+        notify('ok', `Branch "${trimmedName}" updated successfully.`);
       } else {
         await catalogApi<Branch>('/branches', { method: 'POST', body });
-        notify('ok', `Branch "${form.name}" created successfully.`);
+        notify('ok', `Branch "${trimmedName}" created successfully.`);
       }
       setFormOpen(false);
       await load();
@@ -267,7 +285,7 @@ export const AdminBranchesPage: React.FC = () => {
         title={editing ? 'Edit Branch' : 'Add New Branch'}
         maxWidth="lg"
       >
-        <form onSubmit={submit} className="space-y-4 font-label">
+        <form noValidate onSubmit={submit} className="space-y-4 font-label">
           {formError && (
             <div className="p-3 rounded-xs bg-red-50 border border-red-300 text-red-700 text-xs flex items-center justify-between gap-2 shadow-xs">
               <div className="flex items-center gap-2">

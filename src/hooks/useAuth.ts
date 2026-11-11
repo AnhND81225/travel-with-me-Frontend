@@ -60,10 +60,14 @@ export function useAuth() {
         return account;
       } else {
         saveToken(null);
+        const lockedMsg =
+          account?.status === "BLOCKED"
+            ? "Your account has been permanently blocked. Please contact support."
+            : "Your account has been locked or deactivated! Please contact the administrator.";
         setState({
           loading: false,
           account: null,
-          error: "Your account is temporarily locked or inactive.",
+          error: lockedMsg,
           isAuthenticated: false,
         });
         return null;
@@ -99,10 +103,17 @@ export function useAuth() {
       if (err instanceof ApiError && [401, 403].includes(err.status)) {
         saveToken(null);
       }
+      const errMsg =
+        err instanceof Error ? err.message : "Session expired.";
+      if (err instanceof ApiError && err.status === 403 && /locked|deactivated|blocked/i.test(errMsg)) {
+        try {
+          sessionStorage.setItem("terrapeak_auth_blocked_msg", errMsg);
+        } catch (_) {}
+      }
       setState({
         loading: false,
         account: null,
-        error: err instanceof Error ? err.message : "Session expired.",
+        error: errMsg,
         isAuthenticated: false,
       });
       return null;

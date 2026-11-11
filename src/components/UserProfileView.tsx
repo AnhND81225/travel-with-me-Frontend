@@ -411,7 +411,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                 </div>
               )}
 
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <form noValidate onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
                     Full Name
@@ -561,7 +561,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = () => {
                 </div>
               )}
 
-              <form onSubmit={handleChangePassword} className="space-y-4">
+              <form noValidate onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
                     Current Password *

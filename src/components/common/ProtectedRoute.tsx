@@ -13,7 +13,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   allowedRoles,
 }) => {
-  const { loading, account, isAuthenticated } = useAuth();
+  const { loading, account, error, isAuthenticated } = useAuth();
   const location = useLocation();
 
   // 1. Loading state while checking /api/users/me
@@ -33,10 +33,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // 2. Unauthenticated: Redirect to login immediately
+  // 2. Unauthenticated: Redirect to login immediately (carrying locked/blocked error if present)
   if (!isAuthenticated || !account) {
     const returnTo = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
+    const errorParam =
+      error && /locked|deactivated|blocked/i.test(error)
+        ? `&error=${encodeURIComponent(error)}`
+        : '';
+    return <Navigate to={`/login?returnTo=${returnTo}${errorParam}`} replace />;
   }
 
   // 3. Unauthorized role (e.g., CUSTOMER trying to access /admin or /staff)

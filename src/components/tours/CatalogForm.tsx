@@ -77,7 +77,7 @@ export function CatalogForm({ children, className, validate, onSubmit, onInvalid
     }
   }
 
-  if (!enabled) return <form onSubmit={onSubmit} className={className}>{children}</form>;
+  if (!enabled) return <form noValidate onSubmit={onSubmit} className={className}>{children}</form>;
 
   return (
     <ErrorsContext.Provider value={errors}>

@@ -57,7 +57,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
     if (urlError) {
       setError(decodeURIComponent(urlError));
     } else {
-      setError("");
+      try {
+        const blockedMsg = sessionStorage.getItem("terrapeak_auth_blocked_msg");
+        if (blockedMsg) {
+          sessionStorage.removeItem("terrapeak_auth_blocked_msg");
+          setError(blockedMsg);
+        } else {
+          setError("");
+        }
+      } catch (_) {
+        setError("");
+      }
     }
     setSuccessMessage("");
   }, [defaultMode, searchParams]);
@@ -135,9 +145,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
           }
           proceedRedirect(account);
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           saveToken(null);
-          setError("Unable to verify your identity. Please try signing in again.");
+          if (err instanceof Error && err.message) {
+            setError(err.message);
+          } else {
+            setError("Unable to verify your identity. Please try signing in again.");
+          }
         })
         .finally(() => {
           setBusy(false);
@@ -153,6 +167,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedEmail = loginEmail.trim();
+    if (!trimmedEmail) {
+      setError("Email is required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!loginPassword) {
+      setError("Password is required.");
+      return;
+    }
+
     setBusy(true);
     setError("");
     setSuccessMessage("");
@@ -160,7 +188,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
     try {
       const result = await catalogApi<{ token: string; user?: Account }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
+        body: JSON.stringify({ email: trimmedEmail, password: loginPassword }),
       });
 
       saveToken(result.token);
@@ -203,6 +231,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
     if (!trimmedName) {
       setError("Full name is required.");
+      setBusy(false);
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setError("Email is required.");
+      setBusy(false);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      setBusy(false);
+      return;
+    }
+
+    if (trimmedPhone && !/^[+\d\s().-]{7,30}$/.test(trimmedPhone)) {
+      setError("Please enter a valid phone number.");
       setBusy(false);
       return;
     }
@@ -343,7 +389,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
           {/* MODE 1: LOGIN */}
           {mode === "login" && (
-            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+            <form noValidate onSubmit={handleLoginSubmit} className="space-y-3.5">
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
                   Email
@@ -417,7 +463,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
           {/* MODE 2: REGISTER */}
           {mode === "register" && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+            <form noValidate onSubmit={handleRegisterSubmit} className="space-y-3">
               <div>
                 <label className="text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider">
                   Full Name *

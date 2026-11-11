@@ -87,8 +87,18 @@ export const AdminUsersPage: React.FC = () => {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    if (!editForm.fullName.trim()) {
+    const trimmedName = editForm.fullName.trim();
+    const trimmedPhone = editForm.phone.trim();
+    if (!trimmedName) {
       setEditError('Full name is required.');
+      return;
+    }
+    if (trimmedName.length > 150) {
+      setEditError('Full name must not exceed 150 characters.');
+      return;
+    }
+    if (trimmedPhone && !/^[+\d\s().-]{7,30}$/.test(trimmedPhone)) {
+      setEditError('Please enter a valid phone number (7–30 digits).');
       return;
     }
 
@@ -98,14 +108,14 @@ export const AdminUsersPage: React.FC = () => {
       await catalogApi<Account>(`/users/${editingUser.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          fullName: editForm.fullName.trim(),
-          phone: editForm.phone.trim() || undefined,
+          fullName: trimmedName,
+          phone: trimmedPhone || undefined,
           role: editForm.role,
           status: editForm.status,
         }),
       });
 
-      notify('ok', `Updated account "${editForm.fullName}" successfully.`);
+      notify('ok', `Updated account "${trimmedName}" successfully.`);
       closeEdit();
       await loadUsers();
     } catch (err) {
@@ -462,7 +472,7 @@ export const AdminUsersPage: React.FC = () => {
         title={`Edit User Account #${editingUser?.id} — ${editingUser?.fullName || ''}`}
         maxWidth="lg"
       >
-        <form onSubmit={handleUpdateUser} className="space-y-4 font-label">
+        <form noValidate onSubmit={handleUpdateUser} className="space-y-4 font-label">
           {editError && (
             <div className="p-3 rounded-xs bg-red-50 border border-red-300 text-red-700 text-xs flex items-center justify-between gap-2 shadow-xs">
               <div className="flex items-center gap-2">

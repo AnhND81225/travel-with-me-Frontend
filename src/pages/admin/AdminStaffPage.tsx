@@ -221,10 +221,35 @@ export const AdminStaffPage: React.FC = () => {
     setCreateError(null);
 
     const isStaff = createForm.role === 'STAFF';
+    const trimmedName = createForm.fullName.trim();
+    const trimmedEmail = createForm.email.trim();
+    const trimmedPhone = createForm.phone.trim();
 
-    if (isStaff && !createForm.branchId) {
-      setCreateError('Please select a branch to assign the staff member.');
-      return;
+    if (isStaff) {
+      if (!trimmedName) {
+        setCreateError('Full name is required.');
+        return;
+      }
+      if (trimmedName.length > 150) {
+        setCreateError('Full name must not exceed 150 characters.');
+        return;
+      }
+      if (!trimmedEmail) {
+        setCreateError('Email is required.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/.test(trimmedEmail)) {
+        setCreateError('Please enter a valid email address (e.g., staff@terrapeak.vn).');
+        return;
+      }
+      if (trimmedPhone && !/^[+\d\s().-]{7,30}$/.test(trimmedPhone)) {
+        setCreateError('Please enter a valid phone number (7–30 digits).');
+        return;
+      }
+      if (!createForm.branchId) {
+        setCreateError('Please select a branch to assign the staff member.');
+        return;
+      }
     }
 
     setSaving(true);
@@ -322,8 +347,30 @@ export const AdminStaffPage: React.FC = () => {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
-    setSaving(true);
     setEditError(null);
+
+    if (editing.role === 'STAFF') {
+      const trimmedName = editForm.fullName.trim();
+      const trimmedPhone = editForm.phone.trim();
+      if (!trimmedName) {
+        setEditError('Full name is required.');
+        return;
+      }
+      if (trimmedName.length > 150) {
+        setEditError('Full name must not exceed 150 characters.');
+        return;
+      }
+      if (trimmedPhone && !/^[+\d\s().-]{7,30}$/.test(trimmedPhone)) {
+        setEditError('Please enter a valid phone number (7–30 digits).');
+        return;
+      }
+      if (!editForm.branchId) {
+        setEditError('Please select an assigned branch.');
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
       if (editing.role === 'GUIDE' && editing.guideId) {
         await eventGuideApi.updateGuide(editing.guideId, guideEditInput);
@@ -436,6 +483,7 @@ export const AdminStaffPage: React.FC = () => {
       setDeletingPersonnel(null);
       await load();
     } catch (err) {
+      setDeletingPersonnel(null);
       notifyPage('err', err instanceof Error ? err.message : 'Unable to delete this account.');
     } finally {
       setDeleting(false);
