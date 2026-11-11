@@ -9,6 +9,8 @@ export type OrderStatus =
 
 export type OrderItemType = "SALE" | "RENTAL";
 
+export type DeliveryType = "STORE_PICKUP" | "TOUR_DELIVERY";
+
 export type OrderItem = {
   id: number;
   productId: number;
@@ -43,6 +45,10 @@ export type Order = {
   customerAddress?: string;
   address?: string;
   phone?: string;
+  deliveryType?: DeliveryType;
+  scheduleId?: number | null;
+  deliveryLocation?: string | null;
+  deliveryNotes?: string | null;
 };
 
 export const getMyOrders = () => catalogApi<Order[]>("/orders/me");

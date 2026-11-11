@@ -20,11 +20,13 @@ import {
   Phone,
   MapPin,
   ExternalLink,
+  Compass,
 } from 'lucide-react';
 import { Card, Button, Badge } from '../../components/ui';
 import { catalogApi, Branch, Product, vnd } from '../equipment/catalogApi';
 import { CustomerContactSummary, getCustomerContact, contactError } from './customerContact';
-import type { Order } from './orderApi';
+import type { Order, DeliveryType } from './orderApi';
+import { DeliveryDestinationSelector } from './DeliveryDestinationSelector';
 import { useAuth } from '../../hooks/useAuth';
 
 type CartLine = {
@@ -37,6 +39,7 @@ type CartLine = {
 };
 
 const CART_KEY = 'treektour.order.cart';
+const DELIVERY_KEY = 'treektour.order.delivery';
 
 function getRentalDays(start: string | null, end: string | null): number {
   if (!start || !end) return 1;
@@ -60,6 +63,30 @@ export function OrderCart() {
     }
   });
 
+  const [deliveryPref, setDeliveryPref] = useState<{
+    deliveryType: DeliveryType;
+    scheduleId: number | null;
+    deliveryLocation: string;
+    deliveryNotes: string;
+  }>(() => {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(DELIVERY_KEY) || '{}');
+      return {
+        deliveryType: (stored.deliveryType as DeliveryType) || 'STORE_PICKUP',
+        scheduleId: stored.scheduleId || null,
+        deliveryLocation: stored.deliveryLocation || '',
+        deliveryNotes: stored.deliveryNotes || '',
+      };
+    } catch {
+      return {
+        deliveryType: 'STORE_PICKUP',
+        scheduleId: null,
+        deliveryLocation: '',
+        deliveryNotes: '',
+      };
+    }
+  });
+
   const [products, setProducts] = useState<Record<number, Product>>({});
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
@@ -74,6 +101,7 @@ export function OrderCart() {
       sessionStorage.setItem(CART_KEY, JSON.stringify(newLines));
     } else {
       sessionStorage.removeItem(CART_KEY);
+      sessionStorage.removeItem(DELIVERY_KEY);
     }
     window.dispatchEvent(new Event('cart_updated'));
   };
@@ -84,7 +112,7 @@ export function OrderCart() {
     catalogApi<Branch[]>('/branches')
       .then((res) => {
         if (alive && Array.isArray(res)) {
-          setBranches(res);
+          setBranches(res.filter((x) => x.status === 'ACTIVE'));
         }
       })
       .catch(() => {});
@@ -131,10 +159,44 @@ export function OrderCart() {
   }, [branches]);
 
   // Active branch for this cart batch
+  const currentBranchId = lines.length > 0 ? lines[0].branchId : (branches[0]?.id ?? '');
   const activeBranch = useMemo(() => {
-    if (lines.length === 0) return null;
-    return branchMap.get(lines[0].branchId) || null;
-  }, [lines, branchMap]);
+    if (!currentBranchId) return null;
+    return branchMap.get(Number(currentBranchId)) || null;
+  }, [currentBranchId, branchMap]);
+
+  // Handle Delivery Choice Change
+  const handleDeliveryChange = (next: {
+    deliveryType: DeliveryType;
+    branchId: number | '';
+    scheduleId?: number | null;
+    deliveryLocation?: string;
+    deliveryNotes?: string;
+    rentalStartDate?: string;
+    rentalEndDate?: string;
+  }) => {
+    const newPref = {
+      deliveryType: next.deliveryType,
+      scheduleId: next.scheduleId ?? null,
+      deliveryLocation: next.deliveryLocation || '',
+      deliveryNotes: next.deliveryNotes !== undefined ? next.deliveryNotes : deliveryPref.deliveryNotes,
+    };
+    setDeliveryPref(newPref);
+    sessionStorage.setItem(DELIVERY_KEY, JSON.stringify(newPref));
+
+    // Update lines branch and rental dates if provided
+    if (lines.length > 0 && next.branchId) {
+      const updatedLines = lines.map((l) => {
+        const item: CartLine = { ...l, branchId: Number(next.branchId) };
+        if (l.itemType === 'RENTAL' && next.rentalStartDate && next.rentalEndDate) {
+          item.rentalStartDate = next.rentalStartDate;
+          item.rentalEndDate = next.rentalEndDate;
+        }
+        return item;
+      });
+      saveLines(updatedLines);
+    }
+  };
 
   // Adjust item quantity
   const handleUpdateQuantity = (index: number, delta: number) => {
@@ -167,11 +229,18 @@ export function OrderCart() {
   const handleCheckout = async () => {
     if (lines.length === 0) return;
     if (!isAuthenticated || !sessionStorage.getItem('treektour.catalog.token')) {
-      setError('Please sign in to place an order. Your cart has been saved.');
+      setError('Vui lòng đăng nhập để hoàn tất đơn hàng. Giỏ hàng của bạn đã được lưu.');
+      return;
+    }
+    if (deliveryPref.deliveryType === 'TOUR_DELIVERY' && !deliveryPref.scheduleId) {
+      setError('Vui lòng chọn tour bạn tham gia để nhân viên bàn giao thiết bị.');
       return;
     }
     const invalidContact = contactError(contact.value);
-    if (invalidContact) { setError(invalidContact); return; }
+    if (invalidContact) {
+      setError(invalidContact);
+      return;
+    }
     setBusy(true);
     setError('');
 
@@ -181,13 +250,17 @@ export function OrderCart() {
         body: JSON.stringify({
           branchId: lines[0].branchId,
           items: lines,
+          deliveryType: deliveryPref.deliveryType,
+          scheduleId: deliveryPref.deliveryType === 'TOUR_DELIVERY' ? deliveryPref.scheduleId : null,
+          deliveryLocation: deliveryPref.deliveryType === 'TOUR_DELIVERY' ? deliveryPref.deliveryLocation : null,
+          deliveryNotes: deliveryPref.deliveryNotes || null,
         }),
       });
 
       setCreatedOrder(order);
       saveLines([]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unable to complete your order');
+      setError(e instanceof Error ? e.message : 'Không thể hoàn tất đơn hàng');
     } finally {
       setBusy(false);
     }
@@ -220,6 +293,7 @@ export function OrderCart() {
   // 1. Success confirmation screen after checkout
   if (createdOrder) {
     const orderBranch = branchMap.get(createdOrder.branchId);
+    const isTourDelivery = createdOrder.deliveryType === 'TOUR_DELIVERY';
 
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 font-label">
@@ -233,39 +307,71 @@ export function OrderCart() {
               EXPEDITION MANIFEST CONFIRMED
             </Badge>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
-              Order Placed · Order #{createdOrder.id}
+              Đặt Hàng Thành Công · Đơn #{createdOrder.id}
             </h1>
             <p className="text-xs text-[#5C665F] max-w-lg mx-auto font-body">
-              Your equipment order has been submitted. Complete payment before the branch can approve your order and arrange handover.
+              Đơn hàng thiết bị của bạn đã được ghi nhận. Vui lòng hoàn tất thanh toán để ban quản lý duyệt đơn và chuẩn bị bàn giao.
             </p>
           </div>
 
           {/* Quick Invoice Card */}
           <div className="bg-white border border-[#D8D2C5] rounded-xs p-5 max-w-lg mx-auto text-left text-xs space-y-3">
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Order ID:</span>
+              <span className="text-[#737C75]">Mã đơn hàng:</span>
               <span className="font-bold font-headline text-sm text-[#111D16]">#{createdOrder.id}</span>
             </div>
+
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Pickup branch:</span>
+              <span className="text-[#737C75]">Phương thức nhận:</span>
+              <span className="font-bold text-[#152A20] flex items-center gap-1">
+                {isTourDelivery ? (
+                  <>
+                    <Compass className="w-3.5 h-3.5 text-[#059669]" />
+                    <span className="text-[#059669]">Bàn giao tại Tour</span>
+                  </>
+                ) : (
+                  <>
+                    <Building className="w-3.5 h-3.5 text-[#152A20]" />
+                    <span>Nhận tại Outpost</span>
+                  </>
+                )}
+              </span>
+            </div>
+
+            {isTourDelivery && createdOrder.deliveryLocation && (
+              <div className="flex justify-between items-start border-b border-[#EBE6DC] pb-2.5">
+                <span className="text-[#737C75] shrink-0">Điểm hẹn bàn giao:</span>
+                <span className="text-right text-[#15803D] font-bold max-w-xs">
+                  {createdOrder.deliveryLocation}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
+              <span className="text-[#737C75]">Chi nhánh phụ trách:</span>
               <span className="font-bold text-[#111D16]">
                 {orderBranch?.name || `Outpost #${createdOrder.branchId}`}
               </span>
             </div>
-            {orderBranch?.address && (
-              <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-                <span className="text-[#737C75]">Pickup address:</span>
-                <span className="text-right text-[#5C665F] font-body max-w-xs">{orderBranch.address}</span>
+
+            {createdOrder.deliveryNotes && (
+              <div className="flex justify-between items-start border-b border-[#EBE6DC] pb-2.5">
+                <span className="text-[#737C75] shrink-0">Ghi chú của bạn:</span>
+                <span className="text-right text-[#5C665F] font-body max-w-xs">
+                  {createdOrder.deliveryNotes}
+                </span>
               </div>
             )}
+
             <div className="flex justify-between items-center border-b border-[#EBE6DC] pb-2.5">
-              <span className="text-[#737C75]">Created at:</span>
+              <span className="text-[#737C75]">Thời gian tạo:</span>
               <span className="font-mono-spec">
-                {new Date(createdOrder.orderDate).toLocaleString('en-GB')}
+                {new Date(createdOrder.orderDate).toLocaleString('vi-VN')}
               </span>
             </div>
+
             <div className="flex justify-between items-center pt-1">
-              <span className="text-sm font-bold text-[#111D16] uppercase">Order value:</span>
+              <span className="text-sm font-bold text-[#111D16] uppercase">Tổng giá trị:</span>
               <span className="text-lg font-bold text-[#D97845] font-headline">
                 {vnd(createdOrder.totalAmount)}
               </span>
@@ -276,10 +382,19 @@ export function OrderCart() {
           <div className="p-4 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs max-w-lg mx-auto text-left text-xs text-[#5C665F] space-y-1.5 font-body">
             <div className="font-bold text-[#D97845] flex items-center gap-1.5 font-label uppercase text-[11px]">
               <Info className="w-4 h-4 shrink-0" />
-              Equipment pickup notes
+              Lưu ý bàn giao thiết bị
             </div>
-            <p>• Bring your national ID or passport when collecting your equipment.</p>
-            <p>• For rentals, inspect the equipment with branch staff and sign the condition report before pickup.</p>
+            {isTourDelivery ? (
+              <>
+                <p>• Hướng dẫn viên / ban tổ chức tour sẽ mang đồ đến điểm tập kết xuất phát của tour.</p>
+                <p>• Vui lòng có mặt đúng giờ hẹn và đối chiếu mã đơn #{createdOrder.id} để nhận thiết bị.</p>
+              </>
+            ) : (
+              <>
+                <p>• Vui lòng mang theo CMND/CCCD hoặc Hộ chiếu khi đến nhận thiết bị tại Outpost.</p>
+                <p>• Đối với đồ thuê, bạn sẽ cùng nhân viên kiểm tra tình trạng và ký biên bản giao nhận.</p>
+              </>
+            )}
           </div>
 
           {/* Navigation CTA */}
@@ -287,25 +402,25 @@ export function OrderCart() {
             {createdOrder.status === 'PENDING' && createdOrder.paymentStatus !== 'PAID' && (
               <Link to={`/payment/pending?orderId=${createdOrder.id}`}>
                 <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-                  Continue to payment
+                  Tiếp tục thanh toán
                 </Button>
               </Link>
             )}
             <Link to="/orders">
               <Button variant="primary" size="md" icon={<Package className="w-4 h-4" />}>
-                View My Orders
+                Xem Đơn Hàng Của Tôi
               </Button>
             </Link>
             {account?.role === 'ADMIN' && (
               <Link to="/admin/orders">
                 <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
-                  Manage Orders (Admin)
+                  Quản lý đơn (Admin)
                 </Button>
               </Link>
             )}
             <Link to="/shop">
               <Button variant="secondary" size="md">
-                Continue Shopping
+                Tiếp tục mua sắm
               </Button>
             </Link>
           </div>
@@ -318,44 +433,24 @@ export function OrderCart() {
   if (lines.length === 0) {
     return (
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6 font-label">
-        <div className="flex items-center gap-2 border-b border-[#D8D2C5] pb-4">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-[#5C665F] hover:text-[#111D16] font-bold">
-            <ArrowLeft className="w-4 h-4" />
-            <span>Home</span>
-          </Link>
-          <span className="text-[#A39B8D]">/</span>
-          <span className="text-xs text-[#111D16] font-bold">Equipment cart</span>
-        </div>
-
-        <Card padding="lg" className="text-center py-16 space-y-4 bg-[#F8F6F1] border border-[#D8D2C5]">
-          <div className="w-16 h-16 rounded-full bg-[#EBE6DC] border border-[#D8D2C5] flex items-center justify-center mx-auto text-[#737C75]">
-            <ShoppingBag className="w-8 h-8 stroke-1" />
+        <Card padding="lg" className="border border-[#D8D2C5] bg-[#F8F6F1] text-center space-y-5">
+          <div className="w-14 h-14 rounded-full bg-[#EBE6DC] text-[#737C75] flex items-center justify-center mx-auto">
+            <ShoppingBag className="w-7 h-7" />
           </div>
 
-          <div className="space-y-1.5">
-            <Badge variant="neutral">EXPEDITION MANIFEST EMPTY</Badge>
-            <h1 className="text-2xl font-bold text-[#111D16] font-headline">
-              Your Equipment Cart Is Empty
+          <div className="space-y-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">
+              Giỏ hàng của bạn đang trống
             </h1>
-            <p className="text-xs text-[#5C665F] max-w-md mx-auto font-body">
-              You have not added any equipment yet. Explore our gear and prepare for your next trip.
+            <p className="text-xs text-[#5C665F] font-body max-w-md mx-auto">
+              Bạn chưa có trang thiết bị nào trong danh mục chuẩn bị chuyến đi. Hãy khám phá kho thiết bị thám hiểm của chúng tôi.
             </p>
           </div>
 
-          <div className="flex justify-center flex-wrap gap-3 pt-3">
-            <Link to="/rent">
-              <Button variant="accent" size="md" icon={<Calendar className="w-4 h-4" />}>
-                Equipment Rentals
-              </Button>
-            </Link>
+          <div className="pt-2">
             <Link to="/shop">
-              <Button variant="primary" size="md" icon={<ShoppingBag className="w-4 h-4" />}>
-                Equipment Shop
-              </Button>
-            </Link>
-            <Link to="/orders">
-              <Button variant="secondary" size="md">
-                Order History
+              <Button variant="accent" size="md" icon={<ArrowRight className="w-4 h-4" />}>
+                Khám phá kho thiết bị
               </Button>
             </Link>
           </div>
@@ -364,37 +459,27 @@ export function OrderCart() {
     );
   }
 
-  // 3. Normal Cart View with items
+  // 3. Cart with items
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label">
-      {/* Top Header & Breadcrumb */}
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label">
+      {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D8D2C5] pb-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="primary" className="bg-[#152A20] text-emerald-400">
-              EQUIPMENT DISPATCH MANIFEST
-            </Badge>
-            <span className="text-xs text-[#5C665F] font-mono-spec">
-              SYS // ORDER_CART
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline tracking-tight">
-            Equipment Cart & Checkout
+          <Badge variant="primary" className="mb-1">
+            EXPEDITION MANIFEST
+          </Badge>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#111D16] font-headline">
+            Giỏ Hàng & Điểm Nhận Thiết Bị
           </h1>
-          <p className="text-xs text-[#5C665F] font-body mt-1">
-            Review your equipment, quantities and rental dates before placing your order.
+          <p className="text-xs text-[#5C665F] font-body mt-0.5">
+            Xem lại thiết bị chuẩn bị cho chuyến đi, chọn nhận tại chi nhánh Outpost hoặc giao tại tour bạn đã đặt.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link to="/shop">
-            <Button variant="secondary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
-              Add more equipment
-            </Button>
-          </Link>
-          <Link to="/orders">
-            <Button variant="secondary" size="sm">
-              My orders
+            <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
+              Thêm thiết bị khác
             </Button>
           </Link>
           <Button
@@ -404,7 +489,7 @@ export function OrderCart() {
             disabled={busy}
             icon={<Trash2 className="w-3.5 h-3.5 text-red-600" />}
           >
-            Clear cart
+            Làm trống giỏ
           </Button>
         </div>
       </div>
@@ -420,57 +505,31 @@ export function OrderCart() {
             onClick={() => setError('')}
             className="text-xs font-bold underline hover:text-black cursor-pointer"
           >
-            Close
+            Đóng
           </button>
         </div>
       )}
 
-      {/* Active Branch Depot Banner */}
-      {activeBranch && (
-        <div className="p-3.5 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xs bg-[#152A20] text-emerald-400 flex items-center justify-center shrink-0">
-              <Building className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider">
-                PICKUP BRANCH
-              </div>
-              <div className="font-bold text-sm text-[#111D16] font-headline">
-                {activeBranch.name}
-              </div>
-              {activeBranch.address && (
-                <div className="text-[11px] text-[#5C665F] flex items-center gap-1 mt-0.5 font-body">
-                  <MapPin className="w-3 h-3 text-[#737C75]" />
-                  <span>{activeBranch.address}</span>
-                  {activeBranch.phone && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <Phone className="w-3 h-3 text-[#737C75]" />
-                      <span>{activeBranch.phone}</span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="text-[11px] text-[#5C665F] sm:text-right font-body bg-white/60 p-2 rounded-xs border border-[#D8D2C5]/50">
-            <span className="font-bold text-[#152A20] block font-label uppercase text-[10px]">
-              PICKUP & RETURN
-            </span>
-            Collect and return equipment at this same outpost.
-          </div>
-        </div>
-      )}
+      {/* Fulfillment / Delivery Destination Selector */}
+      <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] shadow-xs">
+        <DeliveryDestinationSelector
+          deliveryType={deliveryPref.deliveryType}
+          branchId={currentBranchId}
+          scheduleId={deliveryPref.scheduleId}
+          deliveryNotes={deliveryPref.deliveryNotes}
+          branches={branches}
+          isAuthenticated={isAuthenticated}
+          onDeliveryChange={handleDeliveryChange}
+        />
+      </Card>
 
       {/* Main Grid: Cart Items (Left 8 cols) + Checkout Summary (Right 4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: List of items */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs text-[#737C75] font-bold uppercase">
-            <span>EQUIPMENT LIST ({lines.length} ITEMS)</span>
-            <span>ITEM TOTAL</span>
+            <span>DANH SÁCH THIẾT BỊ ({lines.length} MÓN)</span>
+            <span>TỔNG TIỀN</span>
           </div>
 
           <div className="space-y-3">
@@ -505,20 +564,20 @@ export function OrderCart() {
                           </Link>
 
                           <Badge variant={isRental ? 'warning' : 'neutral'} size="sm">
-                            {isRental ? 'RENTAL' : 'PURCHASE'}
+                            {isRental ? 'THUÊ THEO NGÀY' : 'MUA MỚI'}
                           </Badge>
                         </div>
 
                         <div className="text-[11px] text-[#5C665F] flex flex-wrap items-center gap-2">
-                          <span>SKU: #{line.productId}</span>
+                          <span>Mã: #{line.productId}</span>
                           {prod?.category && (
                             <>
                               <span>•</span>
-                              <span>Category: {prod.category}</span>
+                              <span>Danh mục: {prod.category}</span>
                             </>
                           )}
                           <span>•</span>
-                          <span>Unit price: {vnd(unitPrice)}{isRental && ' / day'}</span>
+                          <span>Đơn giá: {vnd(unitPrice)}{isRental && ' / ngày'}</span>
                         </div>
 
                         {/* Rental Date Range Badge */}
@@ -526,7 +585,7 @@ export function OrderCart() {
                           <div className="mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
                             <Calendar className="w-3.5 h-3.5 shrink-0" />
                             <span>
-                              Rental dates: {line.rentalStartDate} → {line.rentalEndDate} ({days} days)
+                              Thời gian thuê: {line.rentalStartDate} → {line.rentalEndDate} ({days} ngày)
                             </span>
                           </div>
                         )}
@@ -535,7 +594,7 @@ export function OrderCart() {
 
                     {/* Line total price */}
                     <div className="sm:text-right shrink-0">
-                      <div className="text-[10px] text-[#737C75] uppercase">Subtotal</div>
+                      <div className="text-[10px] text-[#737C75] uppercase">Tạm tính</div>
                       <div className="text-base font-bold text-[#152A20] font-headline">
                         {loadingProducts && !prod ? '...' : vnd(lineTotal)}
                       </div>
@@ -545,14 +604,14 @@ export function OrderCart() {
                   {/* Quantity and Actions Bar */}
                   <div className="flex items-center justify-between pt-2.5 border-t border-[#DDD7CB] text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[#737C75] font-bold uppercase">Quantity:</span>
+                      <span className="text-[11px] text-[#737C75] font-bold uppercase">Số lượng:</span>
                       <div className="flex items-center border border-[#D8D2C5] rounded-xs bg-white overflow-hidden">
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(index, -1)}
                           disabled={busy}
                           className="px-2 py-1 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Decrease quantity"
+                          title="Giảm số lượng"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -564,7 +623,7 @@ export function OrderCart() {
                           onClick={() => handleUpdateQuantity(index, 1)}
                           disabled={busy}
                           className="px-2 py-1 text-[#5C665F] hover:bg-[#EBE6DC] hover:text-[#111D16] transition cursor-pointer"
-                          title="Increase quantity"
+                          title="Tăng số lượng"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -578,7 +637,7 @@ export function OrderCart() {
                       className="text-xs text-[#B91C1C] hover:text-[#991B1B] font-bold flex items-center gap-1 cursor-pointer transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove from cart</span>
+                      <span>Xóa khỏi giỏ</span>
                     </button>
                   </div>
                 </Card>
@@ -590,10 +649,10 @@ export function OrderCart() {
           <div className="p-4 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-xs text-[#5C665F] space-y-2">
             <h4 className="font-bold text-[#111D16] flex items-center gap-1.5 uppercase text-[11px]">
               <ShieldCheck className="w-4 h-4 text-[#152A20]" />
-              TerraPeak Equipment Safety Standards
+              Tiêu Chuẩn Thiết Bị & Khử Khuẩn TerraPeak
             </h4>
             <p className="font-body text-[11px] leading-relaxed">
-              Inspect your equipment with branch staff at pickup and review its condition before signing the handover record.
+              Mọi thiết bị thám hiểm đều được kiểm tra kỹ thuật và tiệt trùng trước khi giao. Quý khách vui lòng kiểm tra cùng nhân viên / hướng dẫn viên khi nhận đồ.
             </p>
           </div>
         </div>
@@ -603,10 +662,10 @@ export function OrderCart() {
           <Card padding="md" className="bg-white border-2 border-[#152A20] space-y-4 shadow-sm">
             <div className="border-b border-[#D8D2C5] pb-3">
               <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
-                MANIFEST FINANCIALS
+                TÓM TẮT ĐƠN HÀNG
               </span>
               <h3 className="text-base font-bold text-[#111D16] font-headline mt-0.5">
-                Order Summary
+                Chi Tiết Thanh Toán
               </h3>
             </div>
 
@@ -614,7 +673,7 @@ export function OrderCart() {
             <div className="space-y-2.5 text-xs">
               {totals.saleSubtotal > 0 && (
                 <div className="flex justify-between items-center text-[#5C665F]">
-                  <span>Buy equipment ({lines.filter((l) => l.itemType === 'SALE').length} items):</span>
+                  <span>Mua thiết bị ({lines.filter((l) => l.itemType === 'SALE').length} món):</span>
                   <span className="font-mono-spec font-bold text-[#111D16]">
                     {vnd(totals.saleSubtotal)}
                   </span>
@@ -623,7 +682,7 @@ export function OrderCart() {
 
               {totals.rentalSubtotal > 0 && (
                 <div className="flex justify-between items-center text-[#5C665F]">
-                  <span>Rent equipment ({lines.filter((l) => l.itemType === 'RENTAL').length} items):</span>
+                  <span>Thuê thiết bị ({lines.filter((l) => l.itemType === 'RENTAL').length} món):</span>
                   <span className="font-mono-spec font-bold text-[#111D16]">
                     {vnd(totals.rentalSubtotal)}
                   </span>
@@ -631,26 +690,26 @@ export function OrderCart() {
               )}
 
               <div className="flex justify-between items-center text-[#5C665F]">
-                <span>Inspection & sanitization:</span>
+                <span>Kiểm tra & khử trùng:</span>
                 <span className="font-bold text-emerald-600 uppercase text-[10px]">
-                  Free
+                  Miễn phí
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-[#5C665F]">
-                <span>Trail emergency support:</span>
+                <span>Hỗ trợ cứu hộ trail:</span>
                 <span className="font-bold text-[#152A20] text-[10px]">
-                  Included
+                  Bao gồm
                 </span>
               </div>
 
               <div className="border-t border-[#D8D2C5] pt-3 flex justify-between items-baseline">
                 <div>
                   <span className="text-xs font-bold text-[#111D16] uppercase block">
-                    ORDER TOTAL:
+                    TỔNG CỘNG:
                   </span>
                   <span className="text-[10px] text-[#737C75]">
-                    ({totals.totalItemsCount} equipment items)
+                    ({totals.totalItemsCount} món đồ)
                   </span>
                 </div>
                 <div className="text-xl font-bold text-[#D97845] font-headline">
@@ -660,7 +719,9 @@ export function OrderCart() {
             </div>
 
             {/* Account Status / Login reminder */}
-            {authLoading ? <p role="status">Checking sign-in...</p> : isAuthenticated && account ? (
+            {authLoading ? (
+              <p role="status">Đang kiểm tra đăng nhập...</p>
+            ) : isAuthenticated && account ? (
               <div className="p-2.5 bg-[#E0EFE6] border border-[#ADCBBB] rounded-xs text-[11px] text-[#152A20] space-y-0.5">
                 <span className="font-bold flex items-center gap-1">
                   <User className="w-3.5 h-3.5 text-emerald-700" />
@@ -671,32 +732,43 @@ export function OrderCart() {
                 </span>
               </div>
             ) : (
-              <div role="status" className="p-2.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[11px] text-[#D97845] space-y-1">
-                <span>Please sign in to place an order. Your cart will be kept while you sign in.</span>
+              <div
+                role="status"
+                className="p-2.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[11px] text-[#D97845] space-y-1"
+              >
+                <span>Vui lòng đăng nhập để tiến hành đặt hàng.</span>
                 <Link
                   to="/login?returnTo=/cart"
                   className="font-bold underline block hover:text-[#C66735]"
                 >
-                  Sign in now →
+                  Đăng nhập ngay →
                 </Link>
               </div>
             )}
 
             <CustomerContactSummary contact={contact} />
+
             {/* Checkout Action Button */}
             <Button
               variant="accent"
               size="lg"
               fullWidth
-              disabled={busy || authLoading || !isAuthenticated || lines.length === 0 || !!contactError(contact.value)}
+              disabled={
+                busy ||
+                authLoading ||
+                !isAuthenticated ||
+                lines.length === 0 ||
+                (deliveryPref.deliveryType === 'TOUR_DELIVERY' && !deliveryPref.scheduleId) ||
+                !!contactError(contact.value)
+              }
               onClick={() => void handleCheckout()}
               icon={<ArrowRight className="w-4 h-4" />}
             >
-              {busy ? 'Placing order...' : 'Place Order'}
+              {busy ? 'Đang tạo đơn...' : 'Đặt Hàng & Thanh Toán'}
             </Button>
 
             <p className="text-[10px] text-[#737C75] text-center font-body">
-              After placing your order, complete payment so branch staff can approve it and prepare your equipment.
+              Sau khi đặt hàng, bạn sẽ thanh toán trực tuyến để ban quản lý duyệt đơn và chuẩn bị thiết bị.
             </p>
           </Card>
         </div>

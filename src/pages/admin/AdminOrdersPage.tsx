@@ -29,6 +29,7 @@ import {
   Building,
   Phone,
   Mail,
+  Compass,
 } from 'lucide-react';
 import { Card, Button, Badge, Modal } from '../../components/ui';
 import { catalogApi, Branch, Product, Account, vnd } from '../../features/equipment/catalogApi';
@@ -216,7 +217,10 @@ export const AdminOrdersPage: React.FC = () => {
             return pName.includes(q) || String(item.productId).includes(q);
           });
 
-          if (!matchId && !matchUser && !matchBranch && !matchItem) return false;
+          const matchDelivery = (order.deliveryLocation && order.deliveryLocation.toLowerCase().includes(q)) ||
+            (order.deliveryType && order.deliveryType.toLowerCase().includes(q));
+
+          if (!matchId && !matchUser && !matchBranch && !matchItem && !matchDelivery) return false;
         }
 
         return true;
@@ -636,11 +640,18 @@ export const AdminOrdersPage: React.FC = () => {
                   </div>
 
                   {/* Branch and Customer Tag */}
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#111D16] font-bold flex items-center gap-1">
-                      <Building className="w-3.5 h-3.5 text-[#152A20]" />
-                      {branch ? branch.name : `Outpost #${order.branchId}`}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {order.deliveryType === 'TOUR_DELIVERY' ? (
+                      <span className="px-2 py-1 bg-[#F0FDF4] border border-[#86EFAC] rounded-xs text-[#166534] font-bold flex items-center gap-1" title={order.deliveryLocation || ''}>
+                        <Compass className="w-3.5 h-3.5 text-[#15803D]" />
+                        <span>Giao tại Tour {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#111D16] font-bold flex items-center gap-1">
+                        <Building className="w-3.5 h-3.5 text-[#152A20]" />
+                        {branch ? branch.name : `Outpost #${order.branchId}`}
+                      </span>
+                    )}
                     <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#5C665F] font-mono-spec flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-[#737C75]" />
                       {getOrderCustomer(order).name}
@@ -837,7 +848,7 @@ export const AdminOrdersPage: React.FC = () => {
                 <tr className="bg-[#152A20] text-[#F3EFE6] font-bold uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-4">Order ID</th>
                   <th className="py-3 px-4">Created</th>
-                  <th className="py-3 px-4">Pickup branch</th>
+                  <th className="py-3 px-4">Fulfillment / Branch</th>
                   <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Equipment items</th>
                   <th className="py-3 px-4">Total</th>
@@ -862,9 +873,20 @@ export const AdminOrdersPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="font-bold text-[#111D16]">
-                          {branch ? branch.name : `Branch #${order.branchId}`}
-                        </span>
+                        {order.deliveryType === 'TOUR_DELIVERY' ? (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D]">
+                              <Compass className="w-3 h-3" /> Giao tại Tour
+                            </span>
+                            <div className="text-[10px] text-[#5C665F] truncate max-w-xs" title={order.deliveryLocation || ''}>
+                              {order.deliveryLocation || `Outpost #${order.branchId}`}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-[#111D16]">
+                            {branch ? branch.name : `Branch #${order.branchId}`}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         {(() => {
@@ -1035,6 +1057,65 @@ export const AdminOrdersPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Fulfillment & Destination Card */}
+            <div className={`p-4 rounded-xs border space-y-2.5 ${
+              selectedOrder.deliveryType === 'TOUR_DELIVERY'
+                ? 'bg-[#F0FDF4] border-[#86EFAC]'
+                : 'bg-white border-[#D8D2C5]'
+            }`}>
+              <div className="flex items-center justify-between border-b pb-2 border-inherit">
+                <div className="flex items-center gap-2">
+                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? (
+                    <Compass className="w-4 h-4 text-[#15803D]" />
+                  ) : (
+                    <Building className="w-4 h-4 text-[#152A20]" />
+                  )}
+                  <span className="font-bold text-xs uppercase text-[#111D16] tracking-wider">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'GIAO TẠI ĐIỂM TẬP KẾT TOUR' : 'NHẬN TẠI CHI NHÁNH OUTPOST'}
+                  </span>
+                </div>
+                <Badge variant={selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'success' : 'neutral'} size="sm">
+                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'TOUR DELIVERY' : 'STORE PICKUP'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Điểm hẹn & Tour' : 'Chi nhánh nhận'}
+                  </span>
+                  <p className="font-bold text-[#111D16]">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY'
+                      ? (selectedOrder.deliveryLocation || `Lịch trình Tour #${selectedOrder.scheduleId}`)
+                      : (branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`)}
+                  </p>
+                  {selectedOrder.deliveryType !== 'TOUR_DELIVERY' && branchMap.get(selectedOrder.branchId)?.address && (
+                    <p className="text-[11px] text-[#5C665F]">{branchMap.get(selectedOrder.branchId)?.address}</p>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
+                    Chi nhánh phụ trách chuẩn bị đồ
+                  </span>
+                  <p className="font-bold text-[#111D16]">
+                    {branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`}
+                  </p>
+                  {selectedOrder.deliveryNotes && (
+                    <p className="text-[11px] text-[#047857] mt-1 font-body">
+                      <strong>Ghi chú của khách:</strong> {selectedOrder.deliveryNotes}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {selectedOrder.deliveryType === 'TOUR_DELIVERY' && (
+                <div className="text-[11px] text-[#166534] bg-white/70 p-2 rounded-xs border border-[#BBF7D0]">
+                  💡 <strong>Lưu ý cho Staff/Admin:</strong> Đơn hàng này cần được chuẩn bị và chuyển cho Hướng dẫn viên / Điều phối viên mang theo đoàn để bàn giao trực tiếp cho khách tại điểm tập kết tour trước giờ khởi hành.
+                </div>
+              )}
             </div>
 
             {/* Dedicated Customer & Recipient Information Card */}

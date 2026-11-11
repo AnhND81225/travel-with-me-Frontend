@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { catalogApi, vnd, type Branch } from "../equipment/catalogApi";
 import { CustomerContactSummary, getCustomerContact, contactError } from "./customerContact";
-import type { Order } from "./orderApi";
+import type { Order, DeliveryType } from "./orderApi";
+import { DeliveryDestinationSelector } from "./DeliveryDestinationSelector";
 import { useAuth } from "../../hooks/useAuth";
 import { useAppStore } from "../../store/useAppStore";
 import { Card, Button, Badge } from "../../components/ui";
@@ -15,6 +16,7 @@ import {
   ArrowRight,
   PlusCircle,
   CreditCard,
+  Compass,
 } from "lucide-react";
 
 export function OrderCheckout({
@@ -32,59 +34,119 @@ export function OrderCheckout({
   const { setCartOpen } = useAppStore();
 
   const today = new Date();
-  const minDate = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0");
+  const minDate =
+    today.getFullYear() +
+    "-" +
+    String(today.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(today.getDate()).padStart(2, "0");
   const draft = new URLSearchParams(useLocation().search);
-  const [branchId, setBranchId] = useState(draft.get("branch") || "");
+  const [branchId, setBranchId] = useState<number | "">(
+    draft.get("branch") ? Number(draft.get("branch")) : ""
+  );
+  const [deliveryType, setDeliveryType] = useState<DeliveryType>(
+    (draft.get("deliveryType") as DeliveryType) || "STORE_PICKUP"
+  );
+  const [scheduleId, setScheduleId] = useState<number | null>(
+    draft.get("scheduleId") ? Number(draft.get("scheduleId")) : null
+  );
+  const [deliveryLocation, setDeliveryLocation] = useState<string>(
+    draft.get("deliveryLocation") || ""
+  );
+  const [deliveryNotes, setDeliveryNotes] = useState<string>("");
+
   const [startDate, setStartDate] = useState(draft.get("start") || minDate);
   const [endDate, setEndDate] = useState(draft.get("end") || minDate);
   const [quantity, setQuantity] = useState(draft.get("quantity") || "1");
   const [selectedMode, setSelectedMode] = useState<"SALE" | "RENTAL">(
     draft.get("mode") === "rent" && rental !== null ? "RENTAL" : sale !== null ? "SALE" : "RENTAL"
   );
-  const dateError = !startDate || !endDate ? "Please select both pickup and return dates."
-    : startDate < minDate ? "Pickup date must be today or later."
-    : endDate < startDate ? "Return date must be on or after the pickup date." : "";
+  const dateError =
+    !startDate || !endDate
+      ? "Vui lòng chọn ngày bắt đầu và kết thúc thuê."
+      : startDate < minDate
+      ? "Ngày bắt đầu thuê phải từ hôm nay trở đi."
+      : endDate < startDate
+      ? "Ngày kết thúc phải cùng hoặc sau ngày bắt đầu."
+      : "";
   const [branches, setBranches] = useState<Branch[]>([]);
-  const signInUrl = "/login?returnTo=" + encodeURIComponent("/gear/" + productId + "?" + new URLSearchParams({ branch: branchId, start: startDate, end: endDate, quantity }));
+  const signInUrl =
+    "/login?returnTo=" +
+    encodeURIComponent(
+      "/gear/" +
+        productId +
+        "?" +
+        new URLSearchParams({
+          branch: String(branchId),
+          deliveryType,
+          start: startDate,
+          end: endDate,
+          quantity,
+        })
+    );
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const createdOrderId = createdOrder?.id ?? null;
   const [busy, setBusy] = useState(false);
 
-
   useEffect(() => {
     catalogApi<Branch[]>("/branches")
-      .then((b) => setBranches(b.filter((x) => x.status === "ACTIVE")))
+      .then((b) => {
+        const activeBranches = b.filter((x) => x.status === "ACTIVE");
+        setBranches(activeBranches);
+        if (!branchId && activeBranches.length > 0) {
+          setBranchId(activeBranches[0].id);
+        }
+      })
       .catch((e) => setMessage(e instanceof Error ? e.message : "Unable to load branches"));
   }, []);
 
-  useEffect(() => { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }, [productId]);
-  const canOrder = !!branchId && (selectedMode === "SALE" || !dateError) &&
-    Number.isSafeInteger(Number(quantity)) && Number(quantity) > 0;
+  useEffect(() => {
+    setCreatedOrder(null);
+    setMessage("");
+    setIsSuccess(false);
+  }, [productId]);
+
+  const canOrder =
+    !!branchId &&
+    (deliveryType !== "TOUR_DELIVERY" || !!scheduleId) &&
+    (selectedMode === "SALE" || !dateError) &&
+    Number.isSafeInteger(Number(quantity)) &&
+    Number(quantity) > 0;
+
   const orderBlocked = !canOrder && createdOrderId === null;
 
   return (
     <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
       <div className="border-b border-[#D8D2C5] pb-3">
-        <Badge variant="primary" className="mb-1">EXPEDITION DISPATCH</Badge>
+        <Badge variant="primary" className="mb-1">
+          EXPEDITION DISPATCH
+        </Badge>
         <h3 className="text-base font-bold text-[#111D16] font-headline">
-          Buy & Rent at Outpost
+          Mua & Thuê Thiết Bị Chuyến Đi
         </h3>
         <p className="text-[11px] text-[#5C665F] font-body mt-0.5">
-          You can place an order even when equipment is out of stock. The branch prepares equipment before handover. Rental duration is calculated from pickup date to return date at the outpost.
+          Bạn có thể chọn nhận đồ trực tiếp tại Outpost chi nhánh hoặc bàn giao tận tay tại buổi tập trung tour đã đăng ký.
         </p>
       </div>
 
       <form
         className="space-y-3.5"
         onChange={() => {
-          if (createdOrderId !== null) { setCreatedOrder(null); setMessage(""); setIsSuccess(false); }
+          if (createdOrderId !== null) {
+            setCreatedOrder(null);
+            setMessage("");
+            setIsSuccess(false);
+          }
         }}
         onSubmit={async (e) => {
           e.preventDefault();
           if (busy || orderBlocked) return;
-          if (createdOrderId !== null && (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") !== "cart") {
+          if (
+            createdOrderId !== null &&
+            (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") !== "cart"
+          ) {
             navigate(`/payment/pending?orderId=${createdOrderId}`);
             return;
           }
@@ -110,91 +172,106 @@ export function OrderCheckout({
                 !line.rentalEndDate ||
                 String(line.rentalEndDate) < String(line.rentalStartDate))
             ) {
-              throw new Error("Please select valid pickup and return dates.");
+              throw new Error("Vui lòng chọn ngày nhận và trả thiết bị hợp lệ.");
             }
 
             if ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "cart") {
               const cart = JSON.parse(
                 sessionStorage.getItem("treektour.order.cart") || "[]"
               ) as { branchId: number; productId: number }[];
-              const branchId = Number(data.get("branch"));
+              const finalBranchId = Number(branchId);
 
-              if (cart.length > 0 && cart.some((x) => x.branchId !== branchId)) {
+              if (cart.length > 0 && cart.some((x) => x.branchId !== finalBranchId)) {
                 throw new Error(
-                  "Each cart belongs to a single Outpost branch. Please complete checkout or clear your current cart first."
+                  "Mỗi giỏ hàng hiện thuộc một Chi nhánh Outpost. Vui lòng thanh toán hoặc làm trống giỏ hàng trước."
                 );
               }
               if (cart.some((x) => x.productId === productId)) {
                 throw new Error(
-                  "This product is already in your cart. Open your cart to update the quantity."
+                  "Sản phẩm này đã có trong giỏ hàng. Mở giỏ hàng để cập nhật số lượng."
                 );
               }
 
+              // Store delivery preferences along with cart
+              sessionStorage.setItem(
+                "treektour.order.delivery",
+                JSON.stringify({
+                  deliveryType,
+                  scheduleId: deliveryType === "TOUR_DELIVERY" ? scheduleId : null,
+                  deliveryLocation: deliveryType === "TOUR_DELIVERY" ? deliveryLocation : null,
+                  deliveryNotes: deliveryNotes || null,
+                })
+              );
+
               sessionStorage.setItem(
                 "treektour.order.cart",
-                JSON.stringify([...cart, { ...line, branchId }])
+                JSON.stringify([...cart, { ...line, branchId: finalBranchId }])
               );
               window.dispatchEvent(new Event("cart_updated"));
               setIsSuccess(true);
-              setMessage("Equipment added to cart successfully.");
+              setMessage("Thiết bị đã được thêm vào giỏ hàng.");
               setCartOpen(true);
               return;
             }
 
             if (!isAuthenticated || !sessionStorage.getItem("treektour.catalog.token")) {
-              setMessage("Please sign in to place an order and pay online.");
+              setMessage("Vui lòng đăng nhập để đặt hàng và thanh toán trực tuyến.");
               return;
             }
 
             const invalidContact = contactError(contact.value);
             if (invalidContact) throw new Error(invalidContact);
+
             const order = await catalogApi<Order>("/orders", {
               method: "POST",
               body: JSON.stringify({
-                branchId: Number(data.get("branch")),
+                branchId: Number(branchId),
                 items: [line],
-                    }),
+                deliveryType,
+                scheduleId: deliveryType === "TOUR_DELIVERY" ? scheduleId : null,
+                deliveryLocation: deliveryType === "TOUR_DELIVERY" ? deliveryLocation : null,
+                deliveryNotes: deliveryNotes || null,
+              }),
             });
 
             setIsSuccess(true);
             setCreatedOrder(order);
             setMessage(
-              `Created Order #${order.id} · ${vnd(order.totalAmount)} · Redirecting to payment...`
+              `Đã tạo Đơn hàng #${order.id} · ${vnd(order.totalAmount)} · Đang chuyển đến thanh toán...`
             );
 
-            // Navigate directly to the payment page as requested!
             navigate(`/payment/pending?orderId=${order.id}`);
           } catch (error) {
             setIsSuccess(false);
-            setMessage(error instanceof Error ? error.message : "Unable to create order.");
+            setMessage(error instanceof Error ? error.message : "Không thể tạo đơn hàng.");
           } finally {
             setBusy(false);
           }
         }}
       >
-        {/* Branch select */}
-        <div className="space-y-1">
-          <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Pickup branch *
-          </label>
-          <select
-            name="branch" value={branchId} onChange={(e) => setBranchId(e.target.value)}
-            required
-            className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
-          >
-            <option value="">-- Select Outpost branch --</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Delivery Destination Selector */}
+        <DeliveryDestinationSelector
+          deliveryType={deliveryType}
+          branchId={branchId}
+          scheduleId={scheduleId}
+          deliveryNotes={deliveryNotes}
+          branches={branches}
+          isAuthenticated={isAuthenticated}
+          onDeliveryChange={(next) => {
+            setDeliveryType(next.deliveryType);
+            setBranchId(next.branchId);
+            setScheduleId(next.scheduleId ?? null);
+            setDeliveryLocation(next.deliveryLocation || "");
+            if (next.deliveryNotes !== undefined) setDeliveryNotes(next.deliveryNotes);
+            if (next.rentalStartDate) setStartDate(next.rentalStartDate);
+            if (next.rentalEndDate) setEndDate(next.rentalEndDate);
+          }}
+        />
 
         {/* Mode select */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Order type *
+            Hình thức *
           </label>
           <select
             name="mode"
@@ -202,9 +279,9 @@ export function OrderCheckout({
             onChange={(e) => setSelectedMode(e.target.value as "SALE" | "RENTAL")}
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
           >
-            {sale !== null && <option value="SALE">Buy new equipment · {vnd(sale)}</option>}
+            {sale !== null && <option value="SALE">Mua mới · {vnd(sale)}</option>}
             {rental !== null && (
-              <option value="RENTAL">Rent equipment · {vnd(rental)} / day</option>
+              <option value="RENTAL">Thuê theo ngày · {vnd(rental)} / ngày</option>
             )}
           </select>
         </div>
@@ -212,13 +289,14 @@ export function OrderCheckout({
         {/* Quantity */}
         <div className="space-y-1">
           <label className="font-bold text-[#111D16] uppercase text-[10px] block">
-            Quantity *
+            Số lượng *
           </label>
           <input
             name="quantity"
             type="number"
             min="1"
-            value={quantity} onInput={(e) => setQuantity(e.currentTarget.value)}
+            value={quantity}
+            onInput={(e) => setQuantity(e.currentTarget.value)}
             required
             className="w-full py-2 px-3 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] font-mono-spec focus:outline-none focus:border-[#152A20]"
           />
@@ -228,22 +306,38 @@ export function OrderCheckout({
         {selectedMode === "RENTAL" && rental !== null && (
           <div className="grid grid-cols-2 gap-2.5 p-3 bg-white border border-[#D8D2C5] rounded-xs">
             <div className="space-y-1">
-              <label className="font-bold text-[#D97845] uppercase text-[10px] block">
-                Pickup date
+              <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
+                <span>Ngày nhận đồ</span>
+                {deliveryType === "TOUR_DELIVERY" && scheduleId && (
+                  <span className="text-[9px] text-[#059669] lowercase font-normal">(theo tour)</span>
+                )}
               </label>
               <input
-                name="start" min={minDate} value={startDate} onInput={(e) => { const next = e.currentTarget.value; setStartDate(next); if (endDate < next) setEndDate(next); }}
+                name="start"
+                min={minDate}
+                value={startDate}
+                onInput={(e) => {
+                  const next = e.currentTarget.value;
+                  setStartDate(next);
+                  if (endDate < next) setEndDate(next);
+                }}
                 type="date"
                 required
                 className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
               />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-[#D97845] uppercase text-[10px] block">
-                Return date
+              <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
+                <span>Ngày trả đồ</span>
+                {deliveryType === "TOUR_DELIVERY" && scheduleId && (
+                  <span className="text-[9px] text-[#059669] lowercase font-normal">(theo tour)</span>
+                )}
               </label>
               <input
-                name="end" min={startDate || minDate} value={endDate} onInput={(e) => setEndDate(e.currentTarget.value)}
+                name="end"
+                min={startDate || minDate}
+                value={endDate}
+                onInput={(e) => setEndDate(e.currentTarget.value)}
                 type="date"
                 required
                 className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
@@ -252,8 +346,9 @@ export function OrderCheckout({
           </div>
         )}
 
-        {selectedMode === "RENTAL" && dateError && <p role="alert">{dateError}</p>}
+        {selectedMode === "RENTAL" && dateError && <p role="alert" className="text-red-600 text-xs">{dateError}</p>}
         <CustomerContactSummary contact={contact} />
+
         {/* Status Message */}
         {message && (
           <div
@@ -271,14 +366,14 @@ export function OrderCheckout({
               )}
               <span>{message}</span>
             </div>
-            {isSuccess && (
-              createdOrder ? (
+            {isSuccess &&
+              (createdOrder ? (
                 <Link
                   to={`/payment/pending?orderId=${createdOrder.id}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xs bg-[#152A20] hover:bg-[#1E3A2D] text-white text-xs font-bold shrink-0 shadow-xs transition cursor-pointer"
                 >
                   <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Pay now</span>
+                  <span>Thanh toán ngay</span>
                   <ArrowRight className="w-3 h-3" />
                 </Link>
               ) : (
@@ -287,17 +382,21 @@ export function OrderCheckout({
                   onClick={() => setCartOpen(true)}
                   className="underline hover:text-black shrink-0 font-bold cursor-pointer"
                 >
-                  Open cart →
+                  Mở giỏ hàng →
                 </button>
-              )
-            )}
+              ))}
           </div>
         )}
 
         {!authLoading && !isAuthenticated && (
-          <div role="status" className="p-3 border border-[#F1BA9B] bg-[#FFF8F3] text-[#9A4D22] rounded-xs space-y-1">
-            <p>Please sign in to place an order and pay online. You can still add items to your cart.</p>
-            <Link to={signInUrl} className="font-bold underline block">Sign in →</Link>
+          <div
+            role="status"
+            className="p-3 border border-[#F1BA9B] bg-[#FFF8F3] text-[#9A4D22] rounded-xs space-y-1"
+          >
+            <p>Vui lòng đăng nhập để đặt hàng và thanh toán trực tuyến. Bạn vẫn có thể thêm sản phẩm vào giỏ hàng.</p>
+            <Link to={signInUrl} className="font-bold underline block">
+              Đăng nhập ngay →
+            </Link>
           </div>
         )}
 
@@ -313,23 +412,39 @@ export function OrderCheckout({
             disabled={busy || orderBlocked}
             icon={<PlusCircle className="w-4 h-4 text-[#D97845]" />}
           >
-            Add to Cart
+            Thêm vào giỏ hàng
           </Button>
 
           <Button
             type={createdOrderId ? "button" : "submit"}
             name="action"
             value="buy_now"
-            onClick={createdOrderId ? () => navigate(`/payment/pending?orderId=${createdOrderId}`) : undefined}
+            onClick={
+              createdOrderId
+                ? () => navigate(`/payment/pending?orderId=${createdOrderId}`)
+                : undefined
+            }
             variant="accent"
             size="md"
             fullWidth
-            disabled={busy || orderBlocked || authLoading || !isAuthenticated || !!contactError(contact.value)}
+            disabled={
+              busy ||
+              orderBlocked ||
+              authLoading ||
+              !isAuthenticated ||
+              !!contactError(contact.value)
+            }
             icon={<CreditCard className="w-4 h-4 text-white" />}
-            style={{ backgroundColor: '#D97845', color: '#FFFFFF', borderColor: '#D97845' }}
+            style={{ backgroundColor: "#D97845", color: "#FFFFFF", borderColor: "#D97845" }}
             className="!bg-[#D97845] hover:!bg-[#C66735] !text-white font-bold shadow-xs cursor-pointer"
           >
-            {busy ? "Processing..." : authLoading ? "Checking..." : createdOrderId ? `Pay Order #${createdOrderId}` : "Order Now & Pay"}
+            {busy
+              ? "Đang xử lý..."
+              : authLoading
+              ? "Kiểm tra..."
+              : createdOrderId
+              ? `Thanh toán Đơn #${createdOrderId}`
+              : "Đặt hàng & Thanh toán"}
           </Button>
         </div>
 
@@ -340,14 +455,14 @@ export function OrderCheckout({
             onClick={() => setCartOpen(true)}
             className="hover:text-[#111D16] font-bold underline cursor-pointer"
           >
-            Open cart
+            Mở giỏ hàng
           </button>
           <Link to="/orders" className="hover:text-[#111D16] font-bold underline">
-            My orders
+            Đơn hàng của tôi
           </Link>
           {!isAuthenticated && (
             <Link to={signInUrl} className="hover:text-[#D97845]">
-              Sign in
+              Đăng nhập
             </Link>
           )}
         </div>
