@@ -392,7 +392,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
   };
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
+    <main className="customer-rounded-ui max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -478,13 +478,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
       {/* KPI & Metrics Bar for Customer */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+        <Card data-customer-card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
           <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TOTAL ORDERS</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
           <span className="text-[10px] text-[#5C665F]">Order history</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#FDF8F3] border-l-4 border-l-[#D97845] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === "PENDING" ? "ring-2 ring-[#D97845]" : ""
@@ -501,7 +501,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           </span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#F0FDF4] border-l-4 border-l-[#10B981] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === "IN_PROGRESS" ? "ring-2 ring-[#10B981]" : ""
@@ -513,7 +513,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           <span className="text-[10px] text-[#737C75]">In the field</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#4B5563] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === "COMPLETED" ? "ring-2 ring-[#4B5563]" : ""
@@ -525,7 +525,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           <span className="text-[10px] text-[#737C75]">Equipment returned</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#047857] hover:-translate-y-1 hover:shadow-md transition-all duration-200"
         >
@@ -540,7 +540,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       </div>
 
       {/* Main Filter & Search Control Panel */}
-      <Card padding="md" className="space-y-4">
+      <Card data-customer-card padding="md" className="space-y-4">
         {/* Status Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#D8D2C5]/60">
           {[
@@ -651,7 +651,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       {loading && (
         <div className="space-y-4">
           {[1, 2, 3].map((n) => (
-            <Card key={n} padding="lg" className="animate-pulse space-y-4 bg-[#F8F6F1]">
+            <Card data-customer-card key={n} padding="lg" className="animate-pulse space-y-4 bg-[#F8F6F1]">
               <div className="flex justify-between items-center">
                 <div className="h-5 bg-[#EBE6DC] w-48 rounded-xs" />
                 <div className="h-5 bg-[#EBE6DC] w-24 rounded-xs" />
@@ -668,7 +668,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
       {/* Empty State */}
       {!loading && !error && filteredOrders.length === 0 && (
-        <Card padding="lg" className="text-center py-16 space-y-3 bg-[#F8F6F1] border border-[#D8D2C5]">
+        <Card data-customer-card padding="lg" className="text-center py-16 space-y-3 bg-[#F8F6F1] border border-[#D8D2C5]">
           <Package className="w-12 h-12 text-[#A39B8D] mx-auto stroke-1" />
           <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
             {searchQuery || statusFilter !== "ALL" || typeFilter !== "ALL"
@@ -716,7 +716,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             const needsPayment = order.status === "PENDING" && !order.refundPending && order.paymentStatus !== "PAID";
 
             return (
-              <Card
+              <Card data-customer-card
                 key={order.id}
                 padding="md"
                 className="hover:border-[#152A20] hover:shadow-sm transition-all duration-200 bg-[#F8F6F1] space-y-4 border border-[#D8D2C5]"
@@ -950,24 +950,25 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       {/* DETAIL MODAL / ORDER RECEIPT VOUCHER */}
       {selectedOrder && (
         <Modal
+          className="customer-rounded-ui"
           isOpen={Boolean(selectedOrder)}
           onClose={() => setSelectedOrder(null)}
-          title={`ORDER DETAILS #${selectedOrder.id}`}
-          maxWidth="lg"
+          title={`Order details #${selectedOrder.id}`}
+          maxWidth="4xl"
         >
           <div className="space-y-6 font-label text-xs">
             {/* Header Manifest Information */}
             <div className="bg-[#152A20] text-[#F3EFE6] p-4 rounded-xs space-y-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#2B4E3C] pb-3">
                 <div>
-                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
-                    TERRAPEAK EXPEDITION MANIFEST
+                  <span className="text-[10px] text-[#ADCBBB] font-bold uppercase tracking-wider block">
+                    ORDER SUMMARY
                   </span>
                   <h3 className="text-lg font-bold font-headline mt-0.5">
-                    EQUIPMENT HANDOVER RECEIPT #{selectedOrder.id}
+                    Equipment handover #{selectedOrder.id}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   {renderStatusBadge(selectedOrder.status)}
                   {renderPaymentBadge(selectedOrder.paymentStatus)}
                 </div>
@@ -999,27 +1000,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 </div>
               </div>
 
-              {/* Customer Manifest Summary in Header */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] border-t border-[#2B4E3C] pt-2.5 mt-2.5">
-                <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Customer Name</span>
-                  <span className="font-bold text-white truncate block">
-                    {getOrderCustomer(selectedOrder).name}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Contact Phone</span>
-                  <span className="font-mono-spec text-white truncate block">
-                    {getOrderCustomer(selectedOrder).phone}
-                  </span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-[#ADCBBB] block text-[10px] uppercase">Customer Address</span>
-                  <span className="text-[#F3EFE6] text-[11px] truncate block" title={getOrderCustomer(selectedOrder).address}>
-                    {getOrderCustomer(selectedOrder).address}
-                  </span>
-                </div>
-              </div>
+
             </div>
 
             {/* Fulfillment & Handover Destination Card */}
@@ -1028,7 +1009,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 ? 'bg-[#F0FDF4] border-[#86EFAC]'
                 : 'bg-white border-[#D8D2C5]'
             }`}>
-              <div className="flex items-center justify-between border-b pb-2 border-inherit">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-2 border-inherit">
                 <div className="flex items-center gap-2">
                   {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? (
                     <Compass className="w-4 h-4 text-[#15803D]" />
@@ -1086,7 +1067,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
               const cust = getOrderCustomer(selectedOrder);
               return (
                 <div className="bg-white border border-[#D8D2C5] rounded-xs p-4 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#EBE6DC] pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EBE6DC] pb-2.5">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-xs bg-[#F3EFE6] border border-[#D8D2C5] flex items-center justify-center text-[#D97845]">
                         <User className="w-3.5 h-3.5" />
@@ -1102,7 +1083,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Customer Name */}
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
                         <User className="w-3 h-3 text-[#5C665F]" />
                         Customer Name
@@ -1111,15 +1092,15 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                         {cust.name}
                       </p>
                       {cust.email && (
-                        <p className="text-[11px] text-[#737C75] flex items-center gap-1">
+                        <p className="min-w-0 text-[11px] text-[#737C75] flex items-start gap-1 break-all">
                           <Mail className="w-3 h-3 text-[#A0A8A2]" />
-                          {cust.email}
+                          <span className="min-w-0 break-all">{cust.email}</span>
                         </p>
                       )}
                     </div>
 
                     {/* Phone Number */}
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
                         <Phone className="w-3 h-3 text-[#5C665F]" />
                         Contact Phone
@@ -1127,20 +1108,18 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                       <p className="font-mono-spec font-bold text-[#152A20] text-sm">
                         {cust.phone}
                       </p>
-                      <span className="inline-block px-1.5 py-0.5 rounded-2xs bg-emerald-50 text-emerald-700 text-[9px] font-bold">
-                        Customer Contact
-                      </span>
+
                     </div>
 
                     {/* Customer Address */}
-                    <div className="space-y-1">
+                    <div className="min-w-0 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-[#737C75] flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-[#5C665F]" />
                           Customer Address
                         </span>
                       </div>
-                      <p className="text-xs text-[#152A20] font-medium leading-relaxed">{cust.address}</p>
+                      <p className="text-xs text-[#152A20] font-medium leading-relaxed break-words">{cust.address}</p>
                     </div>
                   </div>
                 </div>
@@ -1273,6 +1252,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       {/* CONFIRM CANCELLATION MODAL */}
       {orderToCancel && (
         <Modal
+          className="customer-rounded-ui"
           isOpen={Boolean(orderToCancel)}
           onClose={() => setOrderToCancel(null)}
           title={`CANCEL ORDER #${orderToCancel.id}`}

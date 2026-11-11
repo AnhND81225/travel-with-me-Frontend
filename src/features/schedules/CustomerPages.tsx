@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { eventGuideApi, type EventResponse, type PublicGuide } from '../../services/eventGuideApi';
 import { participantApi, scheduleApi } from './api';
-import { errorMessage, useClock, usePages, useResource, useScheduleAccount } from './hooks';
+import { errorMessage, useClock, usePages, useResource } from './hooks';
 import { bookable, cancellable, dateTime, money, validId, labels } from './rules';
 import { TicketTimeline } from './ui';
 import { Card, Badge, Button, Modal } from '../../components/ui';
@@ -139,40 +139,9 @@ const renderCheckInBadge = (checkInStatus: 'NOT_CHECKED_IN' | 'CHECKED_IN') => {
 // ==========================================
 // MY TOURS PAGE (MAIN COMPONENT)
 // ==========================================
+// Authentication and role checks are owned by the route's ScheduleGuard.
 export function MyToursPage() {
-  const auth = useScheduleAccount();
-
-  if (auth.loading) {
-    return (
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-label">
-        <div className="flex flex-col items-center justify-center space-y-4 py-20">
-          <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
-          <p className="text-sm font-bold text-[#5C665F]">Loading your tour tickets...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!auth.data) {
-    return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-label">
-        <Card padding="lg" className="text-center space-y-4 bg-[#F8F6F1]">
-          <Compass className="w-12 h-12 text-[#D97845] mx-auto" />
-          <h1 className="text-2xl font-bold font-headline text-[#152A20]">Please sign in</h1>
-          <p className="text-sm text-[#5C665F]">
-            {auth.error || 'Sign in to your customer account to view your trips and booked tickets.'}
-          </p>
-          <div className="pt-2">
-            <Link to="/login?returnTo=/my-tours">
-              <Button variant="accent">Sign in now</Button>
-            </Link>
-          </div>
-        </Card>
-      </main>
-    );
-  }
-
-  return <MyTickets key={auth.data.id} />;
+  return <MyTickets />;
 }
 
 // ==========================================
@@ -200,8 +169,10 @@ function MyTickets() {
   const scheduleCache = useRef(new Map<number, ReturnType<typeof scheduleApi.get>>());
   const eventCache = useRef(new Map<number, ReturnType<typeof eventGuideApi.getEvent>>());
 
+  const ticketKey = list.items.map(ticket => `${ticket.id}:${ticket.scheduleId}`).join(',');
   const summaries = useResource(
     useCallback(async () => {
+      if (!list.items.length) return { schedules: [], events: [], branches: [], ticketKey };
       const schedules = await Promise.allSettled(
         [...new Set(list.items.map((p) => p.scheduleId))].map((id) => {
           if (!scheduleCache.current.has(id)) {
@@ -240,9 +211,14 @@ function MyTickets() {
         schedules: foundSchedules,
         events: foundEvents,
         branches,
+        ticketKey,
       };
-    }, [list.items])
+    }, [list.items, ticketKey])
   );
+
+  // Keep the initial skeleton until the ticket names and departures are ready.
+  const ticketsLoading = (list.loading && !list.items.length) ||
+    (list.items.length > 0 && summaries.data?.ticketKey !== ticketKey && !summaries.error);
 
   const branchesMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -329,7 +305,7 @@ function MyTickets() {
   }, [list.items, statusFilter, searchQuery, sortBy, schedulesMap, eventsMap, branchesMap]);
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
+    <main className="customer-rounded-ui max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -361,7 +337,7 @@ function MyTickets() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-[#D97845] uppercase mb-1">
             <Compass className="w-4 h-4" />
-            <span>CLIMBER PASSPORT // EXPEDITIONS & TOURS</span>
+            <span>YOUR OUTDOOR ADVENTURES</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#152A20] font-headline tracking-tight">
             My Tours
@@ -381,27 +357,28 @@ function MyTickets() {
             variant="secondary"
             size="sm"
             onClick={() => {
+              scheduleCache.current.clear();
+              eventCache.current.clear();
               list.refresh();
-              summaries.refresh();
               showToast('Refreshing your trips...');
             }}
-            disabled={list.loading}
+            disabled={list.loading || ticketsLoading}
             icon={<RefreshCw className={`w-3.5 h-3.5 ${list.loading ? 'animate-spin text-[#D97845]' : ''}`} />}
           >
-            {list.loading ? 'Loading...' : 'Refresh'}
+            {list.loading || ticketsLoading ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </div>
 
       {/* Explorer KPI Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <Card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+        <Card data-customer-card padding="sm" className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#152A20] hover:-translate-y-1 hover:shadow-md transition-all duration-200">
           <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">TOTAL TICKETS</span>
           <div className="text-xl sm:text-2xl font-bold text-[#111D16] font-headline">{stats.total}</div>
           <span className="text-[10px] text-[#5C665F]">Your booking history</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#FDF8F3] border-l-4 border-l-[#D97845] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'PENDING' ? 'ring-2 ring-[#D97845]' : ''
@@ -418,7 +395,7 @@ function MyTickets() {
           </span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#F0FDF4] border-l-4 border-l-[#10B981] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'CONFIRMED' ? 'ring-2 ring-[#10B981]' : ''
@@ -430,7 +407,7 @@ function MyTickets() {
           <span className="text-[10px] text-[#737C75]">Ready for departure</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className={`space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#4B5563] transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-md ${
             statusFilter === 'COMPLETED' ? 'ring-2 ring-[#4B5563]' : ''
@@ -442,7 +419,7 @@ function MyTickets() {
           <span className="text-[10px] text-[#737C75]">Completed adventures</span>
         </Card>
 
-        <Card
+        <Card data-customer-card
           padding="sm"
           className="space-y-1 bg-[#F8F6F1] border-l-4 border-l-[#047857] hover:-translate-y-1 hover:shadow-md transition-all duration-200"
         >
@@ -457,7 +434,7 @@ function MyTickets() {
       </div>
 
       {/* Main Filter & Search Control Panel */}
-      <Card padding="md" className="space-y-4">
+      <Card data-customer-card padding="md" className="space-y-4">
         {/* Status Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-[#D8D2C5]/60">
           {[
@@ -471,6 +448,7 @@ function MyTickets() {
             return (
               <button
                 key={tab.key}
+                aria-pressed={isActive}
                 onClick={() => setStatusFilter(tab.key)}
                 className={`px-3 py-1.5 rounded-xs text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
                   isActive
@@ -501,6 +479,7 @@ function MyTickets() {
             <Search className="w-4 h-4 text-[#737C75] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              aria-label="Search tour tickets"
               placeholder="Search by ticket number (#12), tour name or outpost..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -508,6 +487,7 @@ function MyTickets() {
             />
             {searchQuery && (
               <button
+                aria-label="Clear tour search"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#737C75] hover:text-[#111D16]"
               >
@@ -522,6 +502,7 @@ function MyTickets() {
               <span className="hidden sm:inline">Sort by:</span>
             </div>
             <select
+              aria-label="Sort tour tickets"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-2.5 py-1.5 bg-[#F3EFE6] border border-[#D8D2C5] rounded-xs text-xs font-bold text-[#111D16] focus:outline-none focus:border-[#152A20]"
@@ -537,10 +518,10 @@ function MyTickets() {
 
       {/* Tickets List */}
       <div className="space-y-4">
-        {list.loading && list.items.length === 0 ? (
+        {ticketsLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <Card key={i} padding="lg" className="animate-pulse space-y-4 bg-[#F8F6F1]">
+              <Card data-customer-card key={i} padding="lg" className="animate-pulse space-y-4 bg-[#F8F6F1]">
                 <div className="h-6 bg-[#EBE6DC] rounded-xs w-1/3" />
                 <div className="h-20 bg-[#EBE6DC] rounded-xs w-full" />
                 <div className="h-8 bg-[#EBE6DC] rounded-xs w-1/4" />
@@ -548,7 +529,7 @@ function MyTickets() {
             ))}
           </div>
         ) : filteredTickets.length === 0 ? (
-          <Card padding="lg" className="text-center py-12 space-y-3 bg-[#F8F6F1]">
+          <Card data-customer-card padding="lg" className="text-center py-12 space-y-3 bg-[#F8F6F1]">
             <Compass className="w-12 h-12 text-[#D97845]/60 mx-auto" />
             <h3 className="text-base font-bold text-[#152A20] font-headline">No trips found</h3>
             <p className="text-xs text-[#5C665F] max-w-md mx-auto">
@@ -578,7 +559,7 @@ function MyTickets() {
             const canPayNow = ticket.participantStatus === 'PENDING' && remainingSec >= 300;
 
             return (
-              <Card
+              <Card data-customer-card
                 key={ticket.id}
                 padding="none"
                 className="overflow-hidden hover:border-[#152A20] transition-all duration-200 hover:shadow-lg bg-[#F8F6F1]"
@@ -630,7 +611,7 @@ function MyTickets() {
                   {/* Tour Details: Image + Expedition Info */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
                     {/* Event Cover Image */}
-                    <div className="md:col-span-4 relative rounded-xs overflow-hidden h-40 md:h-44 bg-[#EBE6DC] shadow-xs group">
+                    <div className="customer-tour-photo md:col-span-4 relative rounded-xs overflow-hidden h-40 md:h-44 bg-[#EBE6DC] shadow-xs group">
                       <TourPhoto
                         key={coverImg || 'no-image'}
                         src={coverImg}
@@ -835,8 +816,8 @@ export function TicketDetailPage() {
 
   if (!id) {
     return (
-      <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
-        <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
+      <main className="customer-rounded-ui max-w-4xl mx-auto px-4 py-16 font-label text-center">
+        <Card data-customer-card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
           <h1 className="text-2xl font-bold font-headline text-[#152A20]">Invalid ticket number</h1>
           <p className="text-sm text-[#5C665F]">The ticket was not found or its number is invalid.</p>
@@ -885,7 +866,7 @@ function TicketDetail({ id }: { id: number }) {
 
   if (resource.loading && !ticket) {
     return (
-      <main className="max-w-5xl mx-auto px-4 py-16 font-label">
+      <main className="customer-rounded-ui max-w-5xl mx-auto px-4 py-16 font-label">
         <div className="flex flex-col items-center justify-center space-y-3 py-20">
           <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
           <p className="text-sm font-bold text-[#5C665F]">Loading ticket #{id}...</p>
@@ -896,8 +877,8 @@ function TicketDetail({ id }: { id: number }) {
 
   if (resource.error && !ticket) {
     return (
-      <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
-        <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
+      <main className="customer-rounded-ui max-w-4xl mx-auto px-4 py-16 font-label text-center">
+        <Card data-customer-card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
           <h1 className="text-2xl font-bold font-headline text-[#152A20]">Unable to load ticket details</h1>
           <p className="text-sm text-[#5C665F]">{resource.error}</p>
@@ -915,7 +896,7 @@ function TicketDetail({ id }: { id: number }) {
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
+    <main className="customer-rounded-ui max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Breadcrumb Header */}
       <div className="flex items-center justify-between pb-4 border-b border-[#D8D2C5]">
         <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
@@ -1009,7 +990,7 @@ function TicketContent({
       )}
 
       {/* Main Ticket Banner */}
-      <Card padding="none" className="overflow-hidden bg-[#F8F6F1]">
+      <Card data-customer-card padding="none" className="overflow-hidden bg-[#F8F6F1]">
         {/* Urgent Pending Banner */}
         {p.participantStatus === 'PENDING' && (
           <div className="p-4 bg-[#FFF7ED] border-b border-[#FDBA74] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
@@ -1312,7 +1293,7 @@ function TicketContent({
       </Card>
 
       {/* Ticket History / Audit Log */}
-      <Card padding="md" className="space-y-4 bg-[#F8F6F1]">
+      <Card data-customer-card padding="md" className="space-y-4 bg-[#F8F6F1]">
         <h2 className="text-sm font-bold text-[#152A20] font-headline uppercase tracking-wider flex items-center gap-1.5">
           <History className="w-4 h-4 text-[#D97845]" /> Ticket history
         </h2>
@@ -1333,6 +1314,7 @@ function TicketContent({
       {/* Cancellation Confirmation Modal */}
       {cancelOpen && (
         <Modal
+          className="customer-rounded-ui"
           isOpen={cancelOpen}
           onClose={() => !busy && setCancelOpen(false)}
           title="Confirm reservation cancellation"

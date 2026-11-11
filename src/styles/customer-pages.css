@@ -1241,3 +1241,37 @@
     margin-left: 34px;
   }
 }
+
+/* Shared surface geometry for customer equipment detail and order history.
+   Scoped so operations consoles and shared Card/Button defaults stay unchanged. */
+.customer-rounded-ui {
+  --customer-card-radius: 18px;
+  --customer-field-radius: 10px;
+  --customer-button-radius: 12px;
+}
+.customer-rounded-ui .rounded-xs {
+  border-radius: var(--customer-field-radius);
+}
+.customer-rounded-ui [data-customer-card] {
+  border-radius: var(--customer-card-radius);
+}
+.customer-rounded-ui .customer-product-photo {
+  border-radius: 20px;
+}
+.customer-rounded-ui :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: var(--customer-field-radius);
+  min-width: 0;
+}
+.customer-rounded-ui button:not(.rounded-full) {
+  border-radius: var(--customer-button-radius);
+}
+.customer-rounded-ui :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #994717;
+  outline-offset: 3px;
+}
+
+.customer-rounded-ui .customer-tour-photo { border-radius: 16px; }
+
+/* Portaled customer dialogs keep their surface geometry outside the page root. */
+.customer-rounded-ui [data-modal-panel] { border-radius: 20px; }
+.customer-rounded-ui [role="dialog"] :is(p, span) { overflow-wrap: anywhere; }

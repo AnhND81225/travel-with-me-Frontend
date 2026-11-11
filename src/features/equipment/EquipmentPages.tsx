@@ -410,8 +410,8 @@ export function EquipmentDetail() {
 
   if (error && !product) {
     return (
-      <main className="max-w-4xl mx-auto px-4 py-16 font-label text-center">
-        <Card padding="lg" className="space-y-4 bg-[#F8F6F1]">
+      <main className="customer-rounded-ui max-w-4xl mx-auto px-4 py-16 font-label text-center">
+        <Card data-customer-card padding="lg" className="space-y-4 bg-[#F8F6F1]">
           <AlertCircle className="w-12 h-12 text-[#991B1B] mx-auto" />
           <h1 className="text-2xl font-bold font-headline text-[#152A20]">Không tìm thấy trang bị</h1>
           <p className="text-sm text-[#5C665F]">{error}</p>
@@ -429,7 +429,7 @@ export function EquipmentDetail() {
 
   if (!product) {
     return (
-      <main className="max-w-6xl mx-auto px-4 py-16 font-label">
+      <main className="customer-rounded-ui max-w-6xl mx-auto px-4 py-16 font-label">
         <div className="flex flex-col items-center justify-center space-y-3 py-20">
           <RefreshCw className="w-8 h-8 text-[#D97845] animate-spin" />
           <p className="text-sm font-bold text-[#5C665F]">Đang tải thông số thiết bị dã ngoại...</p>
@@ -441,7 +441,7 @@ export function EquipmentDetail() {
   const coverImg = product.imageUrl || getProductImage(product.category, product.name, product.id);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
+    <main className="customer-rounded-ui max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center justify-between pb-3 border-b border-[#D8D2C5]">
         <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
@@ -464,7 +464,7 @@ export function EquipmentDetail() {
         {/* Left Column: Product Imagery, Specs & Availability */}
         <div className="lg:col-span-7 space-y-6">
           {/* Main Product Image Banner */}
-          <div className="relative rounded-xs overflow-hidden h-80 sm:h-96 bg-[#EBE6DC] shadow-md group border border-[#D8D2C5]">
+          <div className="customer-product-photo relative rounded-xs overflow-hidden h-80 sm:h-96 bg-[#EBE6DC] shadow-md group border border-[#D8D2C5]">
             <img
               src={coverImg}
               alt={product.name}
@@ -493,7 +493,7 @@ export function EquipmentDetail() {
           </div>
 
           {/* Pricing Summary Card */}
-          <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] flex flex-wrap items-center justify-between gap-4">
+          <Card data-customer-card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="text-[10px] text-[#737C75] font-bold uppercase tracking-wider block">
                 GIÁ MUA SỞ HỮU MỚI
@@ -547,7 +547,7 @@ export function EquipmentDetail() {
           </div>
 
           {/* Expedition Policy & Support */}
-          <Card padding="md" className="space-y-3 bg-[#F8F6F1] border border-[#D8D2C5] text-xs">
+          <Card data-customer-card padding="md" className="space-y-3 bg-[#F8F6F1] border border-[#D8D2C5] text-xs">
             <h4 className="font-bold text-[#111D16] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
               <Compass className="w-3.5 h-3.5 text-[#D97845]" /> Chính sách nhận & trả trang bị
             </h4>
