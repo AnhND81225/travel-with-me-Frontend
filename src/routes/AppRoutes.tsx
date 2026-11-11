@@ -7,7 +7,8 @@ import { OrderCart } from '../features/orders/OrderCart';
 import { EquipmentEditor } from '../features/equipment/EquipmentPages';
 import { MyOrdersPage } from '../pages/user/MyOrdersPage';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { oauthCallbackRedirect } from '../utils/oauthCallback';
 import { UserLayout, AdminLayout, StaffLayout } from '../components/layouts';
 
 // User / Customer Pages
@@ -68,6 +69,10 @@ const GuideSchedulesPage = React.lazy(() => import('../features/schedules/Operat
 const PaymentReviewsPage = React.lazy(() => import('../features/schedules/OperationsPages').then(m => ({ default: m.PaymentReviewsPage })));
 
 export const AppRoutes: React.FC = () => {
+  const location = useLocation();
+  const callback = oauthCallbackRedirect(location.pathname, location.search);
+  if (callback) return <Navigate to={callback} replace />;
+
   return (
     <React.Suspense fallback={<p className="p-8" role="status">Loading page…</p>}><Routes>
       <Route path="/login" element={<AuthPage defaultMode="login" />} />
