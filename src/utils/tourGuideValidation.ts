@@ -1,4 +1,4 @@
-﻿import { englishApiMessage } from './englishApiMessage';
+import { englishApiMessage } from './englishApiMessage';
 import { EventGuideApiError, EventInput, EventResponse, GuideRegistrationInput, GuideUpdateInput } from "../services/eventGuideApi";
 
 export type CatalogErrors = Record<string, string>;
@@ -124,13 +124,12 @@ export function catalogErrorMessage(error: unknown): string {
     if (status === 401) return "Your session has expired. Please sign in again.";
     if (status === 403) return "You do not have permission to perform this action.";
     if (status === 404) return "This record is no longer available. Please refresh the list.";
-    if (/email/i.test(error.message) && /exist|already|đã|trùng/i.test(error.message)) return "This email is already in use. Please use another email.";
     if (status === 413) return "The image exceeds 5 MiB. Please choose a smaller file.";
     if (status >= 500) return "The service is temporarily unavailable. Please try again later.";
+    if (error instanceof Error && error.message && !/^Request failed/i.test(error.message) && !/^Request validation failed$/i.test(error.message)) {
+      return error.message;
+    }
     if (status === 409) {
-      if (error instanceof Error && error.message && !/^Request failed/i.test(error.message)) {
-        return error.message;
-      }
       return "The record already exists, has changed, or is not eligible for this action. Refresh and check the details.";
     }
     return "Some details are invalid. Please check the form fields.";

@@ -76,6 +76,7 @@ export const AppRoutes: React.FC = () => {
   return (
     <React.Suspense fallback={<p className="p-8" role="status">Loading page…</p>}><Routes>
       <Route path="/login" element={<AuthPage defaultMode="login" />} />
+      <Route path="/auth" element={<AuthPage defaultMode="login" />} />
       <Route path="/register" element={<AuthPage defaultMode="register" />} />
       <Route path="/oauth2/callback" element={<AuthPage defaultMode="login" />} />
       {/* Customer Storefront Routes */}

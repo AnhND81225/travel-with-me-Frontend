@@ -151,6 +151,7 @@ export const AdminUsersPage: React.FC = () => {
       setDeletingUser(null);
       await loadUsers();
     } catch (err) {
+      setDeletingUser(null);
       notify('err', err instanceof Error ? err.message : 'Unable to delete account.');
     } finally {
       setDeleting(false);

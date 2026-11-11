@@ -84,10 +84,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const [pendingChangePasswordUser, setPendingChangePasswordUser] = useState<Account | null>(null);
 
   const returnTo = searchParams.get("returnTo") || "";
+  const googleWelcomeParam = searchParams.get("googleWelcome") || "";
+  const tempPwdParam = searchParams.get("tempPwd") || "";
+
   const proceedRedirect = React.useCallback((account: Account) => {
     setSuccessMessage(`Signed in successfully! Welcome, ${account.fullName}.`);
+    if (tempPwdParam) {
+      try {
+        sessionStorage.setItem("terrapeak_google_temp_pwd", tempPwdParam);
+      } catch (_) {}
+      navigate("/passport", { replace: true });
+      return;
+    }
+    if (googleWelcomeParam === "1") {
+      navigate("/passport", { replace: true });
+      return;
+    }
+    if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("token=")) {
+      navigate(returnTo, { replace: true });
+      return;
+    }
     navigate("/", { replace: true });
-  }, [navigate]);
+  }, [navigate, returnTo, googleWelcomeParam, tempPwdParam]);
 
   // Check if token returned in URL query parameters or embedded inside returnTo
   let tokenParam = searchParams.get("token") || searchParams.get("accessToken");
