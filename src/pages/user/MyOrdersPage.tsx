@@ -35,6 +35,7 @@ import {
   Phone,
   Mail,
   Edit3,
+  Compass,
 } from "lucide-react";
 
 const getErrorMessage = (err: unknown, fallback: string) =>
@@ -245,7 +246,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             return pName.includes(q) || String(item.productId).includes(q);
           });
 
-          if (!matchId && !matchBranch && !matchItem) return false;
+          const matchDelivery = (order.deliveryLocation && order.deliveryLocation.toLowerCase().includes(q)) ||
+            (order.deliveryType && order.deliveryType.toLowerCase().includes(q));
+
+          if (!matchId && !matchBranch && !matchItem && !matchDelivery) return false;
         }
 
         return true;
@@ -738,9 +742,18 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs text-[#152A20] font-bold">
-                    <Building className="w-3.5 h-3.5 text-[#152A20]" />
-                    <span>{branch ? branch.name : `Outpost #${order.branchId}`}</span>
+                  <div className="flex items-center gap-1.5 text-xs font-bold">
+                    {order.deliveryType === 'TOUR_DELIVERY' ? (
+                      <span className="px-2 py-1 bg-[#F0FDF4] border border-[#86EFAC] rounded-xs text-[#166534] flex items-center gap-1" title={order.deliveryLocation || ''}>
+                        <Compass className="w-3.5 h-3.5 text-[#15803D]" />
+                        <span>Giao tại Tour {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-[#152A20]">
+                        <Building className="w-3.5 h-3.5 text-[#152A20]" />
+                        <span>{branch ? branch.name : `Outpost #${order.branchId}`}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1007,6 +1020,65 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Fulfillment & Handover Destination Card */}
+            <div className={`p-4 rounded-xs border space-y-2.5 ${
+              selectedOrder.deliveryType === 'TOUR_DELIVERY'
+                ? 'bg-[#F0FDF4] border-[#86EFAC]'
+                : 'bg-white border-[#D8D2C5]'
+            }`}>
+              <div className="flex items-center justify-between border-b pb-2 border-inherit">
+                <div className="flex items-center gap-2">
+                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? (
+                    <Compass className="w-4 h-4 text-[#15803D]" />
+                  ) : (
+                    <Building className="w-4 h-4 text-[#152A20]" />
+                  )}
+                  <span className="font-bold text-xs uppercase text-[#111D16] tracking-wider">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'BÀN GIAO TẠI ĐIỂM TẬP KẾT TOUR' : 'NHẬN TẠI CHI NHÁNH OUTPOST'}
+                  </span>
+                </div>
+                <Badge variant={selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'success' : 'neutral'} size="sm">
+                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'GIAO TẠI TOUR' : 'NHẬN TẠI TRẠM'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Điểm hẹn & Lịch trình' : 'Địa chỉ Outpost'}
+                  </span>
+                  <p className="font-bold text-[#111D16]">
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY'
+                      ? (selectedOrder.deliveryLocation || `Lịch trình Tour #${selectedOrder.scheduleId}`)
+                      : (branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`)}
+                  </p>
+                  {selectedOrder.deliveryType !== 'TOUR_DELIVERY' && branchMap.get(selectedOrder.branchId)?.address && (
+                    <p className="text-[11px] text-[#5C665F]">{branchMap.get(selectedOrder.branchId)?.address}</p>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
+                    Chi nhánh chuẩn bị thiết bị
+                  </span>
+                  <p className="font-bold text-[#111D16]">
+                    {branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`}
+                  </p>
+                  {selectedOrder.deliveryNotes && (
+                    <p className="text-[11px] text-[#047857] mt-1 font-body">
+                      <strong>Ghi chú của bạn:</strong> {selectedOrder.deliveryNotes}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {selectedOrder.deliveryType === 'TOUR_DELIVERY' && (
+                <div className="text-[11px] text-[#166534] bg-white/70 p-2 rounded-xs border border-[#BBF7D0]">
+                  💡 Hướng dẫn viên / ban tổ chức tour sẽ mang đồ đến điểm tập kết xuất phát của đoàn và giao trực tiếp cho bạn trước giờ khởi hành.
+                </div>
+              )}
             </div>
 
             {/* Dedicated Customer & Recipient Information Card */}
