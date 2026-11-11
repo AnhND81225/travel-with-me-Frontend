@@ -79,25 +79,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
   const [pendingChangePasswordUser, setPendingChangePasswordUser] = useState<Account | null>(null);
 
   const returnTo = searchParams.get("returnTo") || "";
-  const explicitReturnTo = returnTo;
-
-  const proceedRedirect = React.useCallback((account: Account, targetUrl?: string) => {
+  const proceedRedirect = React.useCallback((account: Account) => {
     setSuccessMessage(`Signed in successfully! Welcome, ${account.fullName}.`);
-    const finalTarget = targetUrl || explicitReturnTo;
-    setTimeout(() => {
-      if (finalTarget && finalTarget !== "/login" && finalTarget !== "/register" && finalTarget !== "/oauth2/callback") {
-        navigate(finalTarget, { replace: true });
-      } else if (account.role === "ADMIN") {
-        navigate("/admin", { replace: true });
-      } else if (account.role === "STAFF") {
-        navigate("/staff", { replace: true });
-      } else if (account.role === "GUIDE") {
-        navigate("/guide/schedules", { replace: true });
-      } else {
-        navigate("/passport", { replace: true });
-      }
-    }, 500);
-  }, [explicitReturnTo, navigate]);
+    navigate("/", { replace: true });
+  }, [navigate]);
 
   // Check if token returned in URL query parameters or embedded inside returnTo
   let tokenParam = searchParams.get("token") || searchParams.get("accessToken");
@@ -118,14 +103,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
       setSuccessMessage("Authenticating account credentials...");
       saveToken(tokenParam);
 
-      let cleanTarget = explicitReturnTo;
-      if (cleanTarget.includes("token=")) {
-        try {
-          const decoded = decodeURIComponent(cleanTarget);
-          cleanTarget = decoded.split("?")[0];
-        } catch (_) {}
-      }
-
       catalogApi<Account>("/users/me")
         .then((account) => {
           if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
@@ -133,7 +110,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
             setBusy(false);
             return;
           }
-          proceedRedirect(account, cleanTarget);
+          proceedRedirect(account);
         })
         .catch(() => {
           saveToken(null);
@@ -143,7 +120,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
           setBusy(false);
         });
     }
-  }, [tokenParam, explicitReturnTo, proceedRedirect]);
+  }, [tokenParam, proceedRedirect]);
 
   const handleGoogleOAuthRedirect = () => {
     setBusy(true);
@@ -238,13 +215,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         saveToken(res.token);
         const account = res.user ?? (await catalogApi<Account>("/users/me"));
         setSuccessMessage(`Registration successful! Welcome, ${account.fullName || trimmedName}.`);
-        setTimeout(() => {
-          if (returnTo && returnTo !== "/login" && returnTo !== "/register" && returnTo !== "/oauth2/callback") {
-            navigate(returnTo, { replace: true });
-          } else {
-            navigate("/passport", { replace: true });
-          }
-        }, 600);
+        navigate("/", { replace: true });
       } else {
         setSuccessMessage("Account registered successfully! Please sign in.");
         setLoginEmail(trimmedEmail);
