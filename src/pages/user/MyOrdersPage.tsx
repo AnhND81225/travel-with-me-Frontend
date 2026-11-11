@@ -206,6 +206,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
     const total = orders.length;
     const pending = orders.filter((o) => o.status === "PENDING").length;
     const confirmed = orders.filter((o) => o.status === "CONFIRMED").length;
+    const withGuide = orders.filter((o) => o.status === "WITH_GUIDE").length;
     const inProgress = orders.filter((o) => o.status === "IN_PROGRESS").length;
     const completed = orders.filter((o) => o.status === "COMPLETED").length;
     const unpaid = orders.filter((o) => o.status === "PENDING" && o.paymentStatus !== "PAID").length;
@@ -213,7 +214,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
       .filter((o) => o.status !== "CANCELLED")
       .reduce((sum, o) => sum + (o.paidAmount || (o.paymentStatus === "PAID" ? o.totalAmount : 0)), 0);
 
-    return { total, pending, confirmed, inProgress, completed, unpaid, totalSpent };
+    return { total, pending, confirmed, withGuide, inProgress, completed, unpaid, totalSpent };
   }, [orders]);
 
   // Filtered and sorted orders
@@ -278,6 +279,13 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
           <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#3B82F6] text-[#1E40AF] bg-[#EFF6FF] shadow-2xs">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB]" />
             <span>Approved · Ready for pickup</span>
+          </Badge>
+        );
+      case "WITH_GUIDE":
+        return (
+          <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#7C3AED] text-[#5B21B6] bg-[#F5F3FF] shadow-2xs">
+            <Compass className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <span>With Tour Guide · Delivering on tour</span>
           </Badge>
         );
       case "IN_PROGRESS":
@@ -352,7 +360,10 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
     const steps = [
       { key: "ORDERED", label: "Order placed", done: true },
-      { key: "CONFIRMED", label: "Admin approval", done: status === "CONFIRMED" || status === "IN_PROGRESS" || status === "COMPLETED" },
+      { key: "CONFIRMED", label: "Admin approval", done: status === "CONFIRMED" || status === "WITH_GUIDE" || status === "IN_PROGRESS" || status === "COMPLETED" },
+      ...(order.deliveryType === "TOUR_DELIVERY"
+        ? [{ key: "WITH_GUIDE", label: "With Tour Guide", done: status === "WITH_GUIDE" || status === "IN_PROGRESS" || status === "COMPLETED" }]
+        : []),
       { key: "HANDED_OVER", label: "Equipment handed over", done: status === "IN_PROGRESS" || status === "COMPLETED" },
       { key: "CUSTOMER_RECEIVED", label: "Customer receipt", done: !!order.customerReceivedAt },
       { key: "COMPLETED", label: order.items.some(item => item.itemType === "RENTAL") ? "Return & inspection" : "Completed", done: status === "COMPLETED" },
@@ -547,6 +558,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
             { key: "ALL", label: "ALL", count: stats.total },
             { key: "PENDING", label: "AWAITING APPROVAL", count: stats.pending, alert: stats.pending > 0 },
             { key: "CONFIRMED", label: "APPROVED", count: stats.confirmed },
+            { key: "WITH_GUIDE", label: "WITH GUIDE", count: stats.withGuide },
             { key: "IN_PROGRESS", label: "RENTED", count: stats.inProgress },
             { key: "COMPLETED", label: "COMPLETED", count: stats.completed },
             { key: "REFUNDED", label: "REFUNDED", count: orders.filter((o) => o.paymentStatus === "REFUNDED" || refundOrderIds.has(o.id)).length },
@@ -746,7 +758,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     {order.deliveryType === 'TOUR_DELIVERY' ? (
                       <span className="px-2 py-1 bg-[#F0FDF4] border border-[#86EFAC] rounded-xs text-[#166534] flex items-center gap-1" title={order.deliveryLocation || ''}>
                         <Compass className="w-3.5 h-3.5 text-[#15803D]" />
-                        <span>Giao tại Tour {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
+                        <span>Tour Handover {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1.5 text-[#152A20]">
@@ -1036,23 +1048,23 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                     <Building className="w-4 h-4 text-[#152A20]" />
                   )}
                   <span className="font-bold text-xs uppercase text-[#111D16] tracking-wider">
-                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'BÀN GIAO TẠI ĐIỂM TẬP KẾT TOUR' : 'NHẬN TẠI CHI NHÁNH OUTPOST'}
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'EXPEDITION GATHERING HANDOVER' : 'OUTPOST BRANCH PICKUP'}
                   </span>
                 </div>
                 <Badge variant={selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'success' : 'neutral'} size="sm">
-                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'GIAO TẠI TOUR' : 'NHẬN TẠI TRẠM'}
+                  {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'TOUR HANDOVER' : 'OUTPOST PICKUP'}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
-                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Điểm hẹn & Lịch trình' : 'Địa chỉ Outpost'}
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Handover destination & Schedule' : 'Outpost station address'}
                   </span>
                   <p className="font-bold text-[#111D16]">
                     {selectedOrder.deliveryType === 'TOUR_DELIVERY'
-                      ? (selectedOrder.deliveryLocation || `Lịch trình Tour #${selectedOrder.scheduleId}`)
-                      : (branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`)}
+                      ? (selectedOrder.deliveryLocation || `Expedition schedule #${selectedOrder.scheduleId}`)
+                      : (branchMap.get(selectedOrder.branchId)?.name || `Outpost #${selectedOrder.branchId}`)}
                   </p>
                   {selectedOrder.deliveryType !== 'TOUR_DELIVERY' && branchMap.get(selectedOrder.branchId)?.address && (
                     <p className="text-[11px] text-[#5C665F]">{branchMap.get(selectedOrder.branchId)?.address}</p>
@@ -1061,14 +1073,14 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
                 <div>
                   <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
-                    Chi nhánh chuẩn bị thiết bị
+                    Fulfilling Outpost branch
                   </span>
                   <p className="font-bold text-[#111D16]">
-                    {branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`}
+                    {branchMap.get(selectedOrder.branchId)?.name || `Outpost #${selectedOrder.branchId}`}
                   </p>
                   {selectedOrder.deliveryNotes && (
                     <p className="text-[11px] text-[#047857] mt-1 font-body">
-                      <strong>Ghi chú của bạn:</strong> {selectedOrder.deliveryNotes}
+                      <strong>Your instructions:</strong> {selectedOrder.deliveryNotes}
                     </p>
                   )}
                 </div>
@@ -1076,7 +1088,7 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
 
               {selectedOrder.deliveryType === 'TOUR_DELIVERY' && (
                 <div className="text-[11px] text-[#166534] bg-white/70 p-2 rounded-xs border border-[#BBF7D0]">
-                  💡 Hướng dẫn viên / ban tổ chức tour sẽ mang đồ đến điểm tập kết xuất phát của đoàn và giao trực tiếp cho bạn trước giờ khởi hành.
+                  💡 Expedition guides and staff will bring equipment directly to the departure gathering point and hand it over before launch.
                 </div>
               )}
             </div>

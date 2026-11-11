@@ -123,13 +123,14 @@ export const AdminOrdersPage: React.FC = () => {
     void fetchOrders();
   }, []);
 
-  // Quick action on order (confirm, hand-over, return, cancel)
-  const handleAction = async (id: number, action: 'confirm' | 'hand-over' | 'return' | 'cancel') => {
+  // Quick action on order (confirm, guide-pickup, hand-over, return, cancel)
+  const handleAction = async (id: number, action: 'confirm' | 'guide-pickup' | 'hand-over' | 'return' | 'cancel') => {
     setBusyOrderId(id);
     setError('');
 
     const actionLabels: Record<string, string> = {
       confirm: 'Approve order',
+      'guide-pickup': 'Dispatch equipment to guide',
       'hand-over': 'Hand over equipment',
       return: 'Inspect and receive returned equipment',
       cancel: 'Cancel order',
@@ -172,6 +173,7 @@ export const AdminOrdersPage: React.FC = () => {
     const total = orders.length;
     const pending = orders.filter((o) => o.status === 'PENDING').length;
     const confirmed = orders.filter((o) => o.status === 'CONFIRMED').length;
+    const withGuide = orders.filter((o) => o.status === 'WITH_GUIDE').length;
     const inProgress = orders.filter((o) => o.status === 'IN_PROGRESS').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
     const cancelled = orders.filter((o) => o.status === 'CANCELLED').length;
@@ -179,7 +181,7 @@ export const AdminOrdersPage: React.FC = () => {
       .filter((o) => o.status !== 'CANCELLED')
       .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-    return { total, pending, confirmed, inProgress, completed, cancelled, totalRevenue };
+    return { total, pending, confirmed, withGuide, inProgress, completed, cancelled, totalRevenue };
   }, [orders]);
 
   // Filtered and sorted orders
@@ -249,6 +251,13 @@ export const AdminOrdersPage: React.FC = () => {
           <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#3B82F6] text-[#1E40AF] bg-[#EFF6FF]">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB]" />
             <span>Approved · Awaiting handover</span>
+          </Badge>
+        );
+      case 'WITH_GUIDE':
+        return (
+          <Badge variant="neutral" className="flex items-center gap-1.5 py-1 px-2.5 font-bold border-[#7C3AED] text-[#5B21B6] bg-[#F5F3FF]">
+            <Compass className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <span>With Tour Guide · On tour</span>
           </Badge>
         );
       case 'IN_PROGRESS':
@@ -441,6 +450,7 @@ export const AdminOrdersPage: React.FC = () => {
             { key: 'ALL', label: 'ALL ORDERS', count: stats.total },
             { key: 'PENDING', label: 'AWAITING APPROVAL', count: stats.pending, alert: stats.pending > 0 },
             { key: 'CONFIRMED', label: 'APPROVED', count: stats.confirmed },
+            { key: 'WITH_GUIDE', label: 'WITH GUIDE', count: stats.withGuide },
             { key: 'IN_PROGRESS', label: 'RENTED', count: stats.inProgress },
             { key: 'COMPLETED', label: 'COMPLETED', count: stats.completed },
             { key: 'CANCELLED', label: 'CANCELLED', count: stats.cancelled },
@@ -644,7 +654,7 @@ export const AdminOrdersPage: React.FC = () => {
                     {order.deliveryType === 'TOUR_DELIVERY' ? (
                       <span className="px-2 py-1 bg-[#F0FDF4] border border-[#86EFAC] rounded-xs text-[#166534] font-bold flex items-center gap-1" title={order.deliveryLocation || ''}>
                         <Compass className="w-3.5 h-3.5 text-[#15803D]" />
-                        <span>Giao tại Tour {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
+                        <span>Tour Handover {order.deliveryLocation ? `(${order.deliveryLocation.split(' - ')[0]})` : ''}</span>
                       </span>
                     ) : (
                       <span className="px-2 py-1 bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs text-[#111D16] font-bold flex items-center gap-1">
@@ -798,8 +808,30 @@ export const AdminOrdersPage: React.FC = () => {
                       </>
                     )}
 
-                    {/* Confirmed Actions -> Hand over */}
+                    {/* Confirmed Actions -> Dispatch to Guide (TOUR_DELIVERY) or Hand over (STORE_PICKUP) */}
                     {order.status === 'CONFIRMED' && (
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        disabled={isBusy}
+                        onClick={() =>
+                          void handleAction(
+                            order.id,
+                            order.deliveryType === 'TOUR_DELIVERY' ? 'guide-pickup' : 'hand-over',
+                          )
+                        }
+                        icon={<ArrowRight className="w-3.5 h-3.5" />}
+                      >
+                        {isBusy
+                          ? 'Updating...'
+                          : order.deliveryType === 'TOUR_DELIVERY'
+                            ? 'Dispatch to guide'
+                            : 'Hand over equipment'}
+                      </Button>
+                    )}
+
+                    {/* With Guide Actions -> Hand over to Customer */}
+                    {order.status === 'WITH_GUIDE' && (
                       <Button
                         variant="accent"
                         size="sm"
@@ -807,7 +839,7 @@ export const AdminOrdersPage: React.FC = () => {
                         onClick={() => void handleAction(order.id, 'hand-over')}
                         icon={<ArrowRight className="w-3.5 h-3.5" />}
                       >
-                        {isBusy ? 'Handing over...' : 'Hand over equipment'}
+                        {isBusy ? 'Handing over...' : 'Hand over to customer'}
                       </Button>
                     )}
 
@@ -876,7 +908,7 @@ export const AdminOrdersPage: React.FC = () => {
                         {order.deliveryType === 'TOUR_DELIVERY' ? (
                           <div className="space-y-0.5">
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D]">
-                              <Compass className="w-3 h-3" /> Giao tại Tour
+                              <Compass className="w-3 h-3" /> Tour Handover
                             </span>
                             <div className="text-[10px] text-[#5C665F] truncate max-w-xs" title={order.deliveryLocation || ''}>
                               {order.deliveryLocation || `Outpost #${order.branchId}`}
@@ -959,8 +991,25 @@ export const AdminOrdersPage: React.FC = () => {
                               variant="accent"
                               size="sm"
                               disabled={isBusy}
+                              onClick={() =>
+                                void handleAction(
+                                  order.id,
+                                  order.deliveryType === 'TOUR_DELIVERY' ? 'guide-pickup' : 'hand-over',
+                                )
+                              }
+                              title={order.deliveryType === 'TOUR_DELIVERY' ? 'Dispatch to guide' : 'Hand over'}
+                            >
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+
+                          {order.status === 'WITH_GUIDE' && (
+                            <Button
+                              variant="accent"
+                              size="sm"
+                              disabled={isBusy}
                               onClick={() => void handleAction(order.id, 'hand-over')}
-                              title="Hand over"
+                              title="Hand over to customer"
                             >
                               <ArrowRight className="w-3.5 h-3.5" />
                             </Button>
@@ -1073,7 +1122,7 @@ export const AdminOrdersPage: React.FC = () => {
                     <Building className="w-4 h-4 text-[#152A20]" />
                   )}
                   <span className="font-bold text-xs uppercase text-[#111D16] tracking-wider">
-                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'GIAO TẠI ĐIỂM TẬP KẾT TOUR' : 'NHẬN TẠI CHI NHÁNH OUTPOST'}
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'EXPEDITION GATHERING HANDOVER' : 'OUTPOST BRANCH PICKUP'}
                   </span>
                 </div>
                 <Badge variant={selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'success' : 'neutral'} size="sm">
@@ -1084,12 +1133,12 @@ export const AdminOrdersPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
-                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Điểm hẹn & Tour' : 'Chi nhánh nhận'}
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'Handover destination & Tour' : 'Pickup branch'}
                   </span>
                   <p className="font-bold text-[#111D16]">
                     {selectedOrder.deliveryType === 'TOUR_DELIVERY'
-                      ? (selectedOrder.deliveryLocation || `Lịch trình Tour #${selectedOrder.scheduleId}`)
-                      : (branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`)}
+                      ? (selectedOrder.deliveryLocation || `Expedition schedule #${selectedOrder.scheduleId}`)
+                      : (branchMap.get(selectedOrder.branchId)?.name || `Outpost #${selectedOrder.branchId}`)}
                   </p>
                   {selectedOrder.deliveryType !== 'TOUR_DELIVERY' && branchMap.get(selectedOrder.branchId)?.address && (
                     <p className="text-[11px] text-[#5C665F]">{branchMap.get(selectedOrder.branchId)?.address}</p>
@@ -1098,14 +1147,14 @@ export const AdminOrdersPage: React.FC = () => {
 
                 <div>
                   <span className="text-[10px] text-[#5C665F] uppercase font-bold block">
-                    Chi nhánh phụ trách chuẩn bị đồ
+                    Fulfilling Outpost branch
                   </span>
                   <p className="font-bold text-[#111D16]">
-                    {branchMap.get(selectedOrder.branchId)?.name || `Chi nhánh #${selectedOrder.branchId}`}
+                    {branchMap.get(selectedOrder.branchId)?.name || `Outpost #${selectedOrder.branchId}`}
                   </p>
                   {selectedOrder.deliveryNotes && (
                     <p className="text-[11px] text-[#047857] mt-1 font-body">
-                      <strong>Ghi chú của khách:</strong> {selectedOrder.deliveryNotes}
+                      <strong>Customer instructions:</strong> {selectedOrder.deliveryNotes}
                     </p>
                   )}
                 </div>
@@ -1113,7 +1162,7 @@ export const AdminOrdersPage: React.FC = () => {
 
               {selectedOrder.deliveryType === 'TOUR_DELIVERY' && (
                 <div className="text-[11px] text-[#166534] bg-white/70 p-2 rounded-xs border border-[#BBF7D0]">
-                  💡 <strong>Lưu ý cho Staff/Admin:</strong> Đơn hàng này cần được chuẩn bị và chuyển cho Hướng dẫn viên / Điều phối viên mang theo đoàn để bàn giao trực tiếp cho khách tại điểm tập kết tour trước giờ khởi hành.
+                  💡 <strong>Staff Notice:</strong> This order requires preparation and dispatch to the Expedition Guide / Lead Dispatcher for direct handover at the tour gathering point prior to departure.
                 </div>
               )}
             </div>
@@ -1266,6 +1315,25 @@ export const AdminOrdersPage: React.FC = () => {
                 )}
 
                 {selectedOrder.status === 'CONFIRMED' && (
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    disabled={busyOrderId === selectedOrder.id}
+                    onClick={() =>
+                      void handleAction(
+                        selectedOrder.id,
+                        selectedOrder.deliveryType === 'TOUR_DELIVERY' ? 'guide-pickup' : 'hand-over',
+                      )
+                    }
+                    icon={<ArrowRight className="w-3.5 h-3.5" />}
+                  >
+                    {selectedOrder.deliveryType === 'TOUR_DELIVERY'
+                      ? 'Dispatch to guide'
+                      : 'Hand over to customer'}
+                  </Button>
+                )}
+
+                {selectedOrder.status === 'WITH_GUIDE' && (
                   <Button
                     variant="accent"
                     size="sm"

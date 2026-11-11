@@ -43,10 +43,10 @@ function formatDate(isoString: string): string {
   try {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return isoString;
-    return d.toLocaleDateString("vi-VN", {
+    return d.toLocaleDateString("en-GB", {
       weekday: "short",
       day: "2-digit",
-      month: "2-digit",
+      month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
@@ -118,8 +118,8 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
           try {
             const sched = await scheduleApi.get(p.scheduleId);
             if (!sched) continue;
-            let eventName = `Tour #${sched.eventId}`;
-            let loc = "Đang cập nhật";
+            let eventName = `Expedition #${sched.eventId}`;
+            let loc = "Gathering location pending";
             try {
               const ev = await eventGuideApi.getEvent(sched.eventId);
               if (ev) {
@@ -141,7 +141,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
               startDatetime: sched.startDatetime,
               endDatetime: sched.endDatetime,
               branchId: sched.branchId,
-              branchName: br?.name || `Trạm #${sched.branchId}`,
+              branchName: br?.name || `Outpost #${sched.branchId}`,
               participantStatus: p.participantStatus,
             });
           } catch {
@@ -156,7 +156,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
         }
       } catch (err) {
         if (isMounted) {
-          setLoadError("Không thể tải danh sách tour đã đặt");
+          setLoadError("Unable to load booked tours");
         }
       } finally {
         if (isMounted) setLoadingTours(false);
@@ -224,10 +224,10 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
       {/* Header & Tabs */}
       <div className="space-y-1.5">
         <label className="font-bold text-[#111D16] uppercase text-[10px] tracking-wider block flex items-center justify-between">
-          <span>Phương thức nhận thiết bị *</span>
+          <span>Equipment Handover & Fulfillment *</span>
           {deliveryType === "TOUR_DELIVERY" && selectedTour && (
             <span className="text-[#059669] normal-case font-bold flex items-center gap-1 text-[10px]">
-              <CheckCircle className="w-3 h-3" /> Giao tại điểm tập kết tour
+              <CheckCircle className="w-3 h-3" /> Handover at tour departure
             </span>
           )}
         </label>
@@ -244,7 +244,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
             }`}
           >
             <Building className="w-3.5 h-3.5 shrink-0" />
-            <span>Nhận tại Outpost</span>
+            <span>Outpost Pickup</span>
           </button>
 
           <button
@@ -257,7 +257,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
             }`}
           >
             <Compass className="w-3.5 h-3.5 shrink-0" />
-            <span>Giao tại Tour đã đặt</span>
+            <span>Deliver at Booked Tour</span>
             {bookedTours.length > 0 && (
               <span className="ml-1 px-1.5 py-0.2 bg-[#D97845] text-white text-[9px] font-bold rounded-full">
                 {bookedTours.length}
@@ -272,7 +272,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
         <div className="space-y-2 p-3 bg-white border border-[#D8D2C5] rounded-xs animate-in fade-in duration-200">
           <div className="space-y-1">
             <label className="font-bold text-[#5C665F] uppercase text-[10px] block">
-              Chọn chi nhánh nhận hàng
+              Pickup branch outpost
             </label>
             <select
               value={branchId}
@@ -288,7 +288,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
               required
               className="w-full py-2 px-3 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]"
             >
-              <option value="">-- Chọn chi nhánh Outpost --</option>
+              <option value="">-- Select Outpost branch --</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -300,7 +300,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
           {branchId && branchMap.get(Number(branchId)) && (
             <div className="text-[11px] text-[#5C665F] flex items-start gap-1.5 pt-1 border-t border-[#EBE6DC] font-body">
               <MapPin className="w-3.5 h-3.5 text-[#152A20] shrink-0 mt-0.5" />
-              <span>{branchMap.get(Number(branchId))?.address || "Địa chỉ trạm chi nhánh"}</span>
+              <span>{branchMap.get(Number(branchId))?.address || "Outpost station address"}</span>
             </div>
           )}
         </div>
@@ -313,33 +313,33 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
             <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A4D22] space-y-1 font-body">
               <p className="font-bold flex items-center gap-1.5 text-[11px]">
                 <Info className="w-4 h-4 text-[#D97845]" />
-                Cần đăng nhập để dùng tính năng này
+                Sign-in required for tour delivery
               </p>
               <p className="text-[11px]">
-                Vui lòng đăng nhập tài khoản đã đặt tour để hệ thống tự động nhận diện lịch khởi hành.
+                Please sign in with the account you used to book your expedition so we can link your departure schedule.
               </p>
             </div>
           ) : loadingTours ? (
             <div className="py-4 text-center text-xs text-[#5C665F] flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-[#152A20] border-t-transparent rounded-full animate-spin" />
-              <span>Đang kiểm tra lịch trình tour của bạn...</span>
+              <span>Checking your expedition schedules...</span>
             </div>
           ) : bookedTours.length === 0 ? (
             <div className="space-y-2">
               <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A4D22] space-y-1.5 font-body">
                 <div className="font-bold text-[#D97845] flex items-center gap-1.5 uppercase text-[10px] font-label">
                   <AlertCircle className="w-4 h-4 text-[#D97845] shrink-0" />
-                  Bạn chưa có tour nào sắp tới
+                  No upcoming booked expeditions found
                 </div>
                 <p className="text-[11px]">
-                  Tính năng này dành cho khách đã đặt tour để nhận thiết bị ngay tại điểm tập kết xuất phát.
+                  Tour handover is available when you have an active tour reservation. Staff will bring your equipment to the departure gathering point.
                 </p>
                 <div className="pt-1 flex items-center gap-2">
                   <Link
                     to="/tours"
                     className="inline-flex items-center gap-1 px-3 py-1 bg-[#D97845] hover:bg-[#C66735] text-white font-bold text-[10px] uppercase rounded-xs transition"
                   >
-                    <span>Khám phá Tour ngay</span>
+                    <span>Explore Expeditions</span>
                     <span>→</span>
                   </Link>
                   <button
@@ -347,7 +347,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                     onClick={handleSelectStorePickup}
                     className="underline text-[11px] font-bold text-[#111D16] hover:text-[#D97845]"
                   >
-                    Chuyển sang nhận tại Outpost
+                    Switch to Outpost pickup
                   </button>
                 </div>
               </div>
@@ -356,9 +356,9 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="font-bold text-[#166534] uppercase text-[10px] block flex items-center justify-between">
-                  <span>Chọn tour bạn tham gia:</span>
+                  <span>Select your booked expedition:</span>
                   <span className="text-[10px] font-mono-spec font-bold text-[#15803D]">
-                    {bookedTours.length} tour khả dụng
+                    {bookedTours.length} available
                   </span>
                 </label>
                 <select
@@ -366,7 +366,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                   onChange={handleTourChange}
                   className="w-full py-2 px-3 bg-white border border-[#86EFAC] rounded-xs text-xs text-[#111D16] font-bold focus:outline-none focus:border-[#15803D]"
                 >
-                  <option value="">-- Chọn lịch trình tour bạn đi --</option>
+                  <option value="">-- Select expedition departure schedule --</option>
                   {bookedTours.map((t) => (
                     <option key={t.scheduleId} value={t.scheduleId}>
                       {t.eventName} · {formatDate(t.startDatetime)}
@@ -380,14 +380,14 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                   <div className="flex items-start justify-between gap-2 border-b border-[#DCFCE7] pb-2">
                     <div>
                       <div className="text-[10px] font-bold text-[#15803D] uppercase tracking-wide">
-                        ĐIỂM TẬP KẾT & BÀN GIAO ĐỒ
+                        GATHERING & HANDOVER POINT
                       </div>
                       <div className="font-bold text-sm text-[#111D16] font-headline">
                         {selectedTour.eventName}
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] font-bold text-[9px] uppercase shrink-0">
-                      Tour #{selectedTour.scheduleId}
+                      Schedule #{selectedTour.scheduleId}
                     </span>
                   </div>
 
@@ -395,21 +395,21 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
                       <span>
-                        <strong>Khởi hành:</strong> {formatDate(selectedTour.startDatetime)}
+                        <strong>Departure:</strong> {formatDate(selectedTour.startDatetime)}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
                       <span>
-                        <strong>Địa điểm:</strong> {selectedTour.location}
+                        <strong>Location:</strong> {selectedTour.location}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5 sm:col-span-2 text-[11px] text-[#166534] bg-[#F0FDF4] p-1.5 rounded-xs border border-[#DCFCE7]">
                       <Sparkles className="w-3.5 h-3.5 text-[#D97845] shrink-0" />
                       <span>
-                        Chi nhánh chuẩn bị đồ: <strong>{selectedTour.branchName}</strong>. Hướng dẫn viên / ban điều hành đoàn sẽ mang đồ đến bàn giao trực tiếp cho bạn trước giờ khởi hành.
+                        Fulfilling Outpost: <strong>{selectedTour.branchName}</strong>. Your expedition guide or outpost team will hand over equipment directly at the gathering point.
                       </span>
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
           {/* Delivery Notes */}
           <div className="space-y-1 pt-1">
             <label className="font-bold text-[#5C665F] uppercase text-[10px] block">
-              Ghi chú giao đồ cho đoàn (tùy chọn)
+              Handover notes / instructions (optional)
             </label>
             <input
               type="text"
@@ -437,7 +437,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                   deliveryNotes: e.target.value,
                 })
               }
-              placeholder="Ví dụ: Giao cho tôi tại xe số 2, hoặc liên hệ SĐT..."
+              placeholder="e.g. Please deliver to departure bus #2, or contact phone..."
               className="w-full py-1.5 px-2.5 bg-white border border-[#D8D2C5] rounded-xs text-xs text-[#111D16] placeholder-[#A39B8D] focus:outline-none focus:border-[#152A20]"
             />
           </div>
