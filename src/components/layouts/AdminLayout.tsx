@@ -10,7 +10,6 @@ import {
   Users, 
   UserCheck,
   ArrowLeft, 
-  Sparkles, 
   Bell, 
   Search, 
   Globe
@@ -26,9 +25,6 @@ export const AdminLayout: React.FC = () => {
     { path: '/admin', label: 'Executive Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { path: '/admin/inventory', label: 'Multi-Branch Inventory', icon: <Package className="w-4 h-4" /> },
     { path: '/admin/catalog', label: 'Products & Catalog', icon: <Layers className="w-4 h-4" /> },
-    { path: '/admin/fleet', label: 'Fleet & Serial Ledger', icon: <Package className="w-4 h-4" /> },
-    { path: '/admin/sanitize', label: 'UV Sanitization Lab', icon: <Sparkles className="w-4 h-4" /> },
-    { path: '/admin/transfers', label: 'Shuttle Logistics', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/branches', label: 'Branch Network', icon: <MapPin className="w-4 h-4" /> },
     { path: '/admin/reports', label: 'BI & Financial Reports', icon: <BarChart3 className="w-4 h-4" /> },
     { path: '/admin/refunds', label: 'Refund Requests', icon: <ArrowLeft className="w-4 h-4" /> },

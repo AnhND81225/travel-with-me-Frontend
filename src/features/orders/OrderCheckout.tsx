@@ -118,7 +118,7 @@ export function OrderCheckout({
   const orderBlocked = !canOrder && createdOrderId === null;
 
   return (
-    <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
+    <Card data-customer-card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] font-label text-xs space-y-4">
       <div className="border-b border-[#D8D2C5] pb-3">
         <Badge variant="primary" className="mb-1">
           EXPEDITION DISPATCH

@@ -10,6 +10,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:module5": "tsx --test src/features/schedules/rules.test.ts src/features/schedules/api.test.ts",
+    "test:delivery": "tsx --test src/features/orders/deliveryRules.test.ts",
     "test:navigation": "tsx --test src/utils/navigation.test.ts src/utils/oauthCallback.test.ts",
     "test:tour-guide": "tsx --test src/utils/tourGuideValidation.test.ts src/components/tours/CatalogForm.test.ts src/services/eventGuideApi.test.ts"
   },

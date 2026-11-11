@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { Building, Compass, Calendar, MapPin, AlertCircle, CheckCircle, Info, Sparkles } from "lucide-react";
 import type { Branch } from "../equipment/catalogApi";
 import type { DeliveryType } from "./orderApi";
-import { participantApi, scheduleApi } from "../schedules/api";
+import { PAGE_SIZE, participantApi, scheduleApi } from "../schedules/api";
 import { eventGuideApi } from "../../services/eventGuideApi";
-import type { Participant, Schedule } from "../schedules/types";
+import { canDeliverToSchedule, deliveryParticipants, tourDeliveryDate } from "./deliveryRules";
 
 export interface BookedTourSummary {
   participantId: number;
@@ -44,6 +44,7 @@ function formatDate(isoString: string): string {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return isoString;
     return d.toLocaleDateString("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
       weekday: "short",
       day: "2-digit",
       month: "short",
@@ -53,16 +54,6 @@ function formatDate(isoString: string): string {
     });
   } catch {
     return isoString;
-  }
-}
-
-function toDateInputFormat(isoString: string): string {
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return "";
-    return d.toISOString().split("T")[0];
-  } catch {
-    return "";
   }
 }
 
@@ -99,13 +90,8 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
 
     (async () => {
       try {
-        const participants = await participantApi.mine(0);
+        const validParticipants = await deliveryParticipants(participantApi.mine, PAGE_SIZE);
         if (!isMounted) return;
-
-        // Filter valid participants (not cancelled, not expired)
-        const validParticipants = (participants || []).filter(
-          (p: Participant) => p.participantStatus === "CONFIRMED" || p.participantStatus === "PENDING"
-        );
 
         if (validParticipants.length === 0) {
           if (isMounted) setBookedTours([]);
@@ -117,7 +103,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
         for (const p of validParticipants) {
           try {
             const sched = await scheduleApi.get(p.scheduleId);
-            if (!sched) continue;
+            if (!sched || !canDeliverToSchedule(sched)) continue;
             let eventName = `Expedition #${sched.eventId}`;
             let loc = "Gathering location pending";
             try {
@@ -130,8 +116,6 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
               // Ignore event detail fail, keep schedule info
             }
 
-            const br = branchMap.get(sched.branchId);
-
             tourList.push({
               participantId: p.id,
               scheduleId: sched.id,
@@ -141,7 +125,6 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
               startDatetime: sched.startDatetime,
               endDatetime: sched.endDatetime,
               branchId: sched.branchId,
-              branchName: br?.name || `Outpost #${sched.branchId}`,
               participantStatus: p.participantStatus,
             });
           } catch {
@@ -166,7 +149,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, branchMap]);
+  }, [isAuthenticated]);
 
   const selectedTour = useMemo(() => {
     if (!scheduleId) return null;
@@ -199,8 +182,8 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
       return;
     }
 
-    const startDate = toDateInputFormat(targetTour.startDatetime);
-    const endDate = toDateInputFormat(targetTour.endDatetime);
+    const startDate = tourDeliveryDate(targetTour.startDatetime);
+    const endDate = tourDeliveryDate(targetTour.endDatetime);
 
     onDeliveryChange({
       deliveryType: "TOUR_DELIVERY",
@@ -409,7 +392,7 @@ export const DeliveryDestinationSelector: React.FC<DeliveryDestinationSelectorPr
                     <div className="flex items-center gap-1.5 sm:col-span-2 text-[11px] text-[#166534] bg-[#F0FDF4] p-1.5 rounded-xs border border-[#DCFCE7]">
                       <Sparkles className="w-3.5 h-3.5 text-[#D97845] shrink-0" />
                       <span>
-                        Fulfilling Outpost: <strong>{selectedTour.branchName}</strong>. Your expedition guide or outpost team will hand over equipment directly at the gathering point.
+                        Fulfilling Outpost: <strong>{branchMap.get(selectedTour.branchId)?.name || `Outpost #${selectedTour.branchId}`}</strong>. Your expedition guide or outpost team will hand over equipment directly at the gathering point.
                       </span>
                     </div>
                   </div>
