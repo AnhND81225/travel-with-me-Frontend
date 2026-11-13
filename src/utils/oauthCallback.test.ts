@@ -4,7 +4,10 @@ import { oauthCallbackRedirect } from './oauthCallback';
 
 test('legacy Google redirects for every role go through the auth callback', () => {
   for (const path of ['/passport', '/admin', '/staff', '/guide/schedules']) {
-    assert.equal(oauthCallbackRedirect(path, '?token=test-jwt'), '/oauth2/callback?token=test-jwt');
+    assert.equal(
+      oauthCallbackRedirect(path, '?token=test-jwt'),
+      `/oauth2/callback?token=test-jwt&returnTo=${encodeURIComponent(path)}`
+    );
   }
 });
 
@@ -13,7 +16,8 @@ test('accessToken is supported and its value round trips without query injection
   const target = oauthCallbackRedirect('/passport', `?${new URLSearchParams({ accessToken: token, returnTo: '/passport' })}`);
   const url = new URL(target!, 'http://localhost');
   assert.equal(url.searchParams.get('token'), token);
-  assert.equal(url.searchParams.size, 1);
+  assert.equal(url.searchParams.get('returnTo'), '/passport');
+  assert.equal(url.searchParams.size, 2);
 });
 
 test('callback does not redirect itself and ordinary navigation is unchanged', () => {
