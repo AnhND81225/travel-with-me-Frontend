@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reportApi, reportDates, reportQuery, validateFilters, type Filters } from './reportApi';
+import { reportApi, reportDates, reportQuery, changeReportPeriod, monthEnd, reportDateLabel, validateFilters, type Filters } from './reportApi';
 const filters: Filters = { from: '2026-10-01', to: '2026-10-31', period: 'DAY', branchId: '2', sector: 'EQUIPMENT', paymentMethod: 'MANUAL', productId: '1', tourId: '3', scheduleId: '4' };
 test('product requests exclude cash and tour filters', () => {
   const query = reportQuery(filters, 'products');
@@ -50,4 +50,19 @@ test('report fetch uses shared bearer, respects abort and errors instead of mock
     if (oldStorage) Object.defineProperty(globalThis, 'sessionStorage', oldStorage);
     else Reflect.deleteProperty(globalThis, 'sessionStorage');
   }
+});
+
+test('month and year pickers normalize inclusive boundaries including leap February', () => {
+  assert.equal(monthEnd('2028-02'), '2028-02-29');
+  assert.deepEqual(changeReportPeriod(filters, 'MONTH'), { ...filters, period: 'MONTH', from: '2026-10-01', to: '2026-10-31' });
+  assert.deepEqual(changeReportPeriod(filters, 'YEAR'), { ...filters, period: 'YEAR', from: '2026-01-01', to: '2026-12-31' });
+  assert.equal(reportDateLabel('2026-01-01', 'YEAR'), '2026');
+  assert.equal(reportDateLabel('2026-10-01', 'MONTH'), '10/2026');
+});
+test('year buckets and per-period range bounds agree with the backend', () => {
+  assert.deepEqual(reportDates({ from: '2024-01-01', to: '2026-12-31', period: 'YEAR' }), ['2024-01-01', '2025-01-01', '2026-01-01']);
+  assert.equal(validateFilters({ ...filters, period: 'YEAR', from: '2017-01-01', to: '2026-12-31' }), '');
+  assert.ok(validateFilters({ ...filters, period: 'YEAR', from: '2016-01-01', to: '2026-12-31' }));
+  assert.equal(validateFilters({ ...filters, period: 'MONTH', from: '2022-01-01', to: '2026-12-31' }), '');
+  assert.ok(validateFilters({ ...filters, period: 'MONTH', from: '2021-01-01', to: '2026-12-31' }));
 });

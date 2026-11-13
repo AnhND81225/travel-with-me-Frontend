@@ -1,5 +1,5 @@
 export type ReportTab = 'overview' | 'products' | 'tours';
-export type Filters = { from: string; to: string; period: 'DAY' | 'MONTH'; branchId: string; sector: string; paymentMethod: string; productId: string; tourId: string; scheduleId: string };
+export type Filters = { from: string; to: string; period: 'DAY' | 'MONTH' | 'YEAR'; branchId: string; sector: string; paymentMethod: string; productId: string; tourId: string; scheduleId: string };
 export type Money = { receivedAmount: number; refundedAmount: number; netAmount: number };
 export type Point = Money & { date: string };
 export type Breakdown = Money & { id: number; name: string; paymentCount: number; refundCount: number };
@@ -31,8 +31,13 @@ export function reportQuery(filters: Filters, tab: ReportTab) {
 }
 export function validateFilters(f: Filters) {
   if (!f.from || !f.to) return 'Please select a start and end date.';
-  const days = (Date.parse(f.to) - Date.parse(f.from)) / 86400000;
-  if (!Number.isFinite(days) || days < 0 || days > 365) return 'Select a valid date range of no more than 366 days.';
+  const start = new Date(f.from + 'T00:00:00Z'), end = new Date(f.to + 'T00:00:00Z');
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end < start) return 'Select a valid reporting range.';
+  const lastDay = new Date(start);
+  if (f.period === 'DAY') lastDay.setUTCDate(lastDay.getUTCDate() + 365);
+  else if (f.period === 'MONTH') { lastDay.setUTCMonth(lastDay.getUTCMonth() + 60); lastDay.setUTCDate(lastDay.getUTCDate() - 1); }
+  else { lastDay.setUTCFullYear(lastDay.getUTCFullYear() + 10); lastDay.setUTCDate(lastDay.getUTCDate() - 1); }
+  if (end > lastDay) return f.period === 'DAY' ? 'Daily reports support up to 366 days.' : f.period === 'MONTH' ? 'Monthly reports support up to 60 months.' : 'Yearly reports support up to 10 years.';
   for (const key of ['branchId', 'productId', 'tourId', 'scheduleId'] as const) {
     if (f[key] && (!/^\d+$/.test(f[key]) || !Number.isSafeInteger(Number(f[key])) || Number(f[key]) <= 0)) return 'Filter IDs must be positive integers.';
   }
@@ -72,10 +77,27 @@ export function reportDates(f: Pick<Filters, 'from' | 'to' | 'period'>) {
   let day = new Date(f.from + 'T00:00:00Z');
   const end = new Date(f.to + 'T00:00:00Z');
   if (f.period === 'MONTH') day.setUTCDate(1);
+  if (f.period === 'YEAR') { day.setUTCMonth(0, 1); }
   while (day <= end && dates.length < 367) {
     dates.push(day.toISOString().slice(0, 10));
-    if (f.period === 'MONTH') day.setUTCMonth(day.getUTCMonth() + 1);
+    if (f.period === 'YEAR') day.setUTCFullYear(day.getUTCFullYear() + 1);
+    else if (f.period === 'MONTH') day.setUTCMonth(day.getUTCMonth() + 1);
     else day.setUTCDate(day.getUTCDate() + 1);
   }
   return dates;
+}
+
+/** Convert month/year pickers to the existing inclusive API date boundaries. */
+export function changeReportPeriod(f: Filters, period: Filters['period']): Filters {
+  if (period === 'DAY') return { ...f, period };
+  const from = period === 'MONTH' ? f.from.slice(0, 7) + '-01' : f.from.slice(0, 4) + '-01-01';
+  const to = period === 'MONTH' ? monthEnd(f.to.slice(0, 7)) : f.to.slice(0, 4) + '-12-31';
+  return { ...f, period, from, to };
+}
+export function monthEnd(month: string) {
+  const [year, number] = month.split('-').map(Number);
+  return month + '-' + String(new Date(Date.UTC(year, number, 0)).getUTCDate()).padStart(2, '0');
+}
+export function reportDateLabel(date: string, period: Filters['period']) {
+  return period === 'YEAR' ? date.slice(0, 4) : period === 'MONTH' ? date.slice(0, 7).split('-').reverse().join('/') : date.slice(5).split('-').reverse().join('/');
 }

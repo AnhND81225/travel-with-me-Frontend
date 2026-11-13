@@ -38,3 +38,5 @@
 .rf-filter-tabs{display:flex;gap:8px;margin:18px 0 4px}.rf-filter-tabs button{padding:8px 14px;border:1px solid #ded8cc;border-radius:5px;background:#fffdf8;color:#737874;font-size:12px;font-weight:600;line-height:1.5;cursor:pointer;transition:background .15s,border-color .15s}.rf-filter-tabs button.is-selected{border-color:#7d9874;background:#eef2e8;color:#152a20}.rf-filter-tabs button:hover:not(:disabled){background:#f0eee5}.rf-filter-tabs button:disabled{opacity:.5;cursor:not-allowed}.rf-filter-tabs button:focus-visible{outline:2px solid #994717;outline-offset:3px}
 
 .rf-reason-form input{display:block;width:100%;border:1px solid #c9c9bc;border-radius:5px;background:#fff;padding:13px;font:inherit;margin:8px 0 16px}.rf-reason-form input:focus{outline:2px solid #7a9478;outline-offset:2px}
+
+.pp-zalopay-logo{display:block;width:88px;height:36px;object-fit:contain;flex-shrink:0}.tc-provider .pp-zalopay-logo{width:76px;height:32px}

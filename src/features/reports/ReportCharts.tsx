@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { reportDateLabel, type Filters } from './reportApi';
 import { moneyScale } from './chartScale';
 export const chartColors = ['#1f5138', '#d97845', '#7192a0', '#977abd', '#b3984f', '#488a80', '#b46b7a', '#6978b1', '#7e9152', '#a17651', '#71837e', '#a7a28b'];
 export const money = (value: number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
@@ -36,8 +37,8 @@ export function SectorDonut({ rows }: { rows: { name: string; receivedAmount: nu
   })}<text x="70" y="66" textAnchor="middle">TOTAL RECEIVED</text><text x="70" y="84" textAnchor="middle" className="rp-donut-total">{compact(total)}</text></svg><div>{rows.map((row, i) => <div className="rp-donut-row" key={row.name}><i style={{ background: chartColors[i] }}/><span>{row.name === 'TOUR' ? 'Tour ticket' : 'Equipment'}<small>{money(row.receivedAmount)}</small></span><strong>{(row.receivedAmount / total * 100).toFixed(1)}%</strong></div>)}</div></div>;
 }
 
-export function EntityTrend({ entities, points, label, dates }: { entities: { id: number; name: string }[]; points: { date: string; id: number; value: number }[]; label: string; dates: string[] }) {
+export function EntityTrend({ entities, points, label, dates, period = 'DAY' }: { entities: { id: number; name: string }[]; points: { date: string; id: number; value: number }[]; label: string; dates: string[]; period?: Filters['period'] }) {
   const [chosen, setChosen] = useState<number[]>(entities.slice(0, 3).map(item => item.id));
   const selected = entities.filter(item => chosen.includes(item.id));
-  return <><div className="rp-entity-select" role="group" aria-label="Select items to compare">{entities.map(item => <button type="button" key={item.id} aria-pressed={chosen.includes(item.id)} disabled={!chosen.includes(item.id) && chosen.length >= 6} onClick={() => setChosen(old => old.includes(item.id) ? old.filter(id => id !== item.id) : [...old, item.id])}>{item.name}</button>)}</div><p className="rp-hint">Select up to 6 items to compare · {label}</p><ReportChart labels={dates.map(date => date.slice(5).split('-').reverse().join('/') + '/' + date.slice(0, 4))} series={selected.map((entity, index) => ({ name: entity.name, color: chartColors[index], values: dates.map(date => points.filter(point => point.date === date && point.id === entity.id).reduce((sum, point) => sum + point.value, 0)) }))}/></>;
+  return <><div className="rp-entity-select" role="group" aria-label="Select items to compare">{entities.map(item => <button type="button" key={item.id} aria-pressed={chosen.includes(item.id)} disabled={!chosen.includes(item.id) && chosen.length >= 6} onClick={() => setChosen(old => old.includes(item.id) ? old.filter(id => id !== item.id) : [...old, item.id])}>{item.name}</button>)}</div><p className="rp-hint">Select up to 6 items to compare · {label}</p><ReportChart labels={dates.map(date => reportDateLabel(date, period))} series={selected.map((entity, index) => ({ name: entity.name, color: chartColors[index], values: dates.map(date => points.filter(point => point.date === date && point.id === entity.id).reduce((sum, point) => sum + point.value, 0)) }))}/></>;
 }
