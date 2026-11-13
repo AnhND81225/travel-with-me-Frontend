@@ -1,5 +1,5 @@
 export type ReportTab = 'overview' | 'products' | 'tours';
-export type Filters = { from: string; to: string; period: 'DAY' | 'MONTH' | 'YEAR'; branchId: string; sector: string; paymentMethod: string; productId: string; tourId: string; scheduleId: string };
+export type Filters = { from: string; to: string; period: 'DAY' | 'MONTH' | 'YEAR'; branchId: string; sector: string; productId: string; tourId: string };
 export type Money = { receivedAmount: number; refundedAmount: number; netAmount: number };
 export type Point = Money & { date: string };
 export type Breakdown = Money & { id: number; name: string; paymentCount: number; refundCount: number };
@@ -19,12 +19,10 @@ export function reportQuery(filters: Filters, tab: ReportTab) {
   if (filters.branchId) params.set('branchId', filters.branchId);
   if (tab === 'products') { if (filters.productId) params.set('productId', filters.productId); }
   else {
-    if (filters.paymentMethod) params.set('paymentMethod', filters.paymentMethod);
     if (tab === 'overview' && filters.sector) params.set('sector', filters.sector);
     if (tab === 'tours') {
       params.set('sector', 'TOUR');
       if (filters.tourId) params.set('tourId', filters.tourId);
-      if (filters.scheduleId) params.set('scheduleId', filters.scheduleId);
     }
   }
   return params;
@@ -38,7 +36,7 @@ export function validateFilters(f: Filters) {
   else if (f.period === 'MONTH') { lastDay.setUTCMonth(lastDay.getUTCMonth() + 60); lastDay.setUTCDate(lastDay.getUTCDate() - 1); }
   else { lastDay.setUTCFullYear(lastDay.getUTCFullYear() + 10); lastDay.setUTCDate(lastDay.getUTCDate() - 1); }
   if (end > lastDay) return f.period === 'DAY' ? 'Daily reports support up to 366 days.' : f.period === 'MONTH' ? 'Monthly reports support up to 60 months.' : 'Yearly reports support up to 10 years.';
-  for (const key of ['branchId', 'productId', 'tourId', 'scheduleId'] as const) {
+  for (const key of ['branchId', 'productId', 'tourId'] as const) {
     if (f[key] && (!/^\d+$/.test(f[key]) || !Number.isSafeInteger(Number(f[key])) || Number(f[key]) <= 0)) return 'Filter IDs must be positive integers.';
   }
   return '';
@@ -64,12 +62,7 @@ export const reportApi = {
   products: (f: Filters, signal?: AbortSignal) => get<ProductsReport>('/products?' + reportQuery(f, 'products'), signal),
   tours: (f: Filters, signal?: AbortSignal) => get<ToursReport>('/tours?' + reportQuery(f, 'tours'), signal),
   transactions: (f: Filters, tab: ReportTab, page: number, signal?: AbortSignal) => get<TransactionPage>('/transactions?' + reportQuery(f, tab) + `&page=${page}&size=20`, signal),
-  export: async (f: Filters, tab: ReportTab) => {
-    const result = await response('/export?' + reportQuery(f, tab));
-    const url = URL.createObjectURL(await result.blob());
-    const link = document.createElement('a'); link.href = url; link.download = `transactions-${f.from}-${f.to}.csv`;
-    document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  },
+
 };
 
 export function reportDates(f: Pick<Filters, 'from' | 'to' | 'period'>) {

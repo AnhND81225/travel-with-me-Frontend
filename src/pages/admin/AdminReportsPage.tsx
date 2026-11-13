@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlertCircle, ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Download, Package, RefreshCw, Ticket, Wallet } from 'lucide-react';
+import { AlertCircle, ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Package, RefreshCw, Ticket, Wallet } from 'lucide-react';
 import { catalogApi, type Branch, type Page, type Product } from '../../features/equipment/catalogApi';
 import { eventGuideApi, type EventSummary } from '../../services/eventGuideApi';
 import { reportApi, reportDates, changeReportPeriod, monthEnd, reportDateLabel, validateFilters, type Filters, type Overview, type ProductsReport, type ToursReport, type ReportTab, type TransactionPage } from '../../features/reports/reportApi';
@@ -8,7 +8,7 @@ import '../../features/reports/reports.css';
 
 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
 const reportYears = Array.from({ length: 37 }, (_, index) => Number(today.slice(0, 4)) + 5 - index);
-const initial: Filters = { from: today.slice(0, 7) + '-01', to: today, period: 'DAY', branchId: '', sector: '', paymentMethod: '', productId: '', tourId: '', scheduleId: '' };
+const initial: Filters = { from: today.slice(0, 7) + '-01', to: today, period: 'DAY', branchId: '', sector: '', productId: '', tourId: '' };
 const datetime = (value: string) => new Date(value).toLocaleString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return <section className="rp-panel"><div className="rp-panel-heading"><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{children}</section>;
@@ -38,7 +38,7 @@ export const AdminReportsPage = () => {
   const [branches, setBranches] = useState<Branch[]>([]), [catalog, setCatalog] = useState<Product[]>([]), [events, setEvents] = useState<EventSummary[]>([]);
   const [optionsError, setOptionsError] = useState('');
   const [page, setPage] = useState(0), [revision, setRevision] = useState(0);
-  const [loading, setLoading] = useState(true), [tableLoading, setTableLoading] = useState(false), [exporting, setExporting] = useState(false);
+  const [loading, setLoading] = useState(true), [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState(''), [tableError, setTableError] = useState(''), [actionError, setActionError] = useState('');
   useEffect(() => {
     let active = true;
@@ -75,9 +75,9 @@ export const AdminReportsPage = () => {
       .finally(() => { if (!controller.signal.aborted) setTableLoading(false); });
     return () => controller.abort();
   }, [filters, tab, page, revision]);
-  const change = (key: keyof Filters, value: string) => setDraft(old => ({ ...old, [key]: value, ...(key === 'tourId' ? { scheduleId: '' } : {}) }));
+  const change = (key: keyof Filters, value: string) => setDraft(old => ({ ...old, [key]: value }));
   const switchTab = (next: ReportTab) => { setTab(next); setPage(0); setActionError(''); setError(''); };
-  async function exportCsv() { setExporting(true); setActionError(''); try { await reportApi.export(filters, tab); } catch (e) { setActionError(e instanceof Error ? e.message : 'Unable to export CSV.'); } finally { setExporting(false); } }
+
   const periodLabel = filters.period === 'YEAR' ? 'Yearly' : filters.period === 'MONTH' ? 'Monthly' : 'Daily';
   const dates = reportDates(filters);
   const timeline = tours ? dates.map(date => ({ date, receivedAmount: tours.series.filter(row => row.date === date).reduce((sum, row) => sum + row.receivedAmount, 0), refundedAmount: tours.series.filter(row => row.date === date).reduce((sum, row) => sum + row.refundedAmount, 0), netAmount: tours.series.filter(row => row.date === date).reduce((sum, row) => sum + row.netAmount, 0) })) : overview?.series || [];
@@ -85,7 +85,7 @@ export const AdminReportsPage = () => {
   const tourTotals = tours?.tours.reduce((sum, row) => ({ receivedAmount: sum.receivedAmount + row.receivedAmount, refundedAmount: sum.refundedAmount + row.refundedAmount, netAmount: sum.netAmount + row.netAmount }), { receivedAmount: 0, refundedAmount: 0, netAmount: 0 });
 
   return <main className="revenue-page">
-    <header className="rp-heading"><div><span className="rp-eyebrow">BUSINESS INTELLIGENCE</span><h1>Revenue & Refund Reports</h1><p>Track equipment and tour payments using verified transactions.</p></div><button className="rp-button" disabled={exporting || loading || !!error || tab === 'products'} onClick={() => void exportCsv()} title={tab === 'products' ? 'Export payment and refund transactions from Overview or Tours' : 'Export transactions using the applied filters'}><Download size={16}/>{exporting ? 'Exporting…' : 'Export transactions CSV'}</button></header>
+    <header className="rp-heading"><div><span className="rp-eyebrow">BUSINESS INTELLIGENCE</span><h1>Revenue & Refund Reports</h1><p>Track equipment and tour payments using verified transactions.</p></div></header>
     <div className="rp-tabs" role="group" aria-label="Report type">{([{ id: 'overview', text: 'Overview', icon: <BarChart3 size={16}/> }, { id: 'products', text: 'Products', icon: <Package size={16}/> }, { id: 'tours', text: 'Tours & Departures', icon: <Ticket size={16}/> }] as const).map(item => <button key={item.id} aria-pressed={tab === item.id} className={tab === item.id ? 'active' : ''} onClick={() => switchTab(item.id)}>{item.icon}{item.text}</button>)}</div>
     <form className="rp-filters" onSubmit={e => { e.preventDefault(); const message = validateFilters(draft); if (message) { setActionError(message); return; } setActionError(''); setPage(0); setFilters({ ...draft }); }}>
       <label>Report by<select value={draft.period} onChange={e => setDraft(old => changeReportPeriod(old, e.target.value as Filters['period']))}><option value="DAY">Daily</option><option value="MONTH">Monthly</option><option value="YEAR">Yearly</option></select></label>
@@ -95,9 +95,8 @@ export const AdminReportsPage = () => {
 
       <label>Branch<select value={draft.branchId} onChange={e => change('branchId', e.target.value)}><option value="">All branches</option>{branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
       {tab === 'overview' && <label>Revenue source<select value={draft.sector} onChange={e => change('sector', e.target.value)}><option value="">Equipment & Tours</option><option value="EQUIPMENT">Equipment</option><option value="TOUR">Tour</option></select></label>}
-      {tab !== 'products' && <label>Payment method<select value={draft.paymentMethod} onChange={e => change('paymentMethod', e.target.value)}><option value="">All</option><option value="ZALOPAY">ZaloPay</option><option value="MANUAL">Manual</option></select></label>}
       {tab === 'products' && <label>Product<select value={draft.productId} onChange={e => change('productId', e.target.value)}><option value="">All products</option>{catalog.map(product => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label>}
-      {tab === 'tours' && <><label>Tour<select value={draft.tourId} onChange={e => change('tourId', e.target.value)}><option value="">All tours</option>{events.map(event => <option key={event.eventId} value={event.eventId}>{event.eventName}</option>)}</select></label><label>Departure ID<input type="number" min="1" step="1" placeholder="All departures" value={draft.scheduleId} onChange={e => change('scheduleId', e.target.value)}/></label></>}
+      {tab === 'tours' && <><label>Tour<select value={draft.tourId} onChange={e => change('tourId', e.target.value)}><option value="">All tours</option>{events.map(event => <option key={event.eventId} value={event.eventId}>{event.eventName}</option>)}</select></label></>}
       <button className="rp-button" type="submit"><CalendarDays size={15}/>Apply</button><button className="rp-icon-button" type="button" aria-label="Refresh report" disabled={loading} onClick={() => setRevision(value => value + 1)}><RefreshCw size={17} className={loading ? 'rp-spin' : ''}/></button>
     </form>
     <div className="rp-period-note">Reporting period: <strong>{filters.from} → {filters.to}</strong><span>Vietnam time (UTC+7) · {periodLabel}</span></div>

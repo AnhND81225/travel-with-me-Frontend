@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reportApi, reportDates, reportQuery, changeReportPeriod, monthEnd, reportDateLabel, validateFilters, type Filters } from './reportApi';
-const filters: Filters = { from: '2026-10-01', to: '2026-10-31', period: 'DAY', branchId: '2', sector: 'EQUIPMENT', paymentMethod: 'MANUAL', productId: '1', tourId: '3', scheduleId: '4' };
+const filters: Filters = { from: '2026-10-01', to: '2026-10-31', period: 'DAY', branchId: '2', sector: 'EQUIPMENT', productId: '1', tourId: '3' };
 test('product requests exclude cash and tour filters', () => {
   const query = reportQuery(filters, 'products');
   assert.equal(query.get('productId'), '1');
   for (const key of ['sector', 'paymentMethod', 'tourId', 'scheduleId']) assert.equal(query.has(key), false);
 });
-test('tour report and its CSV/detail filters always restrict to TOUR', () => {
+test('tour report and its detail filters always restrict to TOUR', () => {
   const query = reportQuery(filters, 'tours');
   assert.equal(query.get('sector'), 'TOUR'); assert.equal(query.get('tourId'), '3');
-  assert.equal(query.get('scheduleId'), '4'); assert.equal(query.has('productId'), false);
+  assert.equal(query.has('scheduleId'), false); assert.equal(query.has('paymentMethod'), false); assert.equal(query.has('productId'), false);
 });
 test('overview ignores stale product and tour selections', () => {
   const query = reportQuery(filters, 'overview');
