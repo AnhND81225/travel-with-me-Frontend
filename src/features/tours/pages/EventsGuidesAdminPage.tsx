@@ -12,7 +12,7 @@ import {
   GuideUpdateInput,
   GuideRegistrationResponse,
   GuideRegistrationInput,
-} from "../../services/eventGuideApi";
+} from "../api/eventGuideApi";
 import {
   Image as ImageIcon,
   Upload,
@@ -27,12 +27,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { TourImagePicker } from "../../components/tours/TourImagePicker";
+import { TourImagePicker } from "../components/TourImagePicker";
 
-import { TourContentEditor } from "../../components/tours/TourContentEditor";
+import { TourContentEditor } from "../components/TourContentEditor";
 
-import { CatalogField, CatalogForm } from "../../components/tours/CatalogForm";
-import { catalogErrorMessage, inputNumber, validateCatalogImage, validateEvent, validateGuide } from "../../utils/tourGuideValidation";
+import { CatalogField, CatalogForm } from "../components/CatalogForm";
+import { catalogErrorMessage, inputNumber, validateCatalogImage, validateEvent, validateGuide } from "../validation/tourGuideValidation";
 
 const messageOf = catalogErrorMessage;
 

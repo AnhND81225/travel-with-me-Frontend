@@ -1,7 +1,7 @@
-import { englishApiMessage } from './englishApiMessage';
+import { englishApiMessage } from '../../../utils/englishApiMessage';
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { EventGuideApiError, EventInput, GuideRegistrationInput, ItineraryDay } from "../services/eventGuideApi";
+import { EventGuideApiError, EventInput, GuideRegistrationInput, ItineraryDay } from "../api/eventGuideApi";
 import { catalogErrorMessage, catalogErrorPath, catalogFieldMessage, inputNumber, validateCatalogImage, validateEvent, validateGuide, validateGuideAccountUpdate } from "./tourGuideValidation";
 
 // Mỗi bài nhận dữ liệu mới để không làm ảnh hưởng bài khác khi sửa trường lồng nhau.

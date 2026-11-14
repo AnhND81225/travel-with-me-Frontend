@@ -4,7 +4,7 @@ import { Building, Compass, Calendar, MapPin, AlertCircle, CheckCircle, Info, Sp
 import type { Branch } from "../equipment/catalogApi";
 import type { DeliveryType } from "./orderApi";
 import { PAGE_SIZE, participantApi, scheduleApi } from "../schedules/api";
-import { eventGuideApi } from "../../services/eventGuideApi";
+import { eventGuideApi } from "../tours/api/eventGuideApi";
 import { canDeliverToSchedule, deliveryParticipants, tourDeliveryDate } from "./deliveryRules";
 
 export interface BookedTourSummary {

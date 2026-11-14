@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ImagePlus, Star, X } from "lucide-react";
-import { validateCatalogImage } from "../../utils/tourGuideValidation";
+import { validateCatalogImage } from "../validation/tourGuideValidation";
 
 // Mỗi preview tự thu hồi object URL khi đổi tệp hoặc bị xóa, không lưu blob URL vào API.
 function ImagePreview({ file }: { file: File }) {

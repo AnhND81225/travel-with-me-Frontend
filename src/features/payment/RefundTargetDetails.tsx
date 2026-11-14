@@ -4,7 +4,7 @@ import { CalendarDays, MapPin, Package, Ticket, ArrowRight, ExternalLink, Calend
 import { catalogApi, vnd, type Product } from '../equipment/catalogApi';
 import type { Order } from '../orders/orderApi';
 import { participantApi, scheduleApi } from '../schedules/api';
-import { eventGuideApi, type EventResponse } from '../../services/eventGuideApi';
+import { eventGuideApi, type EventResponse } from '../tours/api/eventGuideApi';
 import type { Participant, Schedule } from '../schedules/types';
 import { Badge } from '../../components/ui';
 

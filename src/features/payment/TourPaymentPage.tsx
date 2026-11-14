@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Compass, CreditCard, LockKeyhole, MapPin, Mountain, Phone, RefreshCw, ShieldCheck, Ticket, Users } from 'lucide-react';
 import { participantApi, scheduleApi } from '../schedules/api';
 import type { Participant, Schedule } from '../schedules/types';
-import { eventGuideApi, type EventResponse } from '../../services/eventGuideApi';
+import { eventGuideApi, type EventResponse } from '../tours/api/eventGuideApi';
 import { payments, type Payment } from './paymentApi';
 import { vnd, type Branch } from '../equipment/catalogApi';
 

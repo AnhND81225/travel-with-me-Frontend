@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AlertCircle, ArrowDownLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Package, RefreshCw, Ticket, Wallet } from 'lucide-react';
 import { catalogApi, type Branch, type Page, type Product } from '../../features/equipment/catalogApi';
-import { eventGuideApi, type EventSummary } from '../../services/eventGuideApi';
+import { eventGuideApi, type EventSummary } from '../../features/tours/api/eventGuideApi';
 import { reportApi, reportDates, changeReportPeriod, monthEnd, reportDateLabel, validateFilters, type Filters, type Overview, type ProductsReport, type ToursReport, type ReportTab, type TransactionPage } from '../../features/reports/reportApi';
 import { ReportChart, EntityTrend, BranchBars, SectorDonut, chartColors, money } from '../../features/reports/ReportCharts';
 import '../../features/reports/reports.css';
