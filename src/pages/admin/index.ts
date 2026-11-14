@@ -1,5 +1,4 @@
 export * from './AdminDashboardPage';
-export * from './EventsGuidesAdminPage';
 export * from './FleetLedgerPage';
 export * from './SanitizationLogPage';
 export * from './InterBranchTransferPage';

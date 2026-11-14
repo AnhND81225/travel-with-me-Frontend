@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, Check, ChevronDown, Clock3, Compass, Images, MapPin, Mountain, RefreshCw, Users, X } from "lucide-react";
-import { eventGuideApi, type EventResponse } from "../../services/eventGuideApi";
-import { BookingPanel } from "../../features/schedules/BookingPanel";
-import { catalogErrorMessage } from "../../utils/tourGuideValidation";
-import "../../styles/tour-detail.css";
+import { eventGuideApi, type EventResponse } from "../api/eventGuideApi";
+import { BookingPanel } from "../../schedules/BookingPanel";
+import { catalogErrorMessage } from "../validation/tourGuideValidation";
+import "../styles/tour-detail.css";
 
 // Hiển thị thời lượng thực tế, không suy diễn số đêm từ số ngày.
 function durationText(minutes?: number | null) {

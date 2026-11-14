@@ -21,10 +21,10 @@ import {
 } from 'lucide-react';
 import { catalogApi, Branch, Account } from '../../features/equipment/catalogApi';
 import { markAccountRequiresPasswordChange } from '../../utils/firstLoginUtils';
-import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../services/eventGuideApi';
+import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../features/tours/api/eventGuideApi';
 
-import { CatalogForm, CatalogField } from '../../components/tours/CatalogForm';
-import { catalogErrorMessage, inputNumber, validateCatalogImage, validateGuide, validateGuideAccountUpdate } from '../../utils/tourGuideValidation';
+import { CatalogForm, CatalogField } from '../../features/tours/components/CatalogForm';
+import { catalogErrorMessage, inputNumber, validateCatalogImage, validateGuide, validateGuideAccountUpdate } from '../../features/tours/validation/tourGuideValidation';
 
 export interface PersonnelRow {
   id: number; // staff record id if STAFF, or user.id if GUIDE

@@ -1,4 +1,4 @@
-import { CollectionHero } from "../../components/common/CollectionHero";
+import { CollectionHero } from "../../../components/common/CollectionHero";
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -22,8 +22,8 @@ import {
   EventType,
   DifficultyLevel,
   PublicGuide,
-} from "../../services/eventGuideApi";
-import { storefrontAssets as images } from "../../data/storefront";
+} from "../api/eventGuideApi";
+import { storefrontAssets as images } from "../../../data/storefront";
 
 const errorText = (error: unknown) =>
   error instanceof Error ? error.message : "Unable to load tours.";
