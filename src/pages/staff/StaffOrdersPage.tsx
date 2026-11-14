@@ -568,12 +568,32 @@ export const StaffOrdersPage: React.FC = () => {
 
                       <td className="p-3.5 max-w-xs">
                         <div className="space-y-0.5">
-                          {order.items.slice(0, 2).map((item) => (
-                            <div key={item.id} className="truncate text-[11px] text-[#111D16]">
-                              • {products[item.productId]?.name || `Gear #${item.productId}`} ×{item.quantity}{' '}
-                              <span className="text-[10px] text-[#7A857E]">({item.itemType})</span>
-                            </div>
-                          ))}
+                          {order.items.slice(0, 2).map((item) => {
+                            const isRental = item.itemType === 'RENTAL';
+                            const cutoff = order.returnCutoffTime || '18:00';
+                            const deadline = item.rentalEndDate ? new Date(`${item.rentalEndDate}T${cutoff}:00`).getTime() : NaN;
+                            const isOverdue = order.status === 'IN_PROGRESS' && isRental && !isNaN(deadline) && Date.now() > deadline;
+
+                            return (
+                              <div key={item.id} className="text-[11px] text-[#111D16]">
+                                <div className="truncate">
+                                  • {products[item.productId]?.name || `Gear #${item.productId}`} ×{item.quantity}{' '}
+                                  <span className="text-[10px] text-[#7A857E]">({item.itemType})</span>
+                                </div>
+                                {isRental && item.rentalEndDate && (
+                                  <div className="text-[10px] text-amber-800 flex items-center gap-1 font-mono-spec ml-2">
+                                    <Clock className="w-2.5 h-2.5 text-amber-600" />
+                                    <span>Due: {cutoff}, {item.rentalEndDate}</span>
+                                    {isOverdue && (
+                                      <span className="px-1 py-0.2 bg-red-100 text-red-700 border border-red-300 rounded-xs text-[9px] font-bold uppercase animate-pulse">
+                                        Overdue
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                           {order.items.length > 2 && (
                             <div className="text-[10px] text-stone-500 font-semibold">
                               +{order.items.length - 2} more items...
@@ -652,19 +672,25 @@ export const StaffOrdersPage: React.FC = () => {
                           )}
 
                           {order.status === 'IN_PROGRESS' && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              disabled={isBusy || !order.canReturn}
-                              onClick={() => void handleAction(order.id, 'return')}
-                              title={
-                                order.canReturn
-                                  ? 'Receive returned equipment'
-                                  : 'Awaiting customer receipt'
-                              }
-                            >
-                              <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
-                            </Button>
+                            order.items.some((i) => i.itemType === 'RENTAL') ? (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                disabled={isBusy || !order.canReturn}
+                                onClick={() => void handleAction(order.id, 'return')}
+                                title={
+                                  order.canReturn
+                                    ? 'Receive returned equipment'
+                                    : 'Awaiting customer receipt'
+                                }
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+                              </Button>
+                            ) : (
+                              <span className="text-[10px] text-stone-500 font-medium italic">
+                                Awaiting receipt
+                              </span>
+                            )
                           )}
                         </div>
                       </td>
@@ -809,19 +835,25 @@ export const StaffOrdersPage: React.FC = () => {
                     )}
 
                     {order.status === 'IN_PROGRESS' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={isBusy || !order.canReturn}
-                        onClick={() => void handleAction(order.id, 'return')}
-                        icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
-                      >
-                        {isBusy
-                          ? 'Receiving...'
-                          : order.canReturn
-                          ? 'Receive return'
-                          : 'Awaiting receipt'}
-                      </Button>
+                      order.items.some((i) => i.itemType === 'RENTAL') ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={isBusy || !order.canReturn}
+                          onClick={() => void handleAction(order.id, 'return')}
+                          icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
+                        >
+                          {isBusy
+                            ? 'Receiving...'
+                            : order.canReturn
+                            ? 'Receive return'
+                            : 'Awaiting receipt'}
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-stone-500 font-medium italic">
+                          Awaiting customer receipt
+                        </span>
+                      )
                     )}
                   </div>
                 </div>
@@ -936,6 +968,33 @@ export const StaffOrdersPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Daily Return Deadline Policy Notice */}
+            {selectedOrder.items.some((i) => i.itemType === 'RENTAL') && (() => {
+              const cutoff = selectedOrder.returnCutoffTime || '18:00';
+              const rentalItem = selectedOrder.items.find((i) => i.itemType === 'RENTAL');
+              const deadline = rentalItem?.rentalEndDate ? new Date(`${rentalItem.rentalEndDate}T${cutoff}:00`).getTime() : NaN;
+              const isOverdue = selectedOrder.status === 'IN_PROGRESS' && !isNaN(deadline) && Date.now() > deadline;
+
+              return (
+                <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A3412] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#C2410C] shrink-0" />
+                    <div>
+                      <span className="font-bold">Daily Return Cut-off:</span> Before <strong>{cutoff}</strong> on {rentalItem?.rentalEndDate || 'scheduled return date'}
+                      <span className="block text-[11px] text-[#7C2D12]">
+                        Daily billing policy (partial-day rentals / 1 hour count as 1 full billing day).
+                      </span>
+                    </div>
+                  </div>
+                  {isOverdue && (
+                    <Badge variant="danger" size="sm" className="font-bold uppercase animate-pulse shrink-0">
+                      Overdue · Late return
+                    </Badge>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="flex items-center justify-between border-t border-[#D8D2C5] pt-4">
               <Button variant="secondary" size="sm" onClick={() => setSelectedOrder(null)}>
                 Close
@@ -992,15 +1051,21 @@ export const StaffOrdersPage: React.FC = () => {
                 )}
 
                 {selectedOrder.status === 'IN_PROGRESS' && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={busyOrderId === selectedOrder.id || !selectedOrder.canReturn}
-                    onClick={() => void handleAction(selectedOrder.id, 'return')}
-                    icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
-                  >
-                    {selectedOrder.customerReceivedAt ? 'Complete return inspection' : 'Awaiting customer receipt'}
-                  </Button>
+                  selectedOrder.items.some((i) => i.itemType === 'RENTAL') ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={busyOrderId === selectedOrder.id || !selectedOrder.canReturn}
+                      onClick={() => void handleAction(selectedOrder.id, 'return')}
+                      icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
+                    >
+                      {selectedOrder.customerReceivedAt ? 'Complete return inspection' : 'Awaiting customer receipt'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-stone-500 font-medium italic">
+                      Awaiting customer receipt confirmation
+                    </span>
+                  )
                 )}
               </div>
             </div>

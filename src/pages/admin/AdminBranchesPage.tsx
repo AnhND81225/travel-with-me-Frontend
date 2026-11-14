@@ -11,6 +11,7 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { catalogApi, Branch } from '../../features/equipment/catalogApi';
 
@@ -21,7 +22,7 @@ interface StaffRow {
   status: string;
 }
 
-const emptyForm = { name: '', phone: '', address: '', status: 'ACTIVE' };
+const emptyForm = { name: '', phone: '', address: '', status: 'ACTIVE', returnCutoffTime: '18:00' };
 const inputCls =
   'w-full bg-[#EBE6DC] border border-[#D8D2C5] rounded-xs p-2 text-xs text-[#111D16] focus:outline-none focus:border-[#152A20]';
 const labelCls = 'text-[11px] font-bold text-[#5C665F] block mb-1 uppercase tracking-wider';
@@ -77,6 +78,7 @@ export const AdminBranchesPage: React.FC = () => {
       phone: b.phone || '',
       address: b.address || '',
       status: b.status,
+      returnCutoffTime: b.returnCutoffTime || '18:00',
     });
     setFormOpen(true);
   };
@@ -91,6 +93,7 @@ export const AdminBranchesPage: React.FC = () => {
         phone: form.phone.trim(),
         address: form.address.trim(),
         status: form.status,
+        returnCutoffTime: form.returnCutoffTime?.trim() || '18:00',
       });
       if (editing) {
         await catalogApi<Branch>(`/branches/${editing.id}`, { method: 'PUT', body });
@@ -233,6 +236,10 @@ export const AdminBranchesPage: React.FC = () => {
                     <Phone className="w-3.5 h-3.5 shrink-0" />
                     <span>{b.phone || 'No phone number'}</span>
                   </div>
+                  <div className="flex items-center gap-1.5 text-[#C2410C] font-medium pt-0.5">
+                    <Clock className="w-3.5 h-3.5 shrink-0 text-[#EA580C]" />
+                    <span>Return cut-off: <strong>{b.returnCutoffTime || '18:00'}</strong></span>
+                  </div>
                 </div>
               </div>
               <div className="pt-3 border-t border-[#D8D2C5] flex flex-wrap gap-2">
@@ -302,10 +309,21 @@ export const AdminBranchesPage: React.FC = () => {
             <label className={labelCls}>Address</label>
             <input className={inputCls} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>Phone Number</label>
               <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelCls}>Daily Return Cut-off *</label>
+              <input
+                type="time"
+                required
+                className={inputCls}
+                value={form.returnCutoffTime}
+                onChange={(e) => setForm({ ...form, returnCutoffTime: e.target.value })}
+              />
+              <span className="text-[10px] text-[#7A857E] mt-0.5 block">e.g., 18:00</span>
             </div>
             <div>
               <label className={labelCls}>Status</label>

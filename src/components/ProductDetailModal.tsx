@@ -311,6 +311,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       </button>
                     </div>
                   </div>
+
+                  {/* Daily Rental Policy & Return Cutoff Notice */}
+                  <div className="bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs p-2.5 text-[11px] text-[#9A3412] space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-[#C2410C]">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>Rental Policy & Return Deadline</span>
+                    </div>
+                    <p>
+                      • <strong>Per-Day Billing:</strong> Rentals are billed on a full calendar-day basis (even 1-hour or same-day rentals count as 1 full billing day).
+                    </p>
+                    <p>
+                      • <strong>Daily Return Cut-off:</strong> Return equipment to the outpost before <strong>18:00</strong> on the final day for gear inspection and deposit release.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 /* Outright Purchase Details */

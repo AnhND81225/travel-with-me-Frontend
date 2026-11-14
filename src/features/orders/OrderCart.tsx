@@ -21,6 +21,7 @@ import {
   MapPin,
   ExternalLink,
   Compass,
+  Clock,
 } from 'lucide-react';
 import { Card, Button, Badge } from '../../components/ui';
 import { catalogApi, Branch, Product, vnd } from '../equipment/catalogApi';
@@ -527,6 +528,24 @@ export function OrderCart() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: List of items */}
         <div className="lg:col-span-8 space-y-4">
+          {lines.some((l) => l.itemType === 'RENTAL') && (
+            <div className="p-3.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A3412] space-y-1.5">
+              <div className="font-bold flex items-center gap-1.5 text-[#C2410C]">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Equipment Rental & Daily Return Policy</span>
+              </div>
+              <ul className="list-disc pl-4 space-y-1 text-[11px] text-[#7C2D12]">
+                <li>
+                  <strong>Daily Billing Rule:</strong> Rentals are billed on a full calendar-day basis (rental duration of 1 hour or same-day rental counts as 1 full billing day).
+                </li>
+                <li>
+                  <strong>Daily Return Cut-off:</strong> Equipment must be returned to the outpost branch before{' '}
+                  <strong>{branches.find((b) => b.id === currentBranchId)?.returnCutoffTime || '18:00'}</strong> on your scheduled return date for inspection and deposit release.
+                </li>
+              </ul>
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-b border-[#D8D2C5] pb-2 text-xs text-[#737C75] font-bold uppercase">
             <span>EQUIPMENT LIST ({lines.length} ITEMS)</span>
             <span>ITEM TOTAL</span>

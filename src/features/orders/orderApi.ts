@@ -50,6 +50,7 @@ export type Order = {
   scheduleId?: number | null;
   deliveryLocation?: string | null;
   deliveryNotes?: string | null;
+  returnCutoffTime?: string | null;
 };
 
 export const getMyOrders = () => catalogApi<Order[]>("/orders/me");

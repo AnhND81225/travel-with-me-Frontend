@@ -845,15 +845,21 @@ export const AdminOrdersPage: React.FC = () => {
 
                     {/* In Progress Actions -> Return & Inspect */}
                     {order.status === 'IN_PROGRESS' && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        disabled={isBusy || !order.canReturn}
-                        onClick={() => void handleAction(order.id, 'return')}
-                        icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
-                      >
-                        {isBusy ? 'Receiving return...' : !order.customerReceivedAt ? 'Awaiting customer receipt' : 'Return & inspection'}
-                      </Button>
+                      order.items.some((i) => i.itemType === 'RENTAL') ? (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={isBusy || !order.canReturn}
+                          onClick={() => void handleAction(order.id, 'return')}
+                          icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
+                        >
+                          {isBusy ? 'Receiving return...' : !order.customerReceivedAt ? 'Awaiting customer receipt' : 'Return & inspection'}
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-stone-500 font-medium italic">
+                          Awaiting customer receipt
+                        </span>
+                      )
                     )}
 
                     {/* Completed State */}
@@ -1016,15 +1022,21 @@ export const AdminOrdersPage: React.FC = () => {
                           )}
 
                           {order.status === 'IN_PROGRESS' && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              disabled={isBusy || !order.canReturn}
-                              onClick={() => void handleAction(order.id, 'return')}
-                              title={order.canReturn ? "Return & inspection" : "Awaiting customer receipt"}
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                            </Button>
+                            order.items.some((i) => i.itemType === 'RENTAL') ? (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                disabled={isBusy || !order.canReturn}
+                                onClick={() => void handleAction(order.id, 'return')}
+                                title={order.canReturn ? "Return & inspection" : "Awaiting customer receipt"}
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              </Button>
+                            ) : (
+                              <span className="text-[10px] text-stone-500 font-medium italic">
+                                Awaiting receipt
+                              </span>
+                            )
                           )}
                         </div>
                       </td>
@@ -1286,6 +1298,33 @@ export const AdminOrdersPage: React.FC = () => {
               </ul>
             </div>
 
+            {/* Daily Return Deadline Policy Notice */}
+            {selectedOrder.items.some((i) => i.itemType === 'RENTAL') && (() => {
+              const cutoff = selectedOrder.returnCutoffTime || branchMap.get(selectedOrder.branchId)?.returnCutoffTime || '18:00';
+              const rentalItem = selectedOrder.items.find((i) => i.itemType === 'RENTAL');
+              const deadline = rentalItem?.rentalEndDate ? new Date(`${rentalItem.rentalEndDate}T${cutoff}:00`).getTime() : NaN;
+              const isOverdue = selectedOrder.status === 'IN_PROGRESS' && !isNaN(deadline) && Date.now() > deadline;
+
+              return (
+                <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A3412] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-[#C2410C] shrink-0" />
+                    <div>
+                      <span className="font-bold">Daily Return Cut-off:</span> Before <strong>{cutoff}</strong> on {rentalItem?.rentalEndDate || 'scheduled return date'}
+                      <span className="block text-[11px] text-[#7C2D12]">
+                        Daily billing policy (partial-day rentals / 1 hour count as 1 full billing day).
+                      </span>
+                    </div>
+                  </div>
+                  {isOverdue && (
+                    <Badge variant="danger" size="sm" className="font-bold uppercase animate-pulse shrink-0">
+                      Overdue · Late return
+                    </Badge>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Modal Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-[#D8D2C5] pt-4">
               <Button
@@ -1346,15 +1385,21 @@ export const AdminOrdersPage: React.FC = () => {
                 )}
 
                 {selectedOrder.status === 'IN_PROGRESS' && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={busyOrderId === selectedOrder.id || !selectedOrder.canReturn}
-                    onClick={() => void handleAction(selectedOrder.id, 'return')}
-                    icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
-                  >
-                    {selectedOrder.customerReceivedAt ? 'Complete return inspection' : 'Awaiting customer receipt'}
-                  </Button>
+                  selectedOrder.items.some((i) => i.itemType === 'RENTAL') ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={busyOrderId === selectedOrder.id || !selectedOrder.canReturn}
+                      onClick={() => void handleAction(selectedOrder.id, 'return')}
+                      icon={<RotateCcw className="w-3.5 h-3.5 text-emerald-400" />}
+                    >
+                      {selectedOrder.customerReceivedAt ? 'Complete return inspection' : 'Awaiting customer receipt'}
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-stone-500 font-medium italic">
+                      Awaiting customer receipt confirmation
+                    </span>
+                  )
                 )}
               </div>
             </div>
