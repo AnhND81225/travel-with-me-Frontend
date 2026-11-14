@@ -5,7 +5,7 @@ import { errorMessage, useClock, usePages, useResource, useScheduleAccount } fro
 import { bookable, dateTime, money, validId } from './rules';
 import { Dialog, Loading, Message, More, Status } from './ui';
 import type { Schedule } from './types';
-import { eventGuideApi } from '../../services/eventGuideApi';
+import { eventGuideApi } from '../tours/api/eventGuideApi';
 
 export function BookingPanel({ eventId, eventName, price }: { eventId: number; eventName: string; price: number }) {
   const list = usePages(useCallback((page: number) => scheduleApi.list({ eventId, page }), [eventId]));

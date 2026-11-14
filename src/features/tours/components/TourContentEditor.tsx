@@ -1,4 +1,4 @@
-import { EventDetailsInput, ItineraryDay, TourActivity } from "../../services/eventGuideApi";
+import { EventDetailsInput, ItineraryDay, TourActivity } from "../api/eventGuideApi";
 
 import { CatalogField } from "./CatalogForm";
 

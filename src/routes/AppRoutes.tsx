@@ -1,3 +1,6 @@
+import { EventsGuidesAdminPage } from "../features/tours/pages/EventsGuidesAdminPage";
+import { ExpeditionDetailPage } from "../features/tours/pages/ExpeditionDetailPage";
+import { ExpeditionsPage } from "../features/tours/pages/ExpeditionsPage";
 import React from 'react';
 import { RefundsPage } from '../features/payment/RefundPages';
 import { PaymentResultPage } from '../features/payment/PaymentPages';
@@ -17,8 +20,6 @@ import {
   ShopCatalogPage,
   CatalogPage,
   ProductDetailPage,
-  ExpeditionsPage,
-  ExpeditionDetailPage,
   CustodyHubPage,
   ConditionAuditPage,
   OutpostsPage,
@@ -57,7 +58,6 @@ import {
   InterBranchTransferPage,
   CustodyInspectionPage,
   AdminOrdersPage,
-  EventsGuidesAdminPage,
 } from '../pages/admin';
 
 const MyToursPage = React.lazy(() => import('../features/schedules/CustomerPages').then(m => ({ default: m.MyToursPage })));

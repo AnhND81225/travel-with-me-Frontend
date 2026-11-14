@@ -2,8 +2,6 @@ export * from './HomePage';
 export * from './ShopCatalogPage';
 export * from './CatalogPage';
 export * from './ProductDetailPage';
-export * from './ExpeditionsPage';
-export * from './ExpeditionDetailPage';
 export * from './CustodyHubPage';
 export * from './ConditionAuditPage';
 export * from './OutpostsPage';

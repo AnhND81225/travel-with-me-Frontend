@@ -1,6 +1,6 @@
 import { cloneElement, createContext, FormEvent, ReactElement, ReactNode, useContext, useId, useRef, useState } from "react";
-import { EventGuideApiError } from "../../services/eventGuideApi";
-import { CatalogErrors, catalogErrorMessage, catalogErrorPath, catalogFieldMessage } from "../../utils/tourGuideValidation";
+import { EventGuideApiError } from "../api/eventGuideApi";
+import { CatalogErrors, catalogErrorMessage, catalogErrorPath, catalogFieldMessage } from "../validation/tourGuideValidation";
 
 const ErrorsContext = createContext<CatalogErrors>({});
 

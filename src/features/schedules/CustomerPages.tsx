@@ -34,7 +34,7 @@ import {
   Building,
   User
 } from 'lucide-react';
-import { eventGuideApi, type EventResponse, type PublicGuide } from '../../services/eventGuideApi';
+import { eventGuideApi, type EventResponse, type PublicGuide } from '../tours/api/eventGuideApi';
 import { participantApi, scheduleApi } from './api';
 import { errorMessage, useClock, usePages, useResource } from './hooks';
 import { bookable, cancellable, dateTime, money, validId, labels } from './rules';
