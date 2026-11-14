@@ -11,6 +11,7 @@ export interface Participant {
   customerName?: string | null; customerPhone?: string | null; customerEmail?: string | null;
   participantStatus: ParticipantStatus; checkInStatus: 'NOT_CHECKED_IN' | 'CHECKED_IN';
   registeredPrice: number; note: string | null; registrationReference: string; expiresAt: string | null;
+  checkedOutAt?: string | null;
 }
 export interface ScheduleInput {
   eventId: number; branchId: number; guideId: number | null; startDatetime: string;

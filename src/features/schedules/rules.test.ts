@@ -1,7 +1,7 @@
 import { departureHistoryText } from './departureHistory';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attendance, bookable, cancellable, editable, guideConflicts, payable, toLocal, toOffset, transitions, validId, validateDates } from './rules';
+import { attendance, canCheckOut, bookable, cancellable, editable, guideConflicts, payable, toLocal, toOffset, transitions, validId, validateDates } from './rules';
 import type { Participant, Schedule } from './types';
 const start = Date.parse('2026-12-20T07:00:00+07:00');
 const s: Schedule = { id: 1, eventId: 2, branchId: 3, guideId: 4, startDatetime: '2026-12-20T07:00:00+07:00', endDatetime: '2026-12-20T17:00:00+07:00', registrationClosesAt: '2026-12-20T06:00:00+07:00', maxParticipants: 2, currentParticipants: 1, status: 'OPEN', createdAt: '2026-11-01T00:00:00Z' };
@@ -74,4 +74,17 @@ test('departure history hides internal guide IDs and unchanged values', () => {
   assert.deepEqual(departureHistoryText(row).details, ['A guide has been assigned to this trip.']);
   assert.deepEqual(departureHistoryText({ ...row, changeReason: 'Đổi guide 3 -> null; sức chứa 16 -> 20' }).details, ['The guide assignment was removed.', 'Group capacity changed from 16 to 20 guests.']);
   assert.match(departureHistoryText({ ...row, newStatus: 'CLOSED', changeReason: 'Tự động đóng đăng ký khi đến hạn' }).details[0], /automatically/);
+});
+
+test('checkout requires checked-in ticket, finished time and active/completed trip without prior checkout', () => {
+  const end = Date.parse(s.endDatetime);
+  const trip = { ...s, status: 'IN_PROGRESS' as const };
+  const ticket = { ...p, checkInStatus: 'CHECKED_IN' as const };
+  assert.equal(canCheckOut(ticket, trip, end - 1), false);
+  assert.equal(canCheckOut(ticket, trip, end), true);
+  assert.equal(canCheckOut({ ...ticket, participantStatus: 'COMPLETED' }, { ...trip, status: 'COMPLETED' }, end), true);
+  assert.equal(canCheckOut({ ...ticket, checkedOutAt: s.endDatetime }, trip, end), false);
+  assert.equal(canCheckOut(p, trip, end), false);
+  for (const status of ['OPEN', 'FULL', 'CLOSED', 'CANCELLED'] as const) assert.equal(canCheckOut(ticket, { ...trip, status }, end), false);
+  for (const participantStatus of ['PENDING', 'EXPIRED', 'CANCELLED', 'NO_SHOW'] as const) assert.equal(canCheckOut({ ...ticket, participantStatus }, trip, end), false);
 });
