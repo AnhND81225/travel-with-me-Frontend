@@ -110,3 +110,11 @@ Verification: no unresolved files/conflict markers; diff whitespace check, TypeS
 ## Sync FE main 1cd5abe — 2026-10-31
 
 Fetched and fast-forwarded `feature/tour-image-layout` from `1f509d0` to `origin/main` `1cd5abe`. Included new equipment/home/storefront updates. No conflicts; a binary diff comparison before/after the merge confirmed all existing tracked member 4 working changes were preserved, and the three untracked feature files remain present. TypeScript/lint, all 46 discovered FE tests, production build and diff whitespace checks passed. Existing bundle-size warning remains. No FE commit/push or backend changes in this sync.
+
+
+## Admin tour modal responsiveness — 2026-11-14
+
+- Tour creation, editing, guide editing and image-library overlays render through React portals into `document.body`. This avoids the stacking context created by the animated admin content area, which previously placed the dialog below the fixed sidebar.
+- Dialog panels fit within `100dvh` with vertical scrolling. Creation fields can shrink, the header/footer wrap on narrow screens, and background scrolling is restored when dialogs close. Endpoints, payloads and validation rules are unchanged.
+- Browser checks with intercepted read-only API fixtures: creation/edit/image-library dialogs fit at 1440×900, 1024×768, 800×900, 390×844 and 1280×600. Creation has no horizontal panel overflow; expanded details scroll to the action buttons; closing restores body scrolling. Mobile screenshot inspected. No requests were sent to the shared backend.
+- TypeScript, production build and 13 tour/guide tests passed. Production build retains the existing large-chunk warning.

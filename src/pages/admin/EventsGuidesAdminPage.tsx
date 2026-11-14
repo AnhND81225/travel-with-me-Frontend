@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   eventGuideApi,
   AdminGuide,
@@ -498,6 +499,14 @@ export function EventsGuidesAdminPage() {
     }
   };
 
+  const dialogOpen = createModalOpen || editingGuide !== null || editingEventId !== null || selectedEventId !== null;
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [dialogOpen]);
+
   const publishedCount = events.filter((item) => item.status === "PUBLISHED").length;
   const draftCount = events.filter((item) => item.status === "DRAFT").length;
   const archivedCount = events.filter((item) => item.status === "ARCHIVED").length;
@@ -547,11 +556,11 @@ export function EventsGuidesAdminPage() {
 
       {tab === "events" ? (
         <>
-          {createModalOpen && (
-            <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto">
-              <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#F8F6F1] border border-[#D8D2C5] shadow-xl">
-          <CatalogForm onSubmit={createEvent} validate={() => validateEvent(event)} onInvalid={() => setShowDetailsForm(true)} className="grid gap-3 p-5 md:grid-cols-2">
-            <div className="md:col-span-2 flex items-center justify-between border-b border-[#D8D2C5] pb-3">
+          {createModalOpen && createPortal(
+            <div role="dialog" aria-label="Create trip" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 font-label text-[#111D16] overflow-y-auto">
+              <div className="w-full min-w-0 max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-[#F8F6F1] border border-[#D8D2C5] shadow-xl">
+          <CatalogForm onSubmit={createEvent} validate={() => validateEvent(event)} onInvalid={() => setShowDetailsForm(true)} className="grid min-w-0 gap-3 p-4 sm:p-5 md:grid-cols-2 [&>*]:min-w-0">
+            <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 border-b border-[#D8D2C5] pb-3">
               <div>
                 <p className="text-[10px] font-bold text-[#7A857E] uppercase tracking-wider">Trip catalogue</p>
                 <h2 className="font-bold text-lg text-[#111D16]">{createdDraftId ? `Continue draft #${createdDraftId}` : "Create a new trip"}</h2>
@@ -725,7 +734,7 @@ export function EventsGuidesAdminPage() {
               <TourContentEditor value={event.details ?? {}} onChange={details => setEvent({ ...event, details })} />
             </div>
 
-            <div className="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-[#D8D2C5]">
+            <div className="md:col-span-2 flex flex-wrap justify-end gap-2 pt-2 border-t border-[#D8D2C5]">
               <button type="button" disabled={busy} onClick={() => setCreateModalOpen(false)} className="px-4 py-2.5 border border-[#D8D2C5] bg-white text-xs font-bold uppercase tracking-wider hover:bg-[#EBE6DC]">Cancel</button>
             <button className="bg-[#152A20] text-[#F3EFE6] px-5 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-[#264334] disabled:opacity-60" disabled={busy || checkingCreatePhotos}>
               {busy ? "Saving trip and photos..." : createdDraftId ? "Continue saving draft" : "Create trip"}
@@ -733,7 +742,8 @@ export function EventsGuidesAdminPage() {
             </div>
           </CatalogForm>
               </div>
-            </div>
+            </div>,
+            document.body,
           )}
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -924,9 +934,9 @@ export function EventsGuidesAdminPage() {
         </>
       )}
 
-      {editingGuide && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <CatalogForm onSubmit={saveGuide} validate={() => validateGuide(guideEditInput)} className="bg-white rounded-xs max-w-lg w-full border border-[#d8d2c5] shadow-xl">
+      {editingGuide && createPortal(
+        <div role="dialog" aria-label="Edit guide profile" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 font-label text-[#111D16]">
+          <CatalogForm onSubmit={saveGuide} validate={() => validateGuide(guideEditInput)} className="bg-white rounded-xs max-w-lg w-full min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain border border-[#d8d2c5] shadow-xl">
             <div className="flex items-center justify-between p-4 border-b border-[#d8d2c5] bg-[#F3EFE6]">
               <div>
                 <h3 className="font-bold text-lg text-[#111D16]">Edit guide profile</h3>
@@ -955,17 +965,19 @@ export function EventsGuidesAdminPage() {
               <button className="store-button text-sm py-2 px-5" disabled={busy}>{busy ? "Saving..." : "Save profile"}</button>
             </div>
           </CatalogForm>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Modal Chỉnh sửa chuyến đi */}
-      {editingEventId !== null && (
+      {editingEventId !== null && createPortal(
         <div
           role="dialog"
+          aria-label="Edit trip"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 font-label text-[#111D16] overflow-y-auto"
         >
-          <div className="bg-white rounded-xs max-w-2xl w-full border border-[#d8d2c5] shadow-xl overflow-hidden my-8">
+          <div className="bg-white rounded-xs max-w-2xl w-full border border-[#d8d2c5] shadow-xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between p-4 border-b border-[#d8d2c5] bg-[#F3EFE6]">
               <h3 className="font-bold text-lg text-[#111D16]">
                 Edit trip (ID: #{editingEventId})
@@ -1156,17 +1168,19 @@ export function EventsGuidesAdminPage() {
               </CatalogForm>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Modal Quản lý ảnh */}
-      {selectedEventId !== null && (
+      {selectedEventId !== null && createPortal(
         <div
           role="dialog"
+          aria-label="Manage image library"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 font-label text-[#111D16] overflow-y-auto"
         >
-          <div className="bg-white rounded-xs max-w-3xl w-full border border-[#d8d2c5] shadow-xl overflow-hidden my-8">
+          <div className="bg-white rounded-xs max-w-3xl w-full border border-[#d8d2c5] shadow-xl min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
             {/* Tiêu đề modal */}
             <div className="flex items-center justify-between p-4 border-b border-[#d8d2c5] bg-[#F3EFE6]">
               <div>
@@ -1311,7 +1325,8 @@ export function EventsGuidesAdminPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </section>
   );
