@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ClipboardList,
   ChevronLeft,
@@ -20,42 +20,53 @@ import {
   Info,
   ExternalLink,
   Ticket,
-} from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { vnd } from '../equipment/catalogApi';
-import { refunds, type TransactionHistory, type RefundPreview } from './paymentApi';
-import { RefundTargetDetails } from './RefundTargetDetails';
-import { Card, Button, Badge, Modal } from '../../components/ui';
+} from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { vnd } from "../equipment/catalogApi";
+import {
+  refunds,
+  type TransactionHistory,
+  type RefundPreview,
+} from "./paymentApi";
+import { RefundTargetDetails } from "./RefundTargetDetails";
+import { Card, Button, Badge, Modal } from "../../components/ui";
 
 const positiveId = (value: string | null) =>
-  value && /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0
+  value &&
+  /^\d+$/.test(value) &&
+  Number.isSafeInteger(Number(value)) &&
+  Number(value) > 0
     ? Number(value)
     : null;
 
 export function RefundsPage({ admin = false }: { admin?: boolean }) {
   const [params] = useSearchParams();
-  const orderId = positiveId(params.get('orderId'));
-  const participantId = positiveId(params.get('participantId'));
+  const orderId = positiveId(params.get("orderId"));
+  const participantId = positiveId(params.get("participantId"));
 
   const [rows, setRows] = useState<TransactionHistory[]>([]);
-  const [reason, setReason] = useState('');
-  const [transferReference, setTransferReference] = useState('');
-  const [confirmationNote, setConfirmationNote] = useState('');
+  const [reason, setReason] = useState("");
+  const [transferReference, setTransferReference] = useState("");
+  const [confirmationNote, setConfirmationNote] = useState("");
   const [preview, setPreview] = useState<RefundPreview | null>(null);
-  const [previewError, setPreviewError] = useState('');
+  const [previewError, setPreviewError] = useState("");
   const [submitted, setSubmitted] = useState<TransactionHistory | null>(null);
   const [page, setPage] = useState(0);
-  const [refundStatus, setRefundStatus] = useState<'PENDING' | 'SUCCEEDED' | 'REJECTED'>('PENDING');
+  const [refundStatus, setRefundStatus] = useState<
+    "PENDING" | "SUCCEEDED" | "REJECTED"
+  >("PENDING");
   const [hasNext, setHasNext] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const [rejection, setRejection] = useState<TransactionHistory | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [rejectionError, setRejectionError] = useState('');
-  const [confirmation, setConfirmation] = useState<TransactionHistory | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejectionError, setRejectionError] = useState("");
+  const [confirmation, setConfirmation] = useState<TransactionHistory | null>(
+    null,
+  );
 
   const fetchPage = useCallback(async () => {
     const request = admin
@@ -84,7 +95,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError('');
+    setError("");
     setHasNext(false);
 
     fetchPage()
@@ -100,7 +111,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       .catch((e) => {
         if (active) {
           setRows([]);
-          setError(e instanceof Error ? e.message : 'Unable to load refund requests.');
+          setError(
+            e instanceof Error ? e.message : "Unable to load refund requests.",
+          );
         }
       })
       .finally(() => {
@@ -113,12 +126,13 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
   }, [fetchPage, page]);
 
   useEffect(() => {
-    if (admin || (!orderId && !participantId) || (orderId && participantId)) return;
+    if (admin || (!orderId && !participantId) || (orderId && participantId))
+      return;
     let active = true;
     setPreview(null);
-    setPreviewError('');
+    setPreviewError("");
     setSubmitted(null);
-    setReason('');
+    setReason("");
 
     refunds
       .preview(orderId ? { orderId } : { participantId: participantId! })
@@ -127,7 +141,11 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       })
       .catch((e) => {
         if (active)
-          setPreviewError(e instanceof Error ? e.message : 'Unable to load the refundable amount.');
+          setPreviewError(
+            e instanceof Error
+              ? e.message
+              : "Unable to load the refundable amount.",
+          );
       });
 
     return () => {
@@ -138,18 +156,18 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
   async function submit(id?: number) {
     if (inFlight.current) return;
     if (admin && !transferReference.trim()) {
-      setError('Please enter the transfer reference number.');
+      setError("Please enter the transfer reference number.");
       return;
     }
     if (!admin && !reason.trim()) {
-      setError('Please enter a reason for your refund request.');
+      setError("Please enter a reason for your refund request.");
       return;
     }
 
     inFlight.current = true;
     setBusy(true);
-    setError('');
-    setNotice('');
+    setError("");
+    setNotice("");
 
     try {
       const result =
@@ -159,26 +177,28 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
               note: confirmationNote.trim(),
             })
           : orderId && !participantId
-          ? await refunds.request({ orderId, reason: reason.trim() })
-          : participantId && !orderId
-          ? await refunds.request({ participantId, reason: reason.trim() })
-          : null;
+            ? await refunds.request({ orderId, reason: reason.trim() })
+            : participantId && !orderId
+              ? await refunds.request({ participantId, reason: reason.trim() })
+              : null;
 
-      if (!result) throw new Error('Please select an order or tour ticket.');
+      if (!result) throw new Error("Please select an order or tour ticket.");
 
       setNotice(
-        result.status === 'SUCCEEDED'
+        result.status === "SUCCEEDED"
           ? `Refund #${result.transactionId} confirmed · ${vnd(result.amount)} returned.`
-          : `Refund request #${result.transactionId} submitted · ${vnd(result.amount)}. Awaiting branch review.`
+          : `Refund request #${result.transactionId} submitted · ${vnd(result.amount)}. Awaiting branch review.`,
       );
 
       if (!admin) setSubmitted(result);
       setConfirmation(null);
       await load().catch(() =>
-        setError('Action completed, but list could not be refreshed. Please click Refresh.')
+        setError(
+          "Action completed, but list could not be refreshed. Please click Refresh.",
+        ),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unable to process refund.');
+      setError(e instanceof Error ? e.message : "Unable to process refund.");
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -187,38 +207,67 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
 
   async function rejectRefund() {
     if (!rejection || inFlight.current) return;
-    if (!rejectionReason.trim()) { setRejectionError('Please enter a rejection reason.'); return; }
+    if (!rejectionReason.trim()) {
+      setRejectionError("Please enter a rejection reason.");
+      return;
+    }
     inFlight.current = true;
-    setBusy(true); setRejectionError(''); setError(''); setNotice('');
+    setBusy(true);
+    setRejectionError("");
+    setError("");
+    setNotice("");
     try {
-      const result = await refunds.reject(rejection.transactionId, rejectionReason.trim());
+      const result = await refunds.reject(
+        rejection.transactionId,
+        rejectionReason.trim(),
+      );
       setRejection(null);
-      setNotice(`Refund request #${result.transactionId} rejected. No money was returned.`);
-      await load().catch(() => setError('Request rejected, but the list could not be refreshed. Please click Refresh.'));
+      setNotice(
+        `Refund request #${result.transactionId} rejected. No money was returned.`,
+      );
+      await load().catch(() =>
+        setError(
+          "Request rejected, but the list could not be refreshed. Please click Refresh.",
+        ),
+      );
     } catch (e) {
-      setRejectionError(e instanceof Error ? e.message : 'Unable to reject refund request.');
-    } finally { inFlight.current = false; setBusy(false); }
+      setRejectionError(
+        e instanceof Error ? e.message : "Unable to reject refund request.",
+      );
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
   }
 
-  const targetRows = [...rows, ...(submitted ? [submitted] : [])].filter((row) =>
-    orderId ? row.orderId === orderId : row.participantId === participantId
+  const targetRows = [...rows, ...(submitted ? [submitted] : [])].filter(
+    (row) =>
+      orderId ? row.orderId === orderId : row.participantId === participantId,
   );
 
-  const isPendingRefund = targetRows.some((row) => row.status === 'PENDING');
-  const succeededRefund = targetRows.find((row) => row.status === 'SUCCEEDED');
+  const isPendingRefund = targetRows.some((row) => row.status === "PENDING");
+  const succeededRefund = targetRows.find((row) => row.status === "SUCCEEDED");
   const isAlreadyRefunded = Boolean(
-    succeededRefund || (preview && preview.refundableAmount <= 0 && preview.refundedAmount > 0)
+    succeededRefund ||
+      (preview && preview.refundableAmount <= 0 && preview.refundedAmount > 0),
   );
-  const pendingRefundRow = targetRows.find((row) => row.status === 'PENDING');
-  const isUnpaid = Boolean(preview && preview.receivedAmount === 0 && preview.refundableAmount === 0);
+  const pendingRefundRow = targetRows.find((row) => row.status === "PENDING");
+  const isUnpaid = Boolean(
+    preview && preview.receivedAmount === 0 && preview.refundableAmount === 0,
+  );
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-label animate-fade-in">
       {/* Top Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-xs font-bold text-[#5C665F]">
-        <Link to="/" className="hover:text-[#111D16]">Home</Link>
+        <Link to="/" className="hover:text-[#111D16]">
+          Home
+        </Link>
         <span>/</span>
-        <Link to={admin ? "/admin/orders" : "/orders"} className="hover:text-[#111D16]">
+        <Link
+          to={admin ? "/admin/orders" : "/orders"}
+          className="hover:text-[#111D16]"
+        >
           {admin ? "Admin Console" : "My Orders"}
         </Link>
         <span>/</span>
@@ -235,23 +284,33 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
             <span>TERRAPEAK FINANCIAL ESCROW RESOLUTION</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold font-headline text-white tracking-tight">
-            {admin ? 'Refund Request Management' : 'Expedition Refund & Escrow Settlement'}
+            {admin
+              ? "Refund Request Management"
+              : "Expedition Refund & Escrow Settlement"}
           </h1>
           <p className="text-xs sm:text-sm text-[#ADCBBB] font-body leading-relaxed max-w-2xl">
             {admin
-              ? 'Review pending customer refund requests. Confirm refunds only after completing manual electronic bank transfers to customer accounts.'
-              : 'Submit cancellation and escrow refund requests for equipment orders or tour bookings. Refunds are verified against branch return audits and returned via electronic transfer.'}
+              ? "Review pending customer refund requests. Confirm refunds only after completing manual electronic bank transfers to customer accounts."
+              : "Submit cancellation and escrow refund requests for equipment orders or tour bookings. Refunds are verified against branch return audits and returned via electronic transfer."}
           </p>
 
           {!admin && (
             <div className="flex items-center gap-2 pt-2">
               <Link to="/orders">
-                <Button variant="secondary" size="sm" icon={<Package className="w-3.5 h-3.5" />}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Package className="w-3.5 h-3.5" />}
+                >
                   My Orders
                 </Button>
               </Link>
               <Link to="/my-tours">
-                <Button variant="secondary" size="sm" icon={<Ticket className="w-3.5 h-3.5" />}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Ticket className="w-3.5 h-3.5" />}
+                >
                   My Tours & Expeditions
                 </Button>
               </Link>
@@ -268,7 +327,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
             <span>{error}</span>
           </div>
           <button
-            onClick={() => setError('')}
+            onClick={() => setError("")}
             className="text-xs font-bold underline hover:text-black cursor-pointer"
           >
             Dismiss
@@ -283,7 +342,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
             <span>{notice}</span>
           </div>
           <button
-            onClick={() => setNotice('')}
+            onClick={() => setNotice("")}
             className="text-xs font-bold underline hover:text-black cursor-pointer"
           >
             Dismiss
@@ -296,18 +355,27 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Target Item Inspection & Status / Form */}
           <div className="lg:col-span-7 space-y-4">
-            <RefundTargetDetails orderId={orderId} participantId={participantId} />
+            <RefundTargetDetails
+              orderId={orderId}
+              participantId={participantId}
+            />
 
             {/* Condition 1: Already Fully Refunded */}
             {isAlreadyRefunded ? (
-              <Card padding="md" className="bg-[#E0EFE6] border-2 border-[#10B981] rounded-xs space-y-4 font-label">
+              <Card
+                padding="md"
+                className="bg-[#E0EFE6] border-2 border-[#10B981] rounded-xs space-y-4 font-label"
+              >
                 <div className="flex items-start gap-3.5">
                   <div className="w-10 h-10 rounded-full bg-[#152A20] text-emerald-400 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="success" className="bg-[#152A20] text-emerald-400 font-bold">
+                      <Badge
+                        variant="success"
+                        className="bg-[#152A20] text-emerald-400 font-bold"
+                      >
                         REFUND COMPLETED · 100% DISBURSED
                       </Badge>
                       <span className="text-[10px] text-[#065F46] font-mono-spec font-bold">
@@ -318,7 +386,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                       This Order Has Already Been Fully Refunded
                     </h3>
                     <p className="text-xs text-[#065F46] font-body leading-relaxed">
-                      All eligible funds for this order have already been returned to your original payment method or bank account. You do not need to submit any further refund request.
+                      All eligible funds for this order have already been
+                      returned to your original payment method or bank account.
+                      You do not need to submit any further refund request.
                     </p>
                   </div>
                 </div>
@@ -326,9 +396,16 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 {/* Refund Record Details */}
                 <div className="p-3.5 bg-white border border-[#ADCBBB] rounded-xs space-y-2 text-xs">
                   <div className="flex justify-between items-center text-[#111D16]">
-                    <span className="text-[#5C665F]">Total refunded amount:</span>
+                    <span className="text-[#5C665F]">
+                      Total refunded amount:
+                    </span>
                     <span className="font-bold text-base text-[#D97845] font-headline">
-                      {vnd(preview?.refundedAmount || succeededRefund?.amount || preview?.receivedAmount || 0)}
+                      {vnd(
+                        preview?.refundedAmount ||
+                          succeededRefund?.amount ||
+                          preview?.receivedAmount ||
+                          0,
+                      )}
                     </span>
                   </div>
 
@@ -345,7 +422,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                     <div className="flex justify-between items-center text-[#5C665F] pt-1.5 border-t border-[#EBE6DC]">
                       <span>Completed at:</span>
                       <span className="font-mono-spec text-[#111D16]">
-                        {new Date(succeededRefund.succeededAt).toLocaleString('en-GB')}
+                        {new Date(succeededRefund.succeededAt).toLocaleString(
+                          "en-GB",
+                        )}
                       </span>
                     </div>
                   )}
@@ -364,19 +443,29 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                   {succeededRefund?.refundConfirmationNote && (
                     <div className="pt-1.5 text-[11px] text-[#065F46] flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Admin note: {succeededRefund.refundConfirmationNote}</span>
+                      <span>
+                        Admin note: {succeededRefund.refundConfirmationNote}
+                      </span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
                   <Link to="/orders">
-                    <Button variant="primary" size="sm" icon={<Package className="w-3.5 h-3.5" />}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<Package className="w-3.5 h-3.5" />}
+                    >
                       Return to My Orders
                     </Button>
                   </Link>
                   <Link to="/shop">
-                    <Button variant="secondary" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<ArrowRight className="w-3.5 h-3.5" />}
+                    >
                       Browse Equipment
                     </Button>
                   </Link>
@@ -384,20 +473,28 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
               </Card>
             ) : isPendingRefund ? (
               /* Condition 2: Refund Request Pending Review */
-              <Card padding="md" className="bg-[#FFF7ED] border-2 border-[#FDBA74] rounded-xs space-y-4 font-label">
+              <Card
+                padding="md"
+                className="bg-[#FFF7ED] border-2 border-[#FDBA74] rounded-xs space-y-4 font-label"
+              >
                 <div className="flex items-start gap-3.5">
                   <div className="w-10 h-10 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
                     <Clock3 className="w-6 h-6 animate-pulse" />
                   </div>
                   <div className="space-y-1">
-                    <Badge variant="warning" className="bg-[#EA580C] text-white font-bold">
+                    <Badge
+                      variant="warning"
+                      className="bg-[#EA580C] text-white font-bold"
+                    >
                       REFUND REQUEST UNDER REVIEW
                     </Badge>
                     <h3 className="text-base font-bold text-[#111D16] font-headline">
                       Your Refund Request Is Being Audited
                     </h3>
                     <p className="text-xs text-[#9A3412] font-body leading-relaxed">
-                      You have already submitted a refund request for this order. Outpost administrators are currently inspecting your request against the return custody protocol.
+                      You have already submitted a refund request for this
+                      order. Outpost administrators are currently inspecting
+                      your request against the return custody protocol.
                     </p>
                   </div>
                 </div>
@@ -405,7 +502,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 {pendingRefundRow && (
                   <div className="p-3.5 bg-white border border-[#FDBA74] rounded-xs space-y-2 text-xs">
                     <div className="flex justify-between items-center text-[#111D16]">
-                      <span className="text-[#737C75]">Requested refund amount:</span>
+                      <span className="text-[#737C75]">
+                        Requested refund amount:
+                      </span>
                       <span className="font-bold text-base text-[#D97845] font-headline">
                         {vnd(pendingRefundRow.amount)}
                       </span>
@@ -413,7 +512,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                     <div className="flex justify-between items-center text-[#737C75] pt-1.5 border-t border-[#EBE6DC]">
                       <span>Submitted at:</span>
                       <span className="font-mono-spec text-[#111D16]">
-                        {new Date(pendingRefundRow.createdAt).toLocaleString('en-GB')}
+                        {new Date(pendingRefundRow.createdAt).toLocaleString(
+                          "en-GB",
+                        )}
                       </span>
                     </div>
                     {pendingRefundRow.refundReason && (
@@ -432,13 +533,19 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 <div className="p-3 bg-white/70 border border-[#FDBA74]/50 rounded-xs text-[11px] text-[#737C75] flex items-start gap-2">
                   <Info className="w-4 h-4 text-[#D97845] shrink-0 mt-0.5" />
                   <span>
-                    Active handovers and branch approvals are paused during review. Once confirmed, funds will be transferred directly to your bank account.
+                    Active handovers and branch approvals are paused during
+                    review. Once confirmed, funds will be transferred directly
+                    to your bank account.
                   </span>
                 </div>
 
                 <div className="pt-1">
                   <Link to="/orders">
-                    <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<ArrowLeft className="w-3.5 h-3.5" />}
+                    >
                       Back to My Orders
                     </Button>
                   </Link>
@@ -446,29 +553,39 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
               </Card>
             ) : isUnpaid ? (
               /* Condition 3: Unpaid Order */
-              <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-3 font-label text-center py-8">
+              <Card
+                padding="md"
+                className="bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-3 font-label text-center py-8"
+              >
                 <AlertTriangle className="w-10 h-10 text-[#D97845] mx-auto" />
                 <h3 className="text-base font-bold text-[#111D16] font-headline">
                   No Completed Payment to Refund
                 </h3>
                 <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
-                  This order was not paid or has zero paid amount recorded. No escrow refund is applicable.
+                  This order was not paid or has zero paid amount recorded. No
+                  escrow refund is applicable.
                 </p>
                 <div className="pt-2">
                   <Link to="/orders">
-                    <Button variant="secondary" size="sm">Return to My Orders</Button>
+                    <Button variant="secondary" size="sm">
+                      Return to My Orders
+                    </Button>
                   </Link>
                 </div>
               </Card>
             ) : (
               /* Condition 4: Eligible to Request Refund (Show Form) */
-              <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-4 font-label">
+              <Card
+                padding="md"
+                className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-4 font-label"
+              >
                 <div className="border-b border-[#D8D2C5] pb-2.5">
                   <h3 className="font-headline font-bold text-base text-[#111D16]">
                     Refund Justification & Details
                   </h3>
                   <p className="text-xs text-[#5C665F] font-body mt-0.5">
-                    State the reason for cancellation or return so our outpost team can audit and approve your request.
+                    State the reason for cancellation or return so our outpost
+                    team can audit and approve your request.
                   </p>
                 </div>
 
@@ -481,8 +598,12 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 >
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
-                      <label htmlFor="refund-reason" className="font-bold text-[#111D16] uppercase text-[10px]">
-                        Reason for Refund Request <span className="text-red-600">*</span>
+                      <label
+                        htmlFor="refund-reason"
+                        className="font-bold text-[#111D16] uppercase text-[10px]"
+                      >
+                        Reason for Refund Request{" "}
+                        <span className="text-red-600">*</span>
                       </label>
                       <span className="text-[10px] text-[#737C75] font-mono-spec">
                         {reason.length}/2000
@@ -508,7 +629,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                       TerraPeak Escrow Terms
                     </div>
                     <p>
-                      Refund requests are audited by depot armory staff. Order progress and active handovers are paused while this request is pending.
+                      Refund requests are audited by depot armory staff. Order
+                      progress and active handovers are paused while this
+                      request is pending.
                     </p>
                   </div>
 
@@ -526,7 +649,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                     }
                     icon={<RotateCcw className="w-4 h-4" />}
                   >
-                    {busy ? 'Submitting Request...' : 'Submit Refund Request'}
+                    {busy ? "Submitting Request..." : "Submit Refund Request"}
                   </Button>
                 </form>
               </Card>
@@ -535,19 +658,28 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
 
           {/* Right Column: Financial Breakdown Summary */}
           <div className="lg:col-span-5 sticky top-24 space-y-4">
-            <Card padding="md" className="bg-white border-2 border-[#152A20] space-y-4 shadow-sm font-label">
+            <Card
+              padding="md"
+              className="bg-white border-2 border-[#152A20] space-y-4 shadow-sm font-label"
+            >
               <div className="border-b border-[#D8D2C5] pb-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
                     ESCROW SETTLEMENT AUDIT
                   </span>
                   {isAlreadyRefunded && (
-                    <Badge variant="success" className="text-[9px] py-0 px-1.5 font-bold">
+                    <Badge
+                      variant="success"
+                      className="text-[9px] py-0 px-1.5 font-bold"
+                    >
                       SETTLED
                     </Badge>
                   )}
                   {isPendingRefund && (
-                    <Badge variant="warning" className="text-[9px] py-0 px-1.5 font-bold">
+                    <Badge
+                      variant="warning"
+                      className="text-[9px] py-0 px-1.5 font-bold"
+                    >
                       UNDER AUDIT
                     </Badge>
                   )}
@@ -594,7 +726,8 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                   <div className="pt-2 text-[11px] text-[#737C75] font-body flex items-start gap-1.5 border-t border-[#EBE6DC]">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
-                      Calculated directly from confirmed gateway transactions. Disbursement will be executed via manual banking transfer.
+                      Calculated directly from confirmed gateway transactions.
+                      Disbursement will be executed via manual banking transfer.
                     </span>
                   </div>
                 </div>
@@ -607,7 +740,10 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       {/* Guide Cards When No Order or Tour is Selected */}
       {!admin && !orderId && !participantId && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-3">
+          <Card
+            padding="md"
+            className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-3"
+          >
             <div className="w-10 h-10 rounded-xs bg-[#152A20] text-[#D97845] flex items-center justify-center">
               <Package className="w-5 h-5" />
             </div>
@@ -616,17 +752,25 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 Equipment Order Refund
               </h3>
               <p className="text-xs text-[#5C665F] font-body mt-1">
-                Select an order from your order log to request a return or cancellation refund.
+                Select an order from your order log to request a return or
+                cancellation refund.
               </p>
             </div>
             <Link to="/orders">
-              <Button variant="secondary" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ArrowRight className="w-3.5 h-3.5" />}
+              >
                 Browse My Orders
               </Button>
             </Link>
           </Card>
 
-          <Card padding="md" className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-3">
+          <Card
+            padding="md"
+            className="bg-[#F8F6F1] border border-[#D8D2C5] space-y-3"
+          >
             <div className="w-10 h-10 rounded-xs bg-[#152A20] text-emerald-400 flex items-center justify-center">
               <Ticket className="w-5 h-5" />
             </div>
@@ -635,11 +779,16 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 Tour Ticket Cancellation
               </h3>
               <p className="text-xs text-[#5C665F] font-body mt-1">
-                View your registered expedition tickets and initiate a cancellation request.
+                View your registered expedition tickets and initiate a
+                cancellation request.
               </p>
             </div>
             <Link to="/my-tours">
-              <Button variant="secondary" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<ArrowRight className="w-3.5 h-3.5" />}
+              >
                 Browse My Tours
               </Button>
             </Link>
@@ -654,7 +803,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
           onClose={() => {
             if (!inFlight.current) {
               setConfirmation(null);
-              setError('');
+              setError("");
             }
           }}
           title="Confirm Refund Disbursement"
@@ -667,13 +816,16 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 Have you transferred the refund to the customer?
               </h3>
               <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
-                Confirm only after successfully transferring money via online banking or electronic payment gateway.
+                Confirm only after successfully transferring money via online
+                banking or electronic payment gateway.
               </p>
               <div className="text-2xl font-bold font-headline text-[#D97845] pt-1">
                 {vnd(confirmation.amount)}
               </div>
               <span className="text-[11px] text-[#737C75] block font-mono-spec">
-                {confirmation.orderId ? `Order #${confirmation.orderId}` : `Tour Ticket #${confirmation.participantId}`}
+                {confirmation.orderId
+                  ? `Order #${confirmation.orderId}`
+                  : `Tour Ticket #${confirmation.participantId}`}
               </span>
             </div>
 
@@ -682,7 +834,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 Customer Cancellation Reason:
               </span>
               <p className="text-[#5C665F] font-body italic">
-                "{confirmation.refundReason || 'No specific reason recorded.'}"
+                "{confirmation.refundReason || "No specific reason recorded."}"
               </p>
             </div>
 
@@ -724,7 +876,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 disabled={busy}
                 onClick={() => {
                   setConfirmation(null);
-                  setError('');
+                  setError("");
                 }}
               >
                 Back
@@ -736,33 +888,88 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                 onClick={() => void submit(confirmation.transactionId)}
                 icon={<CheckCircle2 className="w-3.5 h-3.5" />}
               >
-                {busy ? 'Confirming...' : 'Confirm Money Returned'}
+                {busy ? "Confirming..." : "Confirm Money Returned"}
               </Button>
             </div>
           </div>
         </Modal>
       )}
 
-      {rejection && <Modal isOpen onClose={() => { if (!inFlight.current) setRejection(null); }} title="Reject Refund Request" maxWidth="md">
-        <div className="space-y-4 text-sm">
-          <div className="p-4 bg-[#F8F6F1] border border-[#D8D2C5] space-y-2">
-            <p className="font-bold">Refund #{rejection.transactionId} · {vnd(rejection.amount)}</p>
-            <p>{rejection.orderId ? `Order #${rejection.orderId}` : `Tour Ticket #${rejection.participantId}`}</p>
-            <p className="text-[#5C665F] break-words">Customer reason: {rejection.refundReason || 'No reason recorded.'}</p>
+      {rejection && (
+        <Modal
+          isOpen
+          onClose={() => {
+            if (!inFlight.current) setRejection(null);
+          }}
+          title="Reject Refund Request"
+          maxWidth="md"
+        >
+          <div className="space-y-4 text-sm">
+            <div className="p-4 bg-[#F8F6F1] border border-[#D8D2C5] space-y-2">
+              <p className="font-bold">
+                Refund #{rejection.transactionId} · {vnd(rejection.amount)}
+              </p>
+              <p>
+                {rejection.orderId
+                  ? `Order #${rejection.orderId}`
+                  : `Tour Ticket #${rejection.participantId}`}
+              </p>
+              <p className="text-[#5C665F] break-words">
+                Customer reason:{" "}
+                {rejection.refundReason || "No reason recorded."}
+              </p>
+            </div>
+            <p>
+              This closes the request without returning money. The customer will
+              see your reason.
+            </p>
+            <label
+              className="block font-bold"
+              htmlFor="refund-rejection-reason"
+            >
+              Rejection reason *
+            </label>
+            <textarea
+              id="refund-rejection-reason"
+              required
+              maxLength={2000}
+              rows={4}
+              disabled={busy}
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full border border-[#D8D2C5] bg-white rounded-xs p-3"
+              placeholder="Explain why this refund request is being rejected"
+            />
+            {rejectionError && (
+              <p role="alert" className="text-red-700">
+                {rejectionError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setRejection(null)}
+              >
+                Back
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy || !rejectionReason.trim()}
+                onClick={() => void rejectRefund()}
+              >
+                {busy ? "Rejecting..." : "Reject Request"}
+              </Button>
+            </div>
           </div>
-          <p>This closes the request without returning money. The customer will see your reason.</p>
-          <label className="block font-bold" htmlFor="refund-rejection-reason">Rejection reason *</label>
-          <textarea id="refund-rejection-reason" required maxLength={2000} rows={4} disabled={busy} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} className="w-full border border-[#D8D2C5] bg-white rounded-xs p-3" placeholder="Explain why this refund request is being rejected" />
-          {rejectionError && <p role="alert" className="text-red-700">{rejectionError}</p>}
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" disabled={busy} onClick={() => setRejection(null)}>Back</Button>
-            <Button variant="danger" disabled={busy || !rejectionReason.trim()} onClick={() => void rejectRefund()}>{busy ? 'Rejecting...' : 'Reject Request'}</Button>
-          </div>
-        </div>
-      </Modal>}
+        </Modal>
+      )}
 
       {/* Refund Tracking History Section */}
-      <Card padding="md" className="space-y-5 bg-[#F8F6F1] border border-[#D8D2C5]">
+      <Card
+        padding="md"
+        className="space-y-5 bg-[#F8F6F1] border border-[#D8D2C5]"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-4">
           <div>
             <span className="text-[10px] text-[#D97845] font-bold uppercase tracking-wider block">
@@ -770,10 +977,12 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
             </span>
             <h2 className="text-lg font-bold text-[#111D16] font-headline mt-0.5">
               {admin
-                ? refundStatus === 'PENDING'
-                  ? 'Pending Review Requests'
-                  : refundStatus === 'REJECTED' ? 'Rejected Refund Requests' : 'Completed Refund Disbursements'
-                : 'My Refund Requests & Resolution Records'}
+                ? refundStatus === "PENDING"
+                  ? "Pending Review Requests"
+                  : refundStatus === "REJECTED"
+                    ? "Rejected Refund Requests"
+                    : "Completed Refund Disbursements"
+                : "My Refund Requests & Resolution Records"}
             </h2>
           </div>
 
@@ -783,19 +992,55 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
               size="sm"
               disabled={busy || loading}
               onClick={() => {
-                setError('');
-                void load().catch((e) => setError(e instanceof Error ? e.message : 'Unable to refresh.'));
+                setError("");
+                void load().catch((e) =>
+                  setError(
+                    e instanceof Error ? e.message : "Unable to refresh.",
+                  ),
+                );
               }}
-              icon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#D97845]' : ''}`} />}
+              icon={
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#D97845]" : ""}`}
+                />
+              }
             >
               Refresh
             </Button>
           </div>
         </div>
 
-        {admin && <div className="flex flex-wrap items-center gap-2 border-b border-[#D8D2C5]/60 pb-3" role="group" aria-label="Refund status">
-          {([{ status: 'PENDING', label: 'Pending Review' }, { status: 'SUCCEEDED', label: 'Completed Refunds' }, { status: 'REJECTED', label: 'Rejected' }] as const).map(item => <button key={item.status} type="button" disabled={busy} aria-pressed={refundStatus === item.status} onClick={() => { setRefundStatus(item.status); setPage(0); setConfirmation(null); setRejection(null); }} className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider transition cursor-pointer ${refundStatus === item.status ? 'bg-[#152A20] text-white shadow-xs' : 'bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]'}`}>{item.label}</button>)}
-        </div>}
+        {admin && (
+          <div
+            className="flex flex-wrap items-center gap-2 border-b border-[#D8D2C5]/60 pb-3"
+            role="group"
+            aria-label="Refund status"
+          >
+            {(
+              [
+                { status: "PENDING", label: "Pending Review" },
+                { status: "SUCCEEDED", label: "Completed Refunds" },
+                { status: "REJECTED", label: "Rejected" },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.status}
+                type="button"
+                disabled={busy}
+                aria-pressed={refundStatus === item.status}
+                onClick={() => {
+                  setRefundStatus(item.status);
+                  setPage(0);
+                  setConfirmation(null);
+                  setRejection(null);
+                }}
+                className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider transition cursor-pointer ${refundStatus === item.status ? "bg-[#152A20] text-white shadow-xs" : "bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]"}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Requests List */}
         {loading ? (
@@ -809,17 +1054,19 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
             <div className="space-y-1">
               <h3 className="text-base font-bold text-[#111D16] font-headline uppercase">
                 {error
-                  ? 'Unable to load refund requests'
+                  ? "Unable to load refund requests"
                   : admin
-                  ? refundStatus === 'PENDING'
-                    ? 'No pending refund requests'
-                    : refundStatus === 'REJECTED' ? 'No rejected refund requests' : 'No completed refunds yet'
-                  : 'No refund requests found'}
+                    ? refundStatus === "PENDING"
+                      ? "No pending refund requests"
+                      : refundStatus === "REJECTED"
+                        ? "No rejected refund requests"
+                        : "No completed refunds yet"
+                    : "No refund requests found"}
               </h3>
               <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
                 {admin
-                  ? 'Customer requests submitted online will appear in this administrative ledger.'
-                  : 'Submitted cancellation and refund requests will appear here with live tracking status.'}
+                  ? "Customer requests submitted online will appear in this administrative ledger."
+                  : "Submitted cancellation and refund requests will appear here with live tracking status."}
               </p>
             </div>
           </div>
@@ -843,11 +1090,11 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                         to={
                           row.orderId
                             ? admin
-                              ? '/admin/orders'
-                              : '/orders'
+                              ? "/admin/orders"
+                              : "/orders"
                             : admin
-                            ? '/admin/schedule-payment-reviews'
-                            : `/my-tours/${row.participantId}`
+                              ? "/admin/schedule-payment-reviews"
+                              : `/my-tours/${row.participantId}`
                         }
                         className="font-bold text-sm text-[#111D16] font-headline hover:text-[#D97845] transition flex items-center gap-1"
                       >
@@ -863,17 +1110,29 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
                     <div className="text-right">
-                      <span className="text-[10px] text-[#737C75] uppercase block">Refund Value</span>
+                      <span className="text-[10px] text-[#737C75] uppercase block">
+                        Refund Value
+                      </span>
                       <span className="text-base font-bold text-[#D97845] font-headline">
                         {vnd(row.amount)}
                       </span>
                     </div>
 
                     <Badge
-                      variant={row.status === 'REJECTED' ? 'danger' : row.status === 'SUCCEEDED' ? 'success' : 'warning'}
+                      variant={
+                        row.status === "REJECTED"
+                          ? "danger"
+                          : row.status === "SUCCEEDED"
+                            ? "success"
+                            : "warning"
+                      }
                       className="py-1 px-2.5 font-bold"
                     >
-                      {row.status === 'REJECTED' ? 'Rejected' : row.status === 'SUCCEEDED' ? 'Refunded' : 'Pending Review'}
+                      {row.status === "REJECTED"
+                        ? "Rejected"
+                        : row.status === "SUCCEEDED"
+                          ? "Refunded"
+                          : "Pending Review"}
                     </Badge>
                   </div>
                 </div>
@@ -885,7 +1144,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                       Reason for Request:
                     </div>
                     <p className="text-xs text-[#424844] font-body italic">
-                      "{row.refundReason || 'No detailed reason was recorded.'}"
+                      "{row.refundReason || "No detailed reason was recorded."}"
                     </p>
                   </div>
 
@@ -893,43 +1152,73 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                     <div className="flex items-center gap-1 sm:justify-end">
                       <Clock3 className="w-3.5 h-3.5" />
                       <span>
-                        Requested: {new Date(row.createdAt).toLocaleString('en-GB')}
+                        Requested:{" "}
+                        {new Date(row.createdAt).toLocaleString("en-GB")}
                       </span>
                     </div>
 
-                    {row.status === 'SUCCEEDED' && (
+                    {row.status === "SUCCEEDED" && (
                       <div className="pt-1 text-emerald-700 font-medium">
                         {row.refundTransferReference && (
-                          <div className="font-mono-spec">Ref: {row.refundTransferReference}</div>
+                          <div className="font-mono-spec">
+                            Ref: {row.refundTransferReference}
+                          </div>
                         )}
                         {row.succeededAt && (
-                          <div>Completed: {new Date(row.succeededAt).toLocaleString('en-GB')}</div>
+                          <div>
+                            Completed:{" "}
+                            {new Date(row.succeededAt).toLocaleString("en-GB")}
+                          </div>
                         )}
                       </div>
                     )}
 
-                    {row.status === 'REJECTED' && <div className="p-3 bg-red-50 border border-red-100 text-red-800 text-left space-y-1 break-words">
-                      <p className="font-bold">Rejection reason</p><p className="whitespace-pre-wrap">{row.refundRejectionReason || 'No reason recorded.'}</p>
-                      {row.refundRejectedAt && <p>Rejected: {new Date(row.refundRejectedAt).toLocaleString('en-GB')}</p>}
-                    </div>}
+                    {row.status === "REJECTED" && (
+                      <div className="p-3 bg-red-50 border border-red-100 text-red-800 text-left space-y-1 break-words">
+                        <p className="font-bold">Rejection reason</p>
+                        <p className="whitespace-pre-wrap">
+                          {row.refundRejectionReason || "No reason recorded."}
+                        </p>
+                        {row.refundRejectedAt && (
+                          <p>
+                            Rejected:{" "}
+                            {new Date(row.refundRejectedAt).toLocaleString(
+                              "en-GB",
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                    {admin && row.status === 'PENDING' && (
+                    {admin && row.status === "PENDING" && (
                       <div className="pt-2 flex flex-wrap gap-2 sm:justify-end">
                         <Button
                           variant="accent"
                           size="sm"
                           disabled={busy}
                           onClick={() => {
-                            setError('');
-                            setTransferReference('');
-                            setConfirmationNote('');
+                            setError("");
+                            setTransferReference("");
+                            setConfirmationNote("");
                             setConfirmation(row);
                           }}
                           icon={<CheckCircle2 className="w-3.5 h-3.5" />}
                         >
                           Confirm Money Returned
                         </Button>
-                        <Button variant="danger" size="sm" disabled={busy} onClick={() => { setRejection(row); setRejectionReason(''); setRejectionError(''); setError(''); }}>Reject Request</Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => {
+                            setRejection(row);
+                            setRejectionReason("");
+                            setRejectionError("");
+                            setError("");
+                          }}
+                        >
+                          Reject Request
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -942,9 +1231,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
         {/* Pagination Controls */}
         {!loading && (page > 0 || hasNext) && (
           <div className="flex items-center justify-between pt-4 border-t border-[#D8D2C5] text-xs">
-            <span className="font-bold text-[#5C665F]">
-              Page {page + 1}
-            </span>
+            <span className="font-bold text-[#5C665F]">Page {page + 1}</span>
 
             <div className="flex items-center gap-2">
               <Button

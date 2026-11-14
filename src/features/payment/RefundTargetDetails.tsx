@@ -1,25 +1,46 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, Package, Ticket, ArrowRight, ExternalLink, Calendar } from 'lucide-react';
-import { catalogApi, vnd, type Product } from '../equipment/catalogApi';
-import type { Order } from '../orders/orderApi';
-import { participantApi, scheduleApi } from '../schedules/api';
-import { eventGuideApi, type EventResponse } from '../../services/eventGuideApi';
-import type { Participant, Schedule } from '../schedules/types';
-import { Badge } from '../../components/ui';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  CalendarDays,
+  MapPin,
+  Package,
+  Ticket,
+  ArrowRight,
+  ExternalLink,
+  Calendar,
+} from "lucide-react";
+import { catalogApi, vnd, type Product } from "../equipment/catalogApi";
+import type { Order } from "../orders/orderApi";
+import { participantApi, scheduleApi } from "../schedules/api";
+import {
+  eventGuideApi,
+  type EventResponse,
+} from "../../services/eventGuideApi";
+import type { Participant, Schedule } from "../schedules/types";
+import { Badge } from "../../components/ui";
 
-export function RefundTargetDetails({ orderId, participantId }: { orderId: number | null; participantId: number | null }) {
+export function RefundTargetDetails({
+  orderId,
+  participantId,
+}: {
+  orderId: number | null;
+  participantId: number | null;
+}) {
   const [order, setOrder] = useState<Order | null>(null);
-  const [tour, setTour] = useState<{ ticket: Participant; schedule: Schedule; event: EventResponse } | null>(null);
+  const [tour, setTour] = useState<{
+    ticket: Participant;
+    schedule: Schedule;
+    event: EventResponse;
+  } | null>(null);
   const [products, setProducts] = useState<Record<number, Product>>({});
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     setOrder(null);
     setTour(null);
-    setError('');
+    setError("");
     setProducts({});
     setLoading(true);
 
@@ -29,13 +50,19 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
         if (!active) return;
         setOrder(data);
         const results = await Promise.allSettled(
-          [...new Set(data.items.map(item => item.productId))].map(id => catalogApi<Product>(`/products/${id}`))
+          [...new Set(data.items.map((item) => item.productId))].map((id) =>
+            catalogApi<Product>(`/products/${id}`),
+          ),
         );
         if (active) {
           setProducts(
             Object.fromEntries(
-              results.flatMap(result => result.status === 'fulfilled' ? [[result.value.id, result.value]] : [])
-            )
+              results.flatMap((result) =>
+                result.status === "fulfilled"
+                  ? [[result.value.id, result.value]]
+                  : [],
+              ),
+            ),
           );
         }
       } else if (participantId) {
@@ -47,8 +74,9 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
     }
 
     void load()
-      .catch(e => {
-        if (active) setError(e instanceof Error ? e.message : 'Unable to load details.');
+      .catch((e) => {
+        if (active)
+          setError(e instanceof Error ? e.message : "Unable to load details.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -60,13 +88,13 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
   }, [orderId, participantId]);
 
   const date = (value: string) =>
-    new Date(value).toLocaleString('en-GB', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    new Date(value).toLocaleString("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
   if (error) {
@@ -102,7 +130,9 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
               <h3 className="text-base font-bold text-[#111D16] font-headline">
                 Items Selected for Refund
               </h3>
-              <p className="text-[11px] text-[#5C665F]">Ordered on: {date(order.orderDate)}</p>
+              <p className="text-[11px] text-[#5C665F]">
+                Ordered on: {date(order.orderDate)}
+              </p>
             </div>
           </div>
 
@@ -116,8 +146,8 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
         </div>
 
         <div className="space-y-2.5">
-          {order.items.map(item => {
-            const isRental = item.itemType === 'RENTAL';
+          {order.items.map((item) => {
+            const isRental = item.itemType === "RENTAL";
             const prod = products[item.productId];
 
             return (
@@ -134,28 +164,39 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
                       <span className="font-bold text-sm text-[#111D16] font-headline">
                         {prod?.name || `Equipment #${item.productId}`}
                       </span>
-                      <Badge variant={isRental ? 'warning' : 'neutral'} size="sm" className="text-[9px]">
-                        {isRental ? 'RENTAL' : 'PURCHASE'}
+                      <Badge
+                        variant={isRental ? "warning" : "neutral"}
+                        size="sm"
+                        className="text-[9px]"
+                      >
+                        {isRental ? "RENTAL" : "PURCHASE"}
                       </Badge>
                     </div>
 
                     <div className="text-[11px] text-[#5C665F] mt-0.5 flex flex-wrap items-center gap-2">
-                      <span>Unit price: {vnd(item.unitPrice)}{isRental ? ' / day' : ''}</span>
-                      {isRental && item.rentalStartDate && item.rentalEndDate && (
-                        <>
-                          <span>•</span>
-                          <span className="inline-flex items-center gap-1 text-[#D97845] font-bold">
-                            <Calendar className="w-3 h-3" />
-                            {item.rentalStartDate} → {item.rentalEndDate}
-                          </span>
-                        </>
-                      )}
+                      <span>
+                        Unit price: {vnd(item.unitPrice)}
+                        {isRental ? " / day" : ""}
+                      </span>
+                      {isRental &&
+                        item.rentalStartDate &&
+                        item.rentalEndDate && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 text-[#D97845] font-bold">
+                              <Calendar className="w-3 h-3" />
+                              {item.rentalStartDate} → {item.rentalEndDate}
+                            </span>
+                          </>
+                        )}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] text-[#737C75] uppercase block">Subtotal</span>
+                  <span className="text-[10px] text-[#737C75] uppercase block">
+                    Subtotal
+                  </span>
                   <span className="font-bold text-sm text-[#152A20] font-headline">
                     {vnd(item.quantity * item.unitPrice)}
                   </span>
@@ -183,7 +224,9 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
               <h3 className="text-base font-bold text-[#111D16] font-headline">
                 {tour.event.eventName}
               </h3>
-              <p className="text-[11px] text-[#5C665F]">Departure schedule #{tour.schedule.id} · 01 Registered Guest</p>
+              <p className="text-[11px] text-[#5C665F]">
+                Departure schedule #{tour.schedule.id} · 01 Registered Guest
+              </p>
             </div>
           </div>
 
@@ -208,7 +251,9 @@ export function RefundTargetDetails({ orderId, participantId }: { orderId: numbe
             </div>
           )}
           <div className="pt-2 border-t border-[#EBE6DC] flex justify-between items-center">
-            <span className="text-[#737C75] font-bold uppercase">Ticket Value:</span>
+            <span className="text-[#737C75] font-bold uppercase">
+              Ticket Value:
+            </span>
             <span className="text-base font-bold text-[#D97845] font-headline">
               {vnd(tour.ticket.registeredPrice)}
             </span>
