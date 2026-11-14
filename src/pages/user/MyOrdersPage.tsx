@@ -838,13 +838,30 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                               <span>Unit price: {vnd(item.unitPrice)}{isRental && " / day"}</span>
                             </div>
 
-                            {/* Rental Period Badge */}
-                            {isRental && item.rentalStartDate && item.rentalEndDate && (
-                              <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
-                                <Calendar className="w-3 h-3" />
-                                <span>Rental period: {item.rentalStartDate} → {item.rentalEndDate}</span>
-                              </div>
-                            )}
+                            {/* Rental Period & Return Cutoff Badge */}
+                            {isRental && item.rentalStartDate && item.rentalEndDate && (() => {
+                              const cutoff = order.returnCutoffTime || branchMap.get(order.branchId)?.returnCutoffTime || '18:00';
+                              const deadline = new Date(`${item.rentalEndDate}T${cutoff}:00`).getTime();
+                              const isOverdue = order.status === 'IN_PROGRESS' && !isNaN(deadline) && Date.now() > deadline;
+
+                              return (
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-[10px] text-[#D97845] font-bold">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>{item.rentalStartDate} → {item.rentalEndDate}</span>
+                                  </div>
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#FEF3C7] border border-[#FCD34D] rounded-xs text-[10px] text-[#92400E] font-medium">
+                                    <Clock className="w-3 h-3 text-[#D97706]" />
+                                    <span>Return before {cutoff} on {item.rentalEndDate}</span>
+                                  </div>
+                                  {isOverdue && (
+                                    <span className="px-1.5 py-0.5 bg-red-100 text-red-700 border border-red-300 rounded-xs text-[9px] font-bold uppercase animate-pulse">
+                                      Overdue
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -1207,6 +1224,27 @@ export function MyOrdersPage({ operations = false }: { operations?: boolean }) {
                 </Link>
               </div>
             </div>
+
+            {/* Daily Return Cut-off Policy Notice */}
+            {selectedOrder.items.some((i) => i.itemType === 'RENTAL') && (() => {
+              const cutoff = selectedOrder.returnCutoffTime || branchMap.get(selectedOrder.branchId)?.returnCutoffTime || '18:00';
+              return (
+                <div className="p-3.5 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A3412] space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-[#C2410C]">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>Rental Policy & Daily Return Cut-off</span>
+                  </div>
+                  <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-[#7C2D12]">
+                    <li>
+                      <strong>Daily Billing Rule:</strong> Rentals are charged on a calendar-day basis (rental duration of 1 hour or same-day rental counts as 1 full billing day).
+                    </li>
+                    <li>
+                      <strong>Daily Return Deadline:</strong> Please return rented equipment to the outpost branch before <strong>{cutoff}</strong> on your scheduled return date for inspection and deposit release.
+                    </li>
+                  </ul>
+                </div>
+              );
+            })()}
 
             {/* Pickup & Return Checklist */}
             <div className="p-3.5 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs space-y-2">

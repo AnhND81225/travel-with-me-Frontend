@@ -17,6 +17,7 @@ import {
   PlusCircle,
   CreditCard,
   Compass,
+  Clock,
 } from "lucide-react";
 
 export function OrderCheckout({
@@ -304,45 +305,69 @@ export function OrderCheckout({
 
         {/* Rental Dates (if mode === RENTAL) */}
         {selectedMode === "RENTAL" && rental !== null && (
-          <div className="grid grid-cols-2 gap-2.5 p-3 bg-white border border-[#D8D2C5] rounded-xs">
-            <div className="space-y-1">
-              <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
-                <span>Pickup date</span>
-                {deliveryType === "TOUR_DELIVERY" && scheduleId && (
-                  <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
-                )}
-              </label>
-              <input
-                name="start"
-                min={minDate}
-                value={startDate}
-                onInput={(e) => {
-                  const next = e.currentTarget.value;
-                  setStartDate(next);
-                  if (endDate < next) setEndDate(next);
-                }}
-                type="date"
-                required
-                className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2.5 p-3 bg-white border border-[#D8D2C5] rounded-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
+                  <span>Pickup date</span>
+                  {deliveryType === "TOUR_DELIVERY" && scheduleId && (
+                    <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
+                  )}
+                </label>
+                <input
+                  name="start"
+                  min={minDate}
+                  value={startDate}
+                  onInput={(e) => {
+                    const next = e.currentTarget.value;
+                    setStartDate(next);
+                    if (endDate < next) setEndDate(next);
+                  }}
+                  type="date"
+                  required
+                  className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
+                  <span>Return date</span>
+                  {deliveryType === "TOUR_DELIVERY" && scheduleId && (
+                    <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
+                  )}
+                </label>
+                <input
+                  name="end"
+                  min={startDate || minDate}
+                  value={endDate}
+                  onInput={(e) => setEndDate(e.currentTarget.value)}
+                  type="date"
+                  required
+                  className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="font-bold text-[#D97845] uppercase text-[10px] block flex items-center justify-between">
-                <span>Return date</span>
-                {deliveryType === "TOUR_DELIVERY" && scheduleId && (
-                  <span className="text-[9px] text-[#059669] lowercase font-normal">(synced with tour)</span>
-                )}
-              </label>
-              <input
-                name="end"
-                min={startDate || minDate}
-                value={endDate}
-                onInput={(e) => setEndDate(e.currentTarget.value)}
-                type="date"
-                required
-                className="w-full py-1.5 px-2 bg-[#F8F6F1] border border-[#D8D2C5] rounded-xs text-[11px] text-[#111D16] focus:outline-none focus:border-[#152A20]"
-              />
-            </div>
+
+            {/* Daily rental notice & latest return cut-off time */}
+            {(() => {
+              const selectedBranch = branches.find((b) => String(b.id) === String(branchId));
+              const cutoff = selectedBranch?.returnCutoffTime || "18:00";
+              return (
+                <div className="p-3 bg-[#FFF8F3] border border-[#F1BA9B] rounded-xs text-xs text-[#9A3412] space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-[#C2410C]">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    <span>Rental Policy & Daily Return Deadline</span>
+                  </div>
+                  <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-[#7C2D12]">
+                    <li>
+                      <strong>Daily Billing Rule:</strong> Rentals are billed on a full calendar-day basis (rental duration of 1 hour or same-day rental counts as 1 full billing day).
+                    </li>
+                    <li>
+                      <strong>Daily Return Cut-off:</strong> Equipment must be returned to the outpost branch before <strong>{cutoff}</strong> on your scheduled return date (<strong>{endDate}</strong>) for inspection and deposit settlement.
+                    </li>
+                  </ul>
+                </div>
+              );
+            })()}
           </div>
         )}
 

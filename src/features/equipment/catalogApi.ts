@@ -20,6 +20,7 @@ export type Branch = {
   status: string;
   phone?: string | null;
   address?: string | null;
+  returnCutoffTime?: string | null;
 };
 export type Stock = {
   id: number;
