@@ -7,7 +7,7 @@ export const labels: Record<string, string> = {
 export const auditLabels: Record<string, string> = {
   REGISTER: 'Reserve Spot', RE_REGISTER: 'Re-register', CANCEL: 'Cancel Registration',
   EXPIRE_HOLD: 'Hold Expired', MANUAL_CONFIRM: 'Confirm Receipt', PAYMENT_CONFIRM: 'Confirm Payment',
-  CHECK_IN: 'Check In', NO_SHOW: 'Mark as No-show', FINISH_TOUR: 'Complete Trip',
+  CHECK_OUT: 'Check Out', CHECK_IN: 'Check In', NO_SHOW: 'Mark as No-show', FINISH_TOUR: 'Complete Trip',
 };
 export const dateTime = (value?: string | null) => value ? new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh',
@@ -24,6 +24,9 @@ export function attendance(p: Participant, s: Schedule, now = Date.now()) {
   const eligible = ['CLOSED', 'IN_PROGRESS'].includes(s.status) && now < Date.parse(s.endDatetime) && p.participantStatus === 'CONFIRMED' && p.checkInStatus === 'NOT_CHECKED_IN';
   return { checkIn: eligible && now >= start - 2 * 3600000 && now <= start + 30 * 60000, noShow: eligible && now > start + 30 * 60000 };
 }
+export const canCheckOut = (p: Participant, s: Schedule, now = Date.now()) =>
+  !p.checkedOutAt && p.checkInStatus === 'CHECKED_IN' && ['CONFIRMED', 'COMPLETED'].includes(p.participantStatus)
+  && ['IN_PROGRESS', 'COMPLETED'].includes(s.status) && now >= Date.parse(s.endDatetime);
 export function transitions(s: Schedule, now = Date.now()): ScheduleStatus[] {
   if (s.status === 'CANCELLED' || s.status === 'COMPLETED') return [];
   const result: ScheduleStatus[] = [];

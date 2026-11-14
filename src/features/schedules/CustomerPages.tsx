@@ -605,6 +605,7 @@ function MyTickets() {
                     <div className="flex flex-wrap items-center gap-2">
                       {renderParticipantStatusBadge(ticket.participantStatus)}
                       {renderCheckInBadge(ticket.checkInStatus)}
+                      {ticket.checkedOutAt && <span className="text-xs font-bold text-[#204f37]">Checked out · {dateTime(ticket.checkedOutAt)}</span>}
                     </div>
                   </div>
 
@@ -1063,6 +1064,7 @@ function TicketContent({
           <div className="flex flex-wrap items-center gap-2">
             {renderParticipantStatusBadge(p.participantStatus)}
             {renderCheckInBadge(p.checkInStatus)}
+            {p.checkedOutAt && <span className="text-xs font-bold text-[#204f37]">Checked out · {dateTime(p.checkedOutAt)}</span>}
           </div>
         </div>
 

@@ -45,6 +45,7 @@ const ticketSteps: Record<string, [string, string]> = {
   MANUAL_CONFIRM: ['Payment confirmed', 'A staff member has verified and confirmed the payment.'],
   CANCEL: ['Reservation cancelled', 'This ticket has been cancelled. If you have paid, contact the branch for assistance.'],
   EXPIRE_HOLD: ['Reservation expired', 'The spot was released because payment was not completed before the deadline.'],
+  CHECK_OUT: ['Checked out', 'Your checkout at the end of the trip has been confirmed.'],
   CHECK_IN: ['Checked in', 'Attendance has been recorded at the departure point.'],
   NO_SHOW: ['Did not attend', 'No check-in was recorded during the check-in window.'],
   FINISH_TOUR: ['Trip completed', 'The trip has ended. Thank you for joining us!'],

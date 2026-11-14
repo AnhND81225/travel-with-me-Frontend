@@ -34,6 +34,7 @@ export const participantApi = {
   cancel: (id: number, reason: string) => write<Participant>(`/participants/${id}/cancellations`, 'POST', { reason }),
   confirm: (id: number, registrationReference: string, paymentReference: string) => write<Participant>(`/participants/${id}/manual-payment-confirmations`, 'POST', { registrationReference, paymentReference }),
   checkIn: (id: number) => write<Participant>(`/participants/${id}/attendance`, 'PATCH', { status: 'CHECKED_IN' }),
+  checkOut: (id: number) => write<Participant>(`/participants/${id}/checkouts`, 'POST'),
   noShow: (id: number) => write<Participant>(`/participants/${id}/attendance`, 'PATCH', { status: 'NO_SHOW' }),
   histories: (id: number, page: number) => catalogApi<Audit[]>(`/participants/${id}/history${query({ page, size: PAGE_SIZE })}`),
   reviews: (branchId: number | undefined, page: number) => catalogApi<PaymentReview[]>(`/schedule-payment-reviews${query({ branchId, page, size: PAGE_SIZE })}`),

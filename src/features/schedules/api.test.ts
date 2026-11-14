@@ -113,3 +113,10 @@ test('rescheduling creates a resource operation with the original request contra
   assert.equal(calls[0].init.method, 'POST');
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), body);
 });
+
+test('checkout sends no client supplied time or actor', async () => {
+  await participantApi.checkOut(4);
+  assert.equal(calls[0].path, '/api/participants/4/checkouts');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.equal(calls[0].init.body, undefined);
+});
