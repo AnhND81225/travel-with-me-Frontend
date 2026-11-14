@@ -39,6 +39,7 @@ export type Account = {
   address?: string;
   role: string;
   status: string;
+  requiresPasswordChange?: boolean;
 };
 const key = "treektour.catalog.token";
 export function saveToken(value: string | null) {
