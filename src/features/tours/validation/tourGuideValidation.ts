@@ -1,5 +1,5 @@
-import { englishApiMessage } from './englishApiMessage';
-import { EventGuideApiError, EventInput, EventResponse, GuideRegistrationInput, GuideUpdateInput } from "../services/eventGuideApi";
+import { englishApiMessage } from '../../../utils/englishApiMessage';
+import { EventGuideApiError, EventInput, EventResponse, GuideRegistrationInput, GuideUpdateInput } from "../api/eventGuideApi";
 
 export type CatalogErrors = Record<string, string>;
 const INTEGER_MAX = 2147483647;

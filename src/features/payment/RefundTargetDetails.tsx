@@ -15,7 +15,7 @@ import { participantApi, scheduleApi } from "../schedules/api";
 import {
   eventGuideApi,
   type EventResponse,
-} from "../../services/eventGuideApi";
+} from "../tours/api/eventGuideApi";
 import type { Participant, Schedule } from "../schedules/types";
 import { Badge } from "../../components/ui";
 

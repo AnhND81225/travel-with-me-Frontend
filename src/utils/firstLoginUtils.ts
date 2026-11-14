@@ -25,7 +25,13 @@ export function markAccountRequiresPasswordChange(email: string): void {
   }
 }
 
-export function doesAccountRequirePasswordChange(email?: string): boolean {
+export function doesAccountRequirePasswordChange(
+  email?: string,
+  account?: { requiresPasswordChange?: boolean }
+): boolean {
+  if (account && typeof account.requiresPasswordChange === 'boolean') {
+    return account.requiresPasswordChange;
+  }
   if (!email) return false;
   const normalized = email.toLowerCase().trim();
   const current = getPendingPasswordChangeEmails();

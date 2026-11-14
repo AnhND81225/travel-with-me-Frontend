@@ -20,7 +20,7 @@ import { allProducts, catalogApi, type Product, type Branch } from "../../featur
 import {
   storefrontAssets as images,
 } from "../../data/storefront";
-import { eventGuideApi, type EventResponse } from "../../services/eventGuideApi";
+import { eventGuideApi, type EventResponse } from "../../features/tours/api/eventGuideApi";
 import { PAGE_SIZE, scheduleApi } from "../../features/schedules/api";
 import type { Schedule } from "../../features/schedules/types";
 

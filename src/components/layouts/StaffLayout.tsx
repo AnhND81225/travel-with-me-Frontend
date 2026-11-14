@@ -51,7 +51,7 @@ export const StaffLayout: React.FC = () => {
     setStationDropdownOpen(false);
   }
   const branchReady = !!account && branchState.accountId === account.id && !branchState.loading && !branchState.error;
-  const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email) : false;
+  const requiresPasswordChange = account?.email ? doesAccountRequirePasswordChange(account.email, account) : false;
 
   const staffNav = [
     { path: '/staff', label: 'Staff Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },

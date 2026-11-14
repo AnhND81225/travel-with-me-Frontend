@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Compass, Filter, LogOut, MapPin, Mountain, Plus, RefreshCw, UserRound, Users } from 'lucide-react';
-import { eventGuideApi, type EventSummary, type PublicGuide } from '../../services/eventGuideApi';
+import { eventGuideApi, type EventSummary, type PublicGuide } from '../tours/api/eventGuideApi';
 import type { Account, Branch } from '../equipment/catalogApi';
 import { useAuth } from '../../hooks/useAuth';
 import { PAGE_SIZE, participantApi, scheduleApi } from './api';

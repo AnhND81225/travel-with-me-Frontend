@@ -118,3 +118,10 @@ Fetched and fast-forwarded `feature/tour-image-layout` from `1f509d0` to `origin
 - Dialog panels fit within `100dvh` with vertical scrolling. Creation fields can shrink, the header/footer wrap on narrow screens, and background scrolling is restored when dialogs close. Endpoints, payloads and validation rules are unchanged.
 - Browser checks with intercepted read-only API fixtures: creation/edit/image-library dialogs fit at 1440×900, 1024×768, 800×900, 390×844 and 1280×600. Creation has no horizontal panel overflow; expanded details scroll to the action buttons; closing restores body scrolling. Mobile screenshot inspected. No requests were sent to the shared backend.
 - TypeScript, production build and 13 tour/guide tests passed. Production build retains the existing large-chunk warning.
+
+
+## Tour/guide feature organization — 2026-11-14
+
+Moved the active API, three pages, tour form/image/content components, validation, stylesheet and co-located tests into `src/features/tours/`. Updated route imports and cross-feature imports mechanically; shared `AdminStaffPage` remains in place. `test:tour-guide` uses the new paths. No endpoint, payload, validation, permission, layout or business-rule changes.
+
+Validation: TypeScript and production build PASS; all 59 frontend tests PASS (0 skipped), including 13 tour/guide tests. Creation/edit/image-library dialogs passed the existing mocked-browser checks at five viewport sizes after the move. Build retains the existing large-chunk warning. No backend/database writes were used.

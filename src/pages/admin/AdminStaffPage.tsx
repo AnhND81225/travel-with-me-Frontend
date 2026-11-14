@@ -21,10 +21,10 @@ import {
 } from 'lucide-react';
 import { catalogApi, Branch, Account } from '../../features/equipment/catalogApi';
 import { markAccountRequiresPasswordChange } from '../../utils/firstLoginUtils';
-import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../services/eventGuideApi';
+import { eventGuideApi, type AdminGuide, type GuideRegistrationResponse } from '../../features/tours/api/eventGuideApi';
 
-import { CatalogForm, CatalogField } from '../../components/tours/CatalogForm';
-import { catalogErrorMessage, inputNumber, validateCatalogImage, validateGuide, validateGuideAccountUpdate } from '../../utils/tourGuideValidation';
+import { CatalogForm, CatalogField } from '../../features/tours/components/CatalogForm';
+import { catalogErrorMessage, inputNumber, validateCatalogImage, validateGuide, validateGuideAccountUpdate } from '../../features/tours/validation/tourGuideValidation';
 
 export interface PersonnelRow {
   id: number; // staff record id if STAFF, or user.id if GUIDE
@@ -526,11 +526,16 @@ export const AdminStaffPage: React.FC = () => {
             <div className="space-y-1">
               <p className="font-bold">Tour Guide account created: {guideCredentials.guide.displayName}</p>
               <p>Email: {guideCredentials.email}</p>
-              <p>Temporary Password: <code className="select-all font-bold">{guideCredentials.temporaryPassword}</code></p>
-              <p>{guideCredentials.emailSent ? 'Login credentials have been sent via email.' : 'Email could not be sent; please share these credentials via a secure channel.'}</p>
-              <p className="text-[11px]">The password is only shown during this session. The guide must change their password upon first login.</p>
+              <p className="font-medium text-emerald-900">
+                {guideCredentials.emailSent
+                  ? 'Login credentials and temporary password have been sent directly to the guide\'s email.'
+                  : 'Account created successfully. Please check your email configuration if delivery failed.'}
+              </p>
+              <p className="text-[11px] text-emerald-800">
+                For security reasons, the temporary password is not displayed here. The tour guide must check their email to retrieve it and change their password upon first login.
+              </p>
             </div>
-            <button type="button" onClick={() => setGuideCredentials(null)} className="font-bold underline shrink-0">Close</button>
+            <button type="button" onClick={() => setGuideCredentials(null)} className="font-bold underline shrink-0 cursor-pointer">Close</button>
           </div>
         </Card>
       )}

@@ -1,4 +1,4 @@
-import { englishApiMessage } from '../utils/englishApiMessage';
+import { englishApiMessage } from '../../../utils/englishApiMessage';
 export type EventType = "TREKKING" | "CAMPING";
 export type DifficultyLevel = "EASY" | "MODERATE" | "HARD";
 export type EventStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";

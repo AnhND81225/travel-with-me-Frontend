@@ -18,7 +18,7 @@ import {
   type Page,
   type Product,
 } from "../../features/equipment/catalogApi";
-import { eventGuideApi, type EventSummary } from "../../services/eventGuideApi";
+import { eventGuideApi, type EventSummary } from "../../features/tours/api/eventGuideApi";
 import {
   reportApi,
   reportDates,

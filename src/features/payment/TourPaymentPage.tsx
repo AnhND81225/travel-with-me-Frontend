@@ -22,7 +22,7 @@ import type { Participant, Schedule } from "../schedules/types";
 import {
   eventGuideApi,
   type EventResponse,
-} from "../../services/eventGuideApi";
+} from "../tours/api/eventGuideApi";
 import { payments, type Payment } from "./paymentApi";
 import { vnd, type Branch } from "../equipment/catalogApi";
 
