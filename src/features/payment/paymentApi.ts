@@ -50,13 +50,16 @@ export type TransactionHistory = {
   transactionType: string;
   amount: number;
   paymentMethod: string;
-  status: PaymentStatus;
+  status: PaymentStatus | 'REJECTED';
   createdAt: string;
   refundReason: string | null;
   succeededAt: string | null;
   refundConfirmedBy: number | null;
   refundTransferReference: string | null;
   refundConfirmationNote: string | null;
+  refundRejectedBy: number | null;
+  refundRejectedAt: string | null;
+  refundRejectionReason: string | null;
 };
 
 export const payments = {
@@ -82,7 +85,8 @@ export const refunds = {
     method: 'POST', body: JSON.stringify(body),
   }),
   mine: (page = 0) => paymentApi<TransactionHistory[]>(`/payments/refunds/me?page=${page}&size=20`),
-  list: (page = 0, status: 'PENDING' | 'SUCCEEDED' = 'PENDING') => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20&status=${status}`),
+  list: (page = 0, status: 'PENDING' | 'SUCCEEDED' | 'REJECTED' = 'PENDING') => paymentApi<TransactionHistory[]>(`/payments/refunds?page=${page}&size=20&status=${status}`),
+  reject: (id: number, reason: string) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
   confirm: (id: number, body: { transferReference: string; note?: string }) => paymentApi<TransactionHistory>(`/payments/refunds/${id}/confirm`, { method: 'POST', body: JSON.stringify(body) }),
 };
 

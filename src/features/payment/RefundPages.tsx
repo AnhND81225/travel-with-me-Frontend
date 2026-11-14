@@ -45,13 +45,16 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
   const [previewError, setPreviewError] = useState('');
   const [submitted, setSubmitted] = useState<TransactionHistory | null>(null);
   const [page, setPage] = useState(0);
-  const [refundStatus, setRefundStatus] = useState<'PENDING' | 'SUCCEEDED'>('PENDING');
+  const [refundStatus, setRefundStatus] = useState<'PENDING' | 'SUCCEEDED' | 'REJECTED'>('PENDING');
   const [hasNext, setHasNext] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  const [rejection, setRejection] = useState<TransactionHistory | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionError, setRejectionError] = useState('');
   const [confirmation, setConfirmation] = useState<TransactionHistory | null>(null);
 
   const fetchPage = useCallback(async () => {
@@ -180,6 +183,21 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
       inFlight.current = false;
       setBusy(false);
     }
+  }
+
+  async function rejectRefund() {
+    if (!rejection || inFlight.current) return;
+    if (!rejectionReason.trim()) { setRejectionError('Please enter a rejection reason.'); return; }
+    inFlight.current = true;
+    setBusy(true); setRejectionError(''); setError(''); setNotice('');
+    try {
+      const result = await refunds.reject(rejection.transactionId, rejectionReason.trim());
+      setRejection(null);
+      setNotice(`Refund request #${result.transactionId} rejected. No money was returned.`);
+      await load().catch(() => setError('Request rejected, but the list could not be refreshed. Please click Refresh.'));
+    } catch (e) {
+      setRejectionError(e instanceof Error ? e.message : 'Unable to reject refund request.');
+    } finally { inFlight.current = false; setBusy(false); }
   }
 
   const targetRows = [...rows, ...(submitted ? [submitted] : [])].filter((row) =>
@@ -725,6 +743,24 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
         </Modal>
       )}
 
+      {rejection && <Modal isOpen onClose={() => { if (!inFlight.current) setRejection(null); }} title="Reject Refund Request" maxWidth="md">
+        <div className="space-y-4 text-sm">
+          <div className="p-4 bg-[#F8F6F1] border border-[#D8D2C5] space-y-2">
+            <p className="font-bold">Refund #{rejection.transactionId} · {vnd(rejection.amount)}</p>
+            <p>{rejection.orderId ? `Order #${rejection.orderId}` : `Tour Ticket #${rejection.participantId}`}</p>
+            <p className="text-[#5C665F] break-words">Customer reason: {rejection.refundReason || 'No reason recorded.'}</p>
+          </div>
+          <p>This closes the request without returning money. The customer will see your reason.</p>
+          <label className="block font-bold" htmlFor="refund-rejection-reason">Rejection reason *</label>
+          <textarea id="refund-rejection-reason" required maxLength={2000} rows={4} disabled={busy} value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} className="w-full border border-[#D8D2C5] bg-white rounded-xs p-3" placeholder="Explain why this refund request is being rejected" />
+          {rejectionError && <p role="alert" className="text-red-700">{rejectionError}</p>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" disabled={busy} onClick={() => setRejection(null)}>Back</Button>
+            <Button variant="danger" disabled={busy || !rejectionReason.trim()} onClick={() => void rejectRefund()}>{busy ? 'Rejecting...' : 'Reject Request'}</Button>
+          </div>
+        </div>
+      </Modal>}
+
       {/* Refund Tracking History Section */}
       <Card padding="md" className="space-y-5 bg-[#F8F6F1] border border-[#D8D2C5]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D8D2C5] pb-4">
@@ -736,7 +772,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
               {admin
                 ? refundStatus === 'PENDING'
                   ? 'Pending Review Requests'
-                  : 'Completed Refund Disbursements'
+                  : refundStatus === 'REJECTED' ? 'Rejected Refund Requests' : 'Completed Refund Disbursements'
                 : 'My Refund Requests & Resolution Records'}
             </h2>
           </div>
@@ -757,43 +793,9 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
           </div>
         </div>
 
-        {/* Admin Filter Tabs */}
-        {admin && (
-          <div className="flex items-center gap-2 border-b border-[#D8D2C5]/60 pb-3">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setRefundStatus('PENDING');
-                setPage(0);
-                setConfirmation(null);
-              }}
-              className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
-                refundStatus === 'PENDING'
-                  ? 'bg-[#152A20] text-white shadow-xs'
-                  : 'bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]'
-              }`}
-            >
-              Pending Review
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setRefundStatus('SUCCEEDED');
-                setPage(0);
-                setConfirmation(null);
-              }}
-              className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
-                refundStatus === 'SUCCEEDED'
-                  ? 'bg-[#152A20] text-white shadow-xs'
-                  : 'bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]'
-              }`}
-            >
-              Completed Refunds
-            </button>
-          </div>
-        )}
+        {admin && <div className="flex flex-wrap items-center gap-2 border-b border-[#D8D2C5]/60 pb-3" role="group" aria-label="Refund status">
+          {([{ status: 'PENDING', label: 'Pending Review' }, { status: 'SUCCEEDED', label: 'Completed Refunds' }, { status: 'REJECTED', label: 'Rejected' }] as const).map(item => <button key={item.status} type="button" disabled={busy} aria-pressed={refundStatus === item.status} onClick={() => { setRefundStatus(item.status); setPage(0); setConfirmation(null); setRejection(null); }} className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider transition cursor-pointer ${refundStatus === item.status ? 'bg-[#152A20] text-white shadow-xs' : 'bg-white text-[#5C665F] border border-[#D8D2C5] hover:bg-[#EBE6DC]'}`}>{item.label}</button>)}
+        </div>}
 
         {/* Requests List */}
         {loading ? (
@@ -811,7 +813,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                   : admin
                   ? refundStatus === 'PENDING'
                     ? 'No pending refund requests'
-                    : 'No completed refunds yet'
+                    : refundStatus === 'REJECTED' ? 'No rejected refund requests' : 'No completed refunds yet'
                   : 'No refund requests found'}
               </h3>
               <p className="text-xs text-[#5C665F] font-body max-w-sm mx-auto">
@@ -868,10 +870,10 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                     </div>
 
                     <Badge
-                      variant={row.status === 'SUCCEEDED' ? 'success' : 'warning'}
+                      variant={row.status === 'REJECTED' ? 'danger' : row.status === 'SUCCEEDED' ? 'success' : 'warning'}
                       className="py-1 px-2.5 font-bold"
                     >
-                      {row.status === 'SUCCEEDED' ? 'Refunded' : 'Pending Review'}
+                      {row.status === 'REJECTED' ? 'Rejected' : row.status === 'SUCCEEDED' ? 'Refunded' : 'Pending Review'}
                     </Badge>
                   </div>
                 </div>
@@ -906,8 +908,13 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                       </div>
                     )}
 
+                    {row.status === 'REJECTED' && <div className="p-3 bg-red-50 border border-red-100 text-red-800 text-left space-y-1 break-words">
+                      <p className="font-bold">Rejection reason</p><p className="whitespace-pre-wrap">{row.refundRejectionReason || 'No reason recorded.'}</p>
+                      {row.refundRejectedAt && <p>Rejected: {new Date(row.refundRejectedAt).toLocaleString('en-GB')}</p>}
+                    </div>}
+
                     {admin && row.status === 'PENDING' && (
-                      <div className="pt-2">
+                      <div className="pt-2 flex flex-wrap gap-2 sm:justify-end">
                         <Button
                           variant="accent"
                           size="sm"
@@ -922,6 +929,7 @@ export function RefundsPage({ admin = false }: { admin?: boolean }) {
                         >
                           Confirm Money Returned
                         </Button>
+                        <Button variant="danger" size="sm" disabled={busy} onClick={() => { setRejection(row); setRejectionReason(''); setRejectionError(''); setError(''); }}>Reject Request</Button>
                       </div>
                     )}
                   </div>
