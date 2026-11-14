@@ -851,12 +851,15 @@ export function EventsGuidesAdminPage() {
             <div role="status" className="border border-emerald-200 bg-emerald-50 p-4 text-sm space-y-2">
               <b>Guide account created: {guideCredentials.guide.displayName}</b>
               <p>Email: {guideCredentials.email}</p>
-              <p>Temporary password: <code className="select-all font-semibold">{guideCredentials.temporaryPassword}</code></p>
-              <p>{guideCredentials.emailSent
-                ? "Account details have been sent by email."
-                : "Account created, but email was not sent. Share these credentials securely with the guide."}</p>
-              <p>Ask the guide to change this password after signing in. It will not be shown again after closing this message.</p>
-              <button type="button" className="underline" onClick={() => setGuideCredentials(null)}>Close account details</button>
+              <p className="font-medium text-emerald-900">
+                {guideCredentials.emailSent
+                  ? "Account details and temporary password have been sent directly by email."
+                  : "Account created successfully. Please check your email configuration if delivery failed."}
+              </p>
+              <p className="text-xs text-emerald-800">
+                For security reasons, the temporary password is not displayed here. The tour guide must check their email to retrieve it and change their password upon first login.
+              </p>
+              <button type="button" className="underline cursor-pointer" onClick={() => setGuideCredentials(null)}>Close account details</button>
             </div>
           )}
 

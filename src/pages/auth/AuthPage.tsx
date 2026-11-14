@@ -89,14 +89,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
   const proceedRedirect = React.useCallback((account: Account) => {
     setSuccessMessage(`Signed in successfully! Welcome, ${account.fullName}.`);
-    if (tempPwdParam) {
+    if (tempPwdParam || googleWelcomeParam === "1") {
       try {
-        sessionStorage.setItem("terrapeak_google_temp_pwd", tempPwdParam);
+        sessionStorage.setItem("terrapeak_google_welcome", "1");
+        sessionStorage.removeItem("terrapeak_google_temp_pwd");
       } catch (_) {}
-      navigate("/passport", { replace: true });
-      return;
-    }
-    if (googleWelcomeParam === "1") {
       navigate("/passport", { replace: true });
       return;
     }
@@ -128,7 +125,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
 
       catalogApi<Account>("/users/me")
         .then((account) => {
-          if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
+          if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email, account)) {
             setPendingChangePasswordUser(account);
             setBusy(false);
             return;
@@ -171,7 +168,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ defaultMode = "login" }) => 
         throw new Error("Your account is currently locked or inactive.");
       }
 
-      if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email)) {
+      if ((account.role === "STAFF" || account.role === "GUIDE") && doesAccountRequirePasswordChange(account.email, account)) {
         setPendingChangePasswordUser(account);
         setBusy(false);
         return;
